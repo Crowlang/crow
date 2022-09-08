@@ -1,0 +1,512 @@
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+
+#include "types.h"
+#include "core.h"
+
+CRO_Value CRO_string(CRO_State* s, int argc, char** argv){
+  CRO_Value v;
+  int x;
+  char* stringValue;
+  int stringSize;
+  int strptr;
+  
+  
+  stringValue = malloc(CRO_BUFFER_SIZE * sizeof(char));
+  stringSize = CRO_BUFFER_SIZE;
+  strptr = 0;
+  
+  
+
+  for(x = 1; x <= argc; x++){
+    int y;
+    char* innerBuffer;
+    
+    v = CRO_innerEval(s, argv[x], 0);
+    
+      
+      
+    if(v.type == CRO_Number){
+      innerBuffer = malloc(CRO_BUFFER_SIZE * sizeof(char));
+      sprintf(innerBuffer, "%.15g", v.numberValue);
+    }
+    else if(v.type == CRO_Function){
+      innerBuffer = "Function";
+    }
+    else if(v.type == CRO_String){
+      innerBuffer = v.stringValue;
+    }
+    else if(v.type == CRO_None){
+      innerBuffer = "Undefined";
+    }
+    else if(v.type == CRO_Array){
+      innerBuffer = "Array []";
+      /* TODO: Make this print contents of array */
+    }
+    else if(v.type == CRO_Struct){
+      innerBuffer = "Struct {}";
+    }
+    else if(v.type == CRO_Bool){
+      if(v.integerValue){
+        innerBuffer = "true";
+      }
+      else{
+        innerBuffer = "false";
+      }
+    }
+    else{
+      innerBuffer = "";
+    }
+    
+    for(y = 0; innerBuffer[y] != 0; y++){
+      stringValue[strptr] = innerBuffer[y];
+      strptr++;
+      
+      if(strptr >= stringSize){
+        stringSize *= 2;
+        stringValue = realloc(stringValue, stringSize * sizeof(char));
+      }
+    }
+    
+    if(v.type == CRO_Number){
+      free(innerBuffer);
+    }
+  }
+  stringValue[strptr] = 0;
+  CRO_toString(s, v, stringValue);
+  return v;
+}
+
+/* TODO: Implement str-insert */
+CRO_Value CRO_strInsert(CRO_State* s, int argc, char** argv){
+  CRO_Value ret;
+  
+  if(argc == 3){
+    CRO_Value str, insert, index;
+    char* newString;
+    int nsSize, nsPtr;
+    
+    str = CRO_innerEval(s, argv[1], 0);
+    insert = CRO_innerEval(s, argv[2], 0);
+    index = CRO_innerEval(s, argv[3], 0);
+    
+    nsSize = CRO_BUFFER_SIZE;
+    nsPtr = 0;
+    newString = (char*)malloc(nsSize * sizeof(char));
+    
+    #ifdef CROWLANG_PEDANTIC_UTF8
+      /* Go through the string and make sure to account for UTF8 characters and
+       * stop at the index for inserting the new string*/
+      {
+        int i, j;
+        unsigned char* string;
+        
+        string = (unsigned char*)str.stringValue;
+        
+        i = 0;
+        j = 0;
+        
+        for(;string[j] != 0 && i != index.numberValue; i++){
+          int k;
+          
+          if(string[j] >= 240){
+            k = 4;
+          }
+          else if(string[j] >= 224){
+            k = 3;
+          }
+          else if(string[j] >= 192){
+            k = 2;
+          }
+          else{
+            k = 1;
+          }
+          
+          for(; k > 0; k--, j++){
+            newString[nsPtr++] = string[j];
+            
+            if(nsPtr >= nsSize){
+              nsSize *= 2;
+              newString = (char*)realloc(newString, nsSize * sizeof(char));
+            }
+          }
+          
+        }
+        
+        /* Now copy the inserted string into the new string */
+        string = (unsigned char*)insert.stringValue;
+        for(i = 0; string[i] != 0; i++){
+          newString[nsPtr++] = string[i];
+          
+          if(nsPtr >= nsSize){
+            nsSize *= 2;
+            newString = (char*)realloc(newString, nsSize * sizeof(char));
+          }
+        }
+        
+        /* Now copy the rest of the string */
+        string = (unsigned char*)str.stringValue;
+        for(; string[j] != 0; j++){
+          newString[nsPtr++] = string[j];
+          
+          if(nsPtr >= nsSize){
+            nsSize *= 2;
+            newString = (char*)realloc(newString, nsSize * sizeof(char));
+          }
+        }
+        
+        newString[nsPtr] = 0;
+      }
+    #else
+      /* Since we don't have a char type, and it would be a right pain to support
+       * a different type AND still have it work with string functions like strcat
+       * its just much easier to make a 2 character array, the character in 
+       * question and the NULL terminator */
+      characterAt = (char*)malloc(2 * sizeof(char));
+      
+      
+      characterAt[0] = str.stringValue[index];
+      characterAt[1] = 0;
+      #error This is not yet implemented, it will error out
+    #endif
+    
+    CRO_toString(s, ret, newString);
+  }
+  else{
+    CRO_toNone(ret);
+    /* Error */
+  }
+  
+  return ret;
+}
+
+CRO_Value CRO_charAt(CRO_State* s, int argc, char** argv){
+  CRO_Value v, str, pos;
+  if(argc == 2){
+    int index;
+    char* characterAt;
+    
+    str = CRO_innerEval(s, argv[1], 0);
+    pos = CRO_innerEval(s, argv[2], 0);
+    
+    if(str.type != CRO_String){
+      /* Error */
+    }
+    else if(pos.type != CRO_Number){
+      /* Error */
+    }
+    
+    index = (int)pos.numberValue;
+    
+    #ifdef CROWLANG_PEDANTIC_UTF8
+      /* Go through the string and make sure to account for UTF8 characters */
+      {
+        int i, j, size;
+        unsigned char* string;
+        
+        string = (unsigned char*)str.stringValue;
+        
+        i = 0;
+        j = 0;
+        size = 0;
+        
+        for(i = 0;string[j] != 0 && i != index; i++){
+          if(string[j] >= 240){
+            j += 4;
+          }
+          else if(string[j] >= 224){
+            j += 3;
+          }
+          else if(string[j] >= 192){
+            j += 2;
+          }
+          else{
+            j += 1;
+          }
+        }
+        
+        if(string[j] >= 240){
+          size = 4;
+        }
+        else if(string[j] >= 224){
+          size = 3;
+        }
+        else if(string[j] >= 192){
+          size = 2;
+        }
+        else if(string[j] == 0){
+          CRO_toNone(v);
+          return v;
+        }
+        else{
+          size = 1;
+        }
+
+        /* WHY WHY WHY WHY WHY WHY DOES UTF8 EXIST */
+        characterAt = (char*)malloc((size + 1) * sizeof(char));
+        characterAt = memset(characterAt, 0, (size + 1));
+        characterAt = memcpy(characterAt, &str.stringValue[j], size);
+      }
+    #else
+      /* Since we don't have a char type, and it would be a right pain to support
+       * a different type AND still have it work with string functions like strcat
+       * its just much easier to make a 2 character array, the character in 
+       * question and the NULL terminator */
+      characterAt = (char*)malloc(2 * sizeof(char));
+      
+      
+      characterAt[0] = str.stringValue[index];
+      characterAt[1] = 0;
+    #endif
+    
+    
+    
+    
+    CRO_toString(s, v, characterAt);
+  }
+  else{
+    CRO_toNone(v);
+  }
+
+  return v;
+}
+
+CRO_Value CRO_substr(CRO_State* s, int argc, char** argv){
+  CRO_Value ret;
+  
+  if(argc == 3){
+    CRO_Value str, start, end;
+    int i, j, startIndex, endIndex, nsSize, nsPtr;
+    char* newString;
+    unsigned char* string;
+    
+    str = CRO_innerEval(s, argv[1], 0);
+    start = CRO_innerEval(s, argv[2], 0);
+    end = CRO_innerEval(s, argv[3], 0);
+    
+    if(str.type != CRO_String){
+      char* err;
+      err = malloc(128 * sizeof(char));
+      
+      sprintf(err, "[%s] %s is not a string", argv[0], argv[1]);
+      ret = CRO_error(err);
+      free(err);
+      return ret;
+    }
+    else if(start.type != CRO_Number){
+      char* err;
+      err = malloc(128 * sizeof(char));
+      
+      sprintf(err, "[%s] %s is not a number", argv[0], argv[2]);
+      ret = CRO_error(err);
+      free(err);
+      return ret;
+    }
+    else if(end.type != CRO_Number){
+      char* err;
+      err = malloc(128 * sizeof(char));
+      
+      sprintf(err, "[%s] %s is not a number", argv[0], argv[3]);
+      ret = CRO_error(err);
+      free(err);
+      return ret;
+    }
+    
+    nsPtr = 0;
+    nsSize = CRO_BUFFER_SIZE;
+    newString = (char*)malloc(nsSize * sizeof(char));
+    
+    string = (unsigned char*)str.stringValue;
+    startIndex = start.numberValue;
+    endIndex = end.numberValue;
+    
+    i = 0;
+    j = 0;
+    
+    for(i = 0; string[j] != 0 && i != startIndex; i++){
+      if(string[j] >= 240){
+        j += 4;
+      }
+      else if(string[j] >= 224){
+        j += 3;
+      }
+      else if(string[j] >= 192){
+        j += 2;
+      }
+      else{
+        j += 1;
+      }
+    }
+    
+    for(;string[j] != 0 && i != endIndex; i++){
+      int k;
+      if(string[j] >= 240){
+        k = 4;
+      }
+      else if(string[j] >= 224){
+        k = 3;
+      }
+      else if(string[j] >= 192){
+        k = 2;
+      }
+      else{
+        k = 1;
+      }
+      
+      for(; k > 0; k--, j++){
+        newString[nsPtr++] = string[j];
+        
+        if(nsPtr >= nsSize){
+          nsSize *= 2;
+          newString = (char*)realloc(newString, nsSize * sizeof(char));
+        }
+      }
+    }
+    
+    newString[nsPtr] = 0;
+    CRO_toString(s, ret, newString);
+    
+    return ret;
+  }
+  else{
+    char* err;
+    err = malloc(128 * sizeof(char));
+    
+    sprintf(err, "[%s] Expected 3 arguements, %d given", argv[0], argc);
+    ret = CRO_error(err);
+    free(err);
+    return ret;
+  }
+}
+
+CRO_Value CRO_split(CRO_State* s, int argc, char** argv){
+  CRO_Value ret;
+  
+  if(argc == 2){
+    CRO_Value string;
+    CRO_Value delim;
+    
+    string = CRO_innerEval(s, argv[1], 0);
+    delim = CRO_innerEval(s, argv[2], 0);
+    
+    if(string.type == CRO_String){
+      if(delim.type == CRO_String){
+        CRO_Value* array;
+        char* stringBuffer;
+        int stringLen, delimLen, arrayPtr, sbPtr, arraySize, stringSize, ptr;
+        
+        /* Set up our values */
+        stringLen = strlen(string.stringValue);
+        delimLen = strlen(delim.stringValue);
+        
+        arrayPtr = 0;
+        sbPtr = 0;
+        ptr = 0;
+        
+        arraySize = CRO_BUFFER_SIZE;
+        stringSize = CRO_BUFFER_SIZE;
+        
+        array = (CRO_Value*)malloc(arraySize * sizeof(CRO_Value));
+        stringBuffer = (char*)malloc(stringSize * sizeof(char));
+        
+        ret.type = CRO_Array;
+        ret.arrayValue = array;
+        
+        /* Iterate over the string */
+        for(ptr = 0; ptr < stringLen; ptr++){
+          /* Have we found the deliminator? */
+          if(strncmp(&string.stringValue[ptr], delim.stringValue, delimLen) == 0){
+            CRO_Value addString;
+            
+            /* If the delim length is 0, we are matching EVERY char, so we need
+             * to add it to the buffer or else we will just have an array of
+             * blank strings, however blank strings ARE allowed in the results,
+             * so this is a specific event that needs to be accounted for */
+            if(delimLen == 0){
+              stringBuffer[sbPtr++] = string.stringValue[ptr];
+            }
+            /* If the delim length isnt 0, we need to add that to ptr so we pass
+             * over the entire match */
+            else{
+              ptr += delimLen - 1;
+            }
+            
+            /* NULL terminate the string */
+            stringBuffer[sbPtr] = 0;
+            
+            CRO_toString(s, addString, stringBuffer);
+            
+            /* Add to our array */
+            array[arrayPtr++] = addString;
+            
+            /* Increase the array size if we need to */
+            if(arrayPtr >= arraySize){
+              arraySize *= 2;
+              array = (CRO_Value*)realloc(array, arraySize * sizeof(CRO_Value));
+            }
+            
+            stringSize = CRO_BUFFER_SIZE;
+            sbPtr = 0;
+            stringBuffer = (char*)malloc(stringSize * sizeof(char));
+          }
+          /* If we dont match the delim, we just are adding to the buffer */
+          else{
+            stringBuffer[sbPtr++] = string.stringValue[ptr];
+            if(sbPtr >= stringSize){
+              stringSize *= 2;
+              stringBuffer = (char*)realloc(stringBuffer, stringSize * sizeof(char));
+            }
+          }
+        }
+        /* We are done with the loop */
+        
+        /* Again with edge cases, we need to make sure we DON'T process extra 
+         * data if we have a delim with length 0 */
+        if(delimLen != 0){
+          CRO_Value addString;
+          stringBuffer[sbPtr] = 0;
+          CRO_toString(s, addString, stringBuffer);
+          
+          array[arrayPtr++] = addString;
+          if(arrayPtr >= arraySize){
+            arraySize *= 2;
+            array = (CRO_Value*)realloc(array, arraySize * sizeof(CRO_Value));
+          }
+        }
+        
+        ret.type = CRO_Array;
+        ret.allotok = CRO_malloc(s, array);
+        ret.arraySize = arrayPtr;
+        return ret;
+      }
+      else{
+        char* err;
+        err = malloc(128 * sizeof(char));
+        
+        sprintf(err, "[%s] %s is not a string", argv[0], argv[2]);
+        ret = CRO_error(err);
+        free(err);
+        return ret;
+      }
+    }
+    else{
+      char* err;
+      err = malloc(128 * sizeof(char));
+      
+      sprintf(err, "[%s] %s is not a string", argv[0], argv[1]);
+      ret = CRO_error(err);
+      free(err);
+      return ret;
+    }
+  }
+  else{
+    char* err;
+    err = malloc(128 * sizeof(char));
+    
+    sprintf(err, "[%s] Expected 2 arguements. (%d given)", argv[0], argc);
+    ret = CRO_error(err);
+    free(err);
+    return ret;
+  }
+}

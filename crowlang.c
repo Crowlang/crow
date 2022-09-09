@@ -179,6 +179,7 @@ int main(int argc, char* argv[]){
   CRO_exposeFunction(s, "sh", CRO_sh);
   CRO_exposeFunction(s, "$", CRO_sh);
   CRO_exposeFunction(s, "time", CRO_time);
+  CRO_exposeFunction(s, "eval", CRO_evalCommand);
   
   /* string.h */
   CRO_exposeFunction(s, "string", CRO_string);

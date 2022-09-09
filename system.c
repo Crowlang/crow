@@ -59,3 +59,34 @@ CRO_Value CRO_time(CRO_State* s, int argc, char** argv){
   
   return ret;  
 }
+
+CRO_Value CRO_evalCommand(CRO_State* s, int argc, char** argv){
+	CRO_Value ret;
+	
+	if(argc == 1){
+		CRO_Value e;
+		e = CRO_innerEval(s, argv[1], 0);
+		
+		if(e.type == CRO_String){
+			ret = CRO_eval(s, e.stringValue);
+		}
+		else{
+			char* err;
+			err = malloc(128 * sizeof(char));
+			
+			sprintf(err, "(%s): %s is not a String", argv[0], argv[1]);
+			ret = CRO_error(err);
+			free(err);
+		}
+	}
+	else{
+		char* err;
+    err = malloc(128 * sizeof(char));
+    
+    sprintf(err, "(%s): Expected 1 arguement. (%d given)", argv[0], argc);
+    ret = CRO_error(err);
+    free(err);
+	}
+	
+	return ret;
+}

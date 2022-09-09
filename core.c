@@ -786,10 +786,10 @@ CRO_Value CRO_innerEval(CRO_State* s, char* src, int flags){
             str[strptr++] = '\\';
           break;
           case '\"':
-			str[strptr++] = '\"';
+            str[strptr++] = '\"';
           break;
           case '\'':
-			str[strptr++] = '\"';
+            str[strptr++] = '\"';
           break;
         }
       }

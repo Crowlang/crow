@@ -510,3 +510,35 @@ CRO_Value CRO_split(CRO_State* s, int argc, char** argv){
     return ret;
   }
 }
+
+CRO_Value CRO_startsWith(CRO_State* s, int argc, char** argv){
+  CRO_Value ret;
+  
+  if(argc == 2){
+    CRO_Value str, start;
+    str = CRO_innerEval(s, argv[1], 0);
+    start = CRO_innerEval(s, argv[2], 0);
+    
+    if(str.type == CRO_String){
+      if(start.type == CRO_String){
+        int len;
+        
+        len = strlen(start.stringValue);
+        
+        if(strncmp(str.stringValue, start.stringValue, len) == 0){
+          CRO_toBoolean(ret, 1);
+        }
+        else{
+          CRO_toBoolean(ret, 0);
+        }
+        return ret;
+      }
+    }
+    else{
+      
+    }
+  }
+  else{
+    
+  }
+}

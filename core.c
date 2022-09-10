@@ -527,9 +527,7 @@ CRO_Value CRO_callFunction(CRO_State* s, CRO_Value func, int argc, char** argv, 
     char* funcbody, *varname;
     int varnameptr, varcount, varnamesize, lastblock;
     
-    lastblock = s->functionBlock;
-    s->block += 1;
-    s->functionBlock = s->block;
+    
 
     strname.type = CRO_String;
     strname.stringValue = CRO_cloneStr(argv[0]);
@@ -548,7 +546,7 @@ CRO_Value CRO_callFunction(CRO_State* s, CRO_Value func, int argc, char** argv, 
     argarrval.arraySize = argc;
     
     argarr.hash = CRO_genHash("ARGS");
-    argarr.block = s->block;
+    argarr.block = s->block + 1;
     argarr.value = argarrval;
 
     s->variables[s->vptr] = argarr;
@@ -577,7 +575,7 @@ CRO_Value CRO_callFunction(CRO_State* s, CRO_Value func, int argc, char** argv, 
 
           varname[varnameptr] = 0;
           argvv.hash = CRO_genHash(varname);
-          argvv.block = s->block;
+          argvv.block = s->block + 1;
           
           argval = CRO_innerEval(s, argv[varcount], 0);
 
@@ -633,6 +631,10 @@ CRO_Value CRO_callFunction(CRO_State* s, CRO_Value func, int argc, char** argv, 
         #endif
       }
     }
+    
+    lastblock = s->functionBlock;
+    s->block += 1;
+    s->functionBlock = s->block;
     
     v = CRO_innerEval(s, &funcbody[x], 0);
     
@@ -908,7 +910,7 @@ CRO_Value CRO_eval(CRO_State *s, char* src){
 
 CRO_Value CRO_evalFile(CRO_State* s, FILE* src){
   CRO_Value v;
-  int c, paren, state, ptr, size, com, lsp;
+  int c, paren, state, ptr, size, com, lsp, le, sc;
   char* input;
   
   com = 0;
@@ -925,7 +927,6 @@ CRO_Value CRO_evalFile(CRO_State* s, FILE* src){
   /* Run for as long as we aren't hitting EOF */
   while(running && c != EOF){
     
-    /* Check if we are in a comment */
     if(com != 2 && c == ';'){
       com++;
     }
@@ -942,14 +943,24 @@ CRO_Value CRO_evalFile(CRO_State* s, FILE* src){
         
         /* There should be one paren still in here */
         ptr--;
+        
       }
       
       c = fgetc(src);
+      lsp = 1;
+      state = CC_NONE;
       continue;
     }
     
     /* Make sure we normalize how many spaces we take in */
-    if(c <= 32){
+    
+    /* If the state is CC_EXEC, we need to ignore this so that we execute 
+     * normally, in CC_EXEC the final character of the input is a \n, which 
+     * means it will be trapped here and not execute, we ignore the \n in 
+     * execution anyway */
+     
+     /* Also make sure we don't trim strings */
+    if(state != CC_EXEC && state != CC_STRING && c <= 32){
       if(lsp){
         c = fgetc(src);
         continue;
@@ -970,9 +981,17 @@ CRO_Value CRO_evalFile(CRO_State* s, FILE* src){
         
         /* TODO: Eventually make a CC_STRING to make sure strings are properly
          * closed */
-        if(c == '('){
+        if(c <= 32){
+          c = fgetc(src);
+          continue;
+        }
+        else if(c == '('){
           paren = 1;
           state = CC_STATEMENT;
+        }
+        else if(c == '\"' || c == '\''){
+          state = CC_STRING;
+          sc = c;
         }
         else{
           state = CC_VARIABLE;
@@ -999,7 +1018,6 @@ CRO_Value CRO_evalFile(CRO_State* s, FILE* src){
       
       /* We are processing a value call */
       case CC_VARIABLE: {
-        
         /* If we are reading a value statement and we see a (, we know we 
          * are now reading a function call.  Likewise if we see a space we
          * know we reached the end of the statement */
@@ -1010,12 +1028,33 @@ CRO_Value CRO_evalFile(CRO_State* s, FILE* src){
       }
       break;
       
+      case CC_STRING: {
+        /* If we see a \, and our last character was not an escape, then this
+         * one is. */
+        if(le == 0 && c == '\\'){
+          le = 1;
+        }
+        /* If we had an escape last character, it means the escape is now over
+         * since we have no support for the longer escapes */
+        else if(le == 1){
+          le = 0;
+        }
+        /* If we don't have an escape, but we do have either a ' or ", which
+         * ever started the string, then we are at the end of the string and
+         * are safe to start executing */
+        else if(le == 0 && c == sc){
+          state = CC_EXEC;
+        }
+        
+      }
+      break;
+      
       /* We are executing the command */
       case CC_EXEC: {
         input[ptr] = 0;
-        
         v = CRO_innerEval(s, input, 0);
-        CRO_callGC(s);
+        
+        
         
         /* Check our exit code */
         if(s->exitCode == CRO_ExitCode){
@@ -1026,12 +1065,16 @@ CRO_Value CRO_evalFile(CRO_State* s, FILE* src){
         ptr = 0;
         lsp = 1;
         
+        CRO_callGC(s);
+        
         state = CC_NONE;
       }
       continue;
       
     }
     
+    /* If we get here, was are intending on adding the character to input, if
+     * we don't intend on doing this, call 'continue' rather than 'break' */
     input[ptr++] = (char)c;
     
     if(ptr >= size){

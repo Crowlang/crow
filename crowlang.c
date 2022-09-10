@@ -188,6 +188,7 @@ int main(int argc, char* argv[]){
   CRO_exposeFunction(s, "char-at", CRO_charAt);
   CRO_exposeFunction(s, "sub-str", CRO_substr);
   CRO_exposeFunction(s, "split", CRO_split);
+  CRO_exposeFunction(s, "starts-with", CRO_startsWith);
 
   if(argc > 1){
     CRO_Value v;

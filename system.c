@@ -5,6 +5,7 @@
 
 #include "types.h"
 #include "core.h"
+#include "system.h"
 
 CRO_Value CRO_sh(CRO_State* s, int argc, char** argv){
   CRO_Value v, name;

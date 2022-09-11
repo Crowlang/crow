@@ -5,6 +5,7 @@
 
 #include "types.h"
 #include "core.h"
+#include "funcond.h"
 
 CRO_Value CRO_block(CRO_State* s, int argc, char**argv){
   int x;

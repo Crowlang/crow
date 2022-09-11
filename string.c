@@ -4,6 +4,7 @@
 
 #include "types.h"
 #include "core.h"
+#include "string.h"
 
 CRO_Value CRO_string(CRO_State* s, int argc, char** argv){
   CRO_Value v;
@@ -533,12 +534,33 @@ CRO_Value CRO_startsWith(CRO_State* s, int argc, char** argv){
         }
         return ret;
       }
+      else{
+        char* err;
+        err = malloc(128 * sizeof(char));
+      
+        sprintf(err, "[%s] %s is not a String", argv[0], argv[2]);
+        ret = CRO_error(err);
+        free(err);
+        return ret;
+      }
     }
     else{
+      char* err;
+      err = malloc(128 * sizeof(char));
       
+      sprintf(err, "[%s] %s is not a String", argv[0], argv[1]);
+      ret = CRO_error(err);
+      free(err);
+      return ret;
     }
   }
   else{
+    char* err;
+    err = malloc(128 * sizeof(char));
     
+    sprintf(err, "[%s] Expected 2 arguements. (%d given)", argv[0], argc);
+    ret = CRO_error(err);
+    free(err);
+    return ret;
   }
 }

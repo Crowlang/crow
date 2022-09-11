@@ -6,10 +6,11 @@
 #include <stddef.h>
 
 #include "types.h"
+#include "core.h"
 
 int running = 1;
 
-CRO_Value CRO_error(char* msg){
+CRO_Value CRO_error(const char* msg){
   CRO_Value v;
   CRO_toNone(v);
 
@@ -20,7 +21,7 @@ CRO_Value CRO_error(char* msg){
   return v;
 }
 
-CRO_State* CRO_createState(){
+CRO_State* CRO_createState(void){
   CRO_State* s;
   
   /* These File descriptors are opened by default */
@@ -507,7 +508,7 @@ void CRO_GC(CRO_State* s){
 
 CRO_Value CRO_innerEval(CRO_State* s, char* src, int ptr);
 
-CRO_Value CRO_callFunction(CRO_State* s, CRO_Value func, int argc, char** argv, int isStruct, CRO_Value str){
+CRO_Value static CRO_callFunction(CRO_State* s, CRO_Value func, int argc, char** argv, int isStruct, CRO_Value str){
   CRO_Value v;
   int x;
   

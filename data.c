@@ -5,6 +5,7 @@
 
 #include "types.h"
 #include "core.h"
+#include "data.h"
 
 /* Define a variable */
 CRO_Value defVar(CRO_State* s, int argc, char** argv){

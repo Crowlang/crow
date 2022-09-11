@@ -5,6 +5,7 @@
 
 #include "types.h"
 #include "core.h"
+#include "math.h"
 
 CRO_Value CRO_add(CRO_State* s, int argc, char** argv){
   int x;

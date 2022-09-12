@@ -27,8 +27,13 @@ CRO_Value CRO_sh(CRO_State* s, int argc, char** argv){
     char* out;
     int outSize, outPtr, c;
     
+    /* On windows for some reason, popen is implemented as _popoen, however I'm
+     * not sure if we really want to use it*/
+#ifdef _WIN32
+    comm = _popen(name.stringValue, "r");
+#else
     comm = popen(name.stringValue, "r");
-    
+#endif
     outSize = CRO_BUFFER_SIZE;
     outPtr = 0;
     out = (char*)malloc(outSize * sizeof(char));

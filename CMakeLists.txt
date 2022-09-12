@@ -35,10 +35,13 @@ endif()
 
 
 if((${CMAKE_CXX_COMPILER_ID} MATCHES "GNU") OR (${CMAKE_CXX_COMPILER_ID} MATCHES "Clang"))
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c89 -Wall -Wextra -Wpedantic -Wno-unused-parameter -g -DCROWLANG_PEDANTIC_UTF8 -DCROWLANG_USE_UTF8")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c89 -Wall -Wextra -Wpedantic -Wno-unused-parameter -g")
 elseif(${CMAKE_CXX_COMPILER_ID} MATCHES "MSVC")
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /DCROWLANG_PEDANTIC_UTF8 /DCROWLANG_USE_UTF8 /Wall")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /Wall")
 endif()
+
+add_compile_definitions(CROWLANG_USE_UTF8)
+add_compile_definitions(CROWLANG_PEDANTIC_UTF8)
 
 if(DEFINED LIBCROW)
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fpic")

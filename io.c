@@ -554,8 +554,12 @@ CRO_Value CRO_dir(CRO_State* s, int argc, char** argv){
     closedir(dir);
     return ret;
   }
-  #elif defined(__win32)
+  #elif defined(_WIN32)
   if(argc == 1){
+    
+  }
+  #else
+  if(0){
     
   }
   #endif

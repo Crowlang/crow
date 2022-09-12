@@ -1,0 +1,8 @@
+# Ignore .o files and the Crow executable (which are placed in root when using the Makefile
+*.o
+crow
+libcrow.a
+libcrow.so
+
+# Ignore build/ which is used when using cmake
+build/

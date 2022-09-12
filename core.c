@@ -610,6 +610,7 @@ CRO_Value static CRO_callFunction(CRO_State* s, CRO_Value func, int argc, char**
         }
       }
     }
+    free(varname);
     x++;
     
     /* So... found out the hard way 'this' has to be set ABSOLUTELY last just

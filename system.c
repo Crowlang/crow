@@ -13,7 +13,7 @@ CRO_Value CRO_sh(CRO_State* s, int argc, char** argv){
 
   if(name.type != CRO_String){
     char* msg;
-    msg = (char*)malloc(512 * sizeof(msg));
+    msg = (char*)malloc(512 * sizeof(char));
     sprintf(msg, "Arguement '%s' is not a string", argv[1]);
 
     v = CRO_error(msg);
@@ -54,7 +54,7 @@ CRO_Value CRO_system(CRO_State* s, int argc, char** argv){
 
   if(name.type != CRO_String){
     char* msg;
-    msg = (char*)malloc(512 * sizeof(msg));
+    msg = (char*)malloc(512 * sizeof(char));
     sprintf(msg, "Arguement '%s' is not a string", argv[1]);
 
     v = CRO_error(msg);
@@ -82,7 +82,7 @@ CRO_Value CRO_time(CRO_State* s, int argc, char** argv){
   /* We have a formatter string */
   else if(argc == 1){
     char* msg;
-    msg = (char*)malloc(512 * sizeof(msg));
+    msg = (char*)malloc(512 * sizeof(char));
     sprintf(msg, "Not implemented yet");
 
     ret = CRO_error(msg);

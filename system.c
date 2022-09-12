@@ -46,7 +46,13 @@ CRO_Value CRO_sh(CRO_State* s, int argc, char** argv){
       }
     }
     out[outPtr] = 0;
+    
+    /* Windows hates pclose too */
+#ifdef _WIN32
+    _pclose(comm);
+#else
     pclose(comm);
+#endif
     CRO_toString(s, v, out);
   }
   return v;

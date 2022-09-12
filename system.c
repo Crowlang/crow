@@ -40,7 +40,7 @@ CRO_Value CRO_sh(CRO_State* s, int argc, char** argv){
         out = realloc(out, outSize * sizeof(char));
       }
     }
-    
+    out[outPtr] = 0;
     pclose(comm);
     CRO_toString(s, v, out);
   }

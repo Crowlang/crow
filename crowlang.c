@@ -30,7 +30,7 @@
   return CRO_toNone();
 */
 
-void CRO_printValue(CRO_Value v){
+static void CRO_printValue(CRO_Value v){
   if(v.type == CRO_None){
     CRO_setColor(YELLOW);
     printf("Undefined\n");
@@ -72,7 +72,7 @@ void CRO_printValue(CRO_Value v){
   CRO_setColor(RESET);
 }
 
-CRO_Value hello(CRO_State* s, int argc, char** argv){
+static CRO_Value hello(CRO_State* s, int argc, char** argv){
   CRO_Value v;
   printf("Hello %s\n", argv[1]);
 
@@ -82,13 +82,13 @@ CRO_Value hello(CRO_State* s, int argc, char** argv){
 
 /* We have to put all of these so we can free them from the handler.  Please 
  * tell me if there is a more elegant way to do this */
-CRO_State *s;
-char* input;
-FILE* srcfile;
+static CRO_State *s;
+static char* input;
+static FILE* srcfile;
 
-int execType = 0;
+static int execType = 0;
 
-void handler(int sig){
+static void handler(int sig){
   if(execType == 1){
     fclose(srcfile);
   }

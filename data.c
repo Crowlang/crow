@@ -18,7 +18,6 @@ CRO_Value defVar(CRO_State* s, int argc, char** argv){
   if(argc < 1){
     /*CRO_error("defVar, not enough arguements given");*/
   }
-
   if(argc == 1){
     name = argv[1];
     CRO_toNone(vn);

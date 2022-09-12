@@ -15,5 +15,8 @@ CRO_Value CRO_round(CRO_State* s, int argc, char** argv);
 CRO_Value CRO_floor(CRO_State* s, int argc, char** argv);
 CRO_Value CRO_ceil(CRO_State* s, int argc, char** argv);
 
+CRO_Value CRO_sin(CRO_State* s, int argc, char** argv);
+CRO_Value CRO_cos(CRO_State* s, int argc, char** argv);
+CRO_Value CRO_tan(CRO_State* s, int argc, char** argv);
 
 #endif

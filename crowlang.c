@@ -139,6 +139,9 @@ int main(int argc, char* argv[]){
   CRO_exposeFunction(s, "round", CRO_round);
   CRO_exposeFunction(s, "floor", CRO_floor);
   CRO_exposeFunction(s, "ceil", CRO_ceil);
+  CRO_exposeFunction(s, "sin", CRO_sin);
+  CRO_exposeFunction(s, "cos", CRO_cos);
+  CRO_exposeFunction(s, "tan", CRO_tan);
 
   /* io.h */
   CRO_exposeFunction(s, "import", CRO_import);

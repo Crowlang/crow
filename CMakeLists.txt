@@ -57,5 +57,7 @@ else()
   add_executable(crow crowlang.c ${FILES} ${HEADERS})
 endif()
 
+target_link_libraries(crow m)
+
 set_target_properties(crow PROPERTIES VERSION ${CROW_VERSION_STRING} SOVERSION ${CROW_VERSION_MAJOR})
 install(TARGETS crow DESTINATION bin)

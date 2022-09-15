@@ -9,10 +9,10 @@
   
 #endif
 
-#include "types.h"
-#include "core.h"
-#include "string.h"
-#include "io.h"
+#include <crow/types.h>
+#include <crow/core.h>
+#include <crow/string.h>
+#include <crow/io.h>
 
 CRO_Value CRO_import(CRO_State* s, int argc, char** argv){
   /* TODO Include some header guard support */

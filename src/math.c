@@ -3,9 +3,9 @@
 #include <math.h>
 #include <stdlib.h>
 
-#include "types.h"
-#include "core.h"
-#include "math.h"
+#include <crow/types.h>
+#include <crow/core.h>
+#include <crow/math.h>
 
 CRO_Value CRO_add(CRO_State* s, int argc, char** argv){
   int x;

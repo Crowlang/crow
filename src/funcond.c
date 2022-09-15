@@ -3,9 +3,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "types.h"
-#include "core.h"
-#include "funcond.h"
+#include <crow/types.h>
+#include <crow/core.h>
+#include <crow/funcond.h>
 
 CRO_Value CRO_block(CRO_State* s, int argc, char**argv){
   int x;

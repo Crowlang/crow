@@ -3,9 +3,9 @@
 #include <string.h>
 #include <time.h>
 
-#include "types.h"
-#include "core.h"
-#include "system.h"
+#include <crow/types.h>
+#include <crow/core.h>
+#include <crow/system.h>
 
 CRO_Value CRO_sh(CRO_State* s, int argc, char** argv){
   CRO_Value v, name;

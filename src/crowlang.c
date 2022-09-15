@@ -4,14 +4,14 @@
 #include <ctype.h>
 #include <signal.h>
 
-#include "types.h"
-#include "math.h"
-#include "core.h"
-#include "io.h"
-#include "data.h"
-#include "funcond.h"
-#include "system.h"
-#include "string.h"
+#include <crow/types.h>
+#include <crow/math.h>
+#include <crow/core.h>
+#include <crow/io.h>
+#include <crow/data.h>
+#include <crow/funcond.h>
+#include <crow/system.h>
+#include <crow/string.h>
 
 /*char *trim(char *str)
 {

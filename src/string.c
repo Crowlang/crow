@@ -2,9 +2,9 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "types.h"
-#include "core.h"
-#include "string.h"
+#include <crow/types.h>
+#include <crow/core.h>
+#include <crow/string.h>
 
 CRO_Value CRO_string(CRO_State* s, int argc, char** argv){
   CRO_Value v;

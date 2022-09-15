@@ -5,8 +5,8 @@
 #include <signal.h>
 #include <stddef.h>
 
-#include "types.h"
-#include "core.h"
+#include <crow/types.h>
+#include <crow/core.h>
 
 int running = 1;
 

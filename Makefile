@@ -2,6 +2,7 @@
 # This Makefile assumes GNU Make, and also GCC or a GCC compatible compiler
 
 CFLAGS += -std=c89 -Wall -Wextra -Wpedantic -Wno-unused-parameter -fpic -g
+CFLAGS += -I include/
 CFLAGS += -DCROWLANG_PEDANTIC_UTF8 -DCROWLANG_USE_UTF8
 
 # General optimizations for release builds
@@ -35,8 +36,8 @@ libcrow.a: $(OBJS)
 libcrow.so: $(OBJS)
 	$(CC) -fpic -shared -o libcrow.so *.o
 
-%.o: %.c
-	$(CC) -c $(CFLAGS) $(@:.o=.c) -o $@
+%.o: src/%.c
+	$(CC) -c $(CFLAGS) src/$(@:.o=.c) -o $@
 
 .PHONY: clean
 clean:

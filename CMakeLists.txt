@@ -6,23 +6,23 @@ set(CROW_VERSION_PATCH 0)
 set(CROW_VERSION_TRUNK false)
 
 set(FILES 
-  ${CMAKE_SOURCE_DIR}/src/math.c
-  ${CMAKE_SOURCE_DIR}/src/core.c
-  ${CMAKE_SOURCE_DIR}/src/data.c
-  ${CMAKE_SOURCE_DIR}/src/io.c
-  ${CMAKE_SOURCE_DIR}/src/funcond.c
-  ${CMAKE_SOURCE_DIR}/src/system.c
-  ${CMAKE_SOURCE_DIR}/src/string.c
+  src/math.c
+  src/core.c
+  src/data.c
+  src/io.c
+  src/funcond.c
+  src/system.c
+  src/string.c
 	)
 
 set(HEADERS
-	  ${CMAKE_SOURCE_DIR}/include/crow/math.h
-	  ${CMAKE_SOURCE_DIR}/include/crow/core.h
-	  ${CMAKE_SOURCE_DIR}/include/crow/data.h
-	  ${CMAKE_SOURCE_DIR}/include/crow/io.h
-	  ${CMAKE_SOURCE_DIR}/include/crow/funcond.h
-	  ${CMAKE_SOURCE_DIR}/include/crow/system.h
-	  ${CMAKE_SOURCE_DIR}/include/crow/string.h
+	  include/crow/math.h
+	  include/crow/core.h
+	  include/crow/data.h
+	  include/crow/io.h
+	  include/crow/funcond.h
+	  include/crow/system.h
+	  include/crow/string.h
 	)
 
 project(crow)
@@ -54,10 +54,13 @@ if(DEFINED LIBCROW)
   endif()
 else()
   message(STATUS "Building Crow as an executable")
-  add_executable(crow ${CMAKE_SOURCE_DIR}/src/crowlang.c ${FILES} ${HEADERS})
+  add_executable(crow src/crowlang.c ${FILES} ${HEADERS})
 endif()
-target_include_directories(crow PUBLIC ${CMAKE_SOURCE_DIR}/include/)
+
+target_include_directories(crow PUBLIC include/)
 target_link_libraries(crow m)
+
+set(CROW_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include PARENT_SCOPE)
 
 set_target_properties(crow PROPERTIES VERSION ${CROW_VERSION_STRING} SOVERSION ${CROW_VERSION_MAJOR})
 install(TARGETS crow DESTINATION bin)

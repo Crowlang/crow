@@ -23,6 +23,7 @@ set(HEADERS
 	  include/crow/funcond.h
 	  include/crow/system.h
 	  include/crow/string.h
+    include/crow/types.h
 	)
 
 project(crow)
@@ -60,7 +61,10 @@ endif()
 target_include_directories(crow PUBLIC include/)
 target_link_libraries(crow m)
 
-set(CROW_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include PARENT_SCOPE)
+get_directory_property(submodule PARENT_DIRECTORY)
+if(submodule)
+    set(CROW_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include PARENT_SCOPE)
+endif()
 
 set_target_properties(crow PROPERTIES VERSION ${CROW_VERSION_STRING} SOVERSION ${CROW_VERSION_MAJOR})
 install(TARGETS crow DESTINATION bin)

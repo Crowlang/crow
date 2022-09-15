@@ -61,7 +61,7 @@ typedef struct CRO_State {
   char exitCode;
   char exitContext;
   int gctime;
-    
+  void* data;
 } CRO_State;
 
 #define CRO_BUFFER_SIZE 64

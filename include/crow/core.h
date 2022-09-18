@@ -6,6 +6,7 @@
 extern int running;
 
 CRO_State* CRO_createState(void);
+void CRO_exposeStandardFunctions(CRO_State* s);
 void CRO_freeState(CRO_State* s);
 
 hash_t CRO_genHash(const char* name);

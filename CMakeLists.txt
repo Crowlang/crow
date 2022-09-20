@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.5)
 set(CROW_VERSION_MAJOR 0)
 set(CROW_VERSION_MINOR 1)
 set(CROW_VERSION_PATCH 0)
-set(CROW_VERSION_TRUNK false)
+set(CROW_VERSION_TRUNK true)
 
 set(FILES 
   src/math.c

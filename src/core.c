@@ -154,6 +154,12 @@ void CRO_exposeStandardFunctions(CRO_State* s){
   CRO_exposeFunction(s, "sin", CRO_sin);
   CRO_exposeFunction(s, "cos", CRO_cos);
   CRO_exposeFunction(s, "tan", CRO_tan);
+  CRO_exposeFunction(s, "arcsin", CRO_arcsin);
+  CRO_exposeFunction(s, "arccos", CRO_arccos);
+  CRO_exposeFunction(s, "arctan", CRO_arctan);
+  CRO_exposeFunction(s, "sinh", CRO_sinh);
+  CRO_exposeFunction(s, "cosh", CRO_cosh);
+  CRO_exposeFunction(s, "tanh", CRO_tanh);
 
   /* io.h */
   CRO_exposeFunction(s, "import", CRO_import);
@@ -204,6 +210,9 @@ void CRO_exposeStandardFunctions(CRO_State* s){
   CRO_exposeFunction(s, "sub-str", CRO_substr);
   CRO_exposeFunction(s, "split", CRO_split);
   CRO_exposeFunction(s, "starts-with", CRO_startsWith);
+  
+  /* Expose standard variables */
+  CRO_eval(s, "(defvar PI (const 3.141592653589793))");
 }
 
 void CRO_freeState(CRO_State* s){

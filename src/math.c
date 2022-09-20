@@ -372,3 +372,219 @@ CRO_Value CRO_tan(CRO_State* s, int argc, char** argv){
   }
   return ret;
 }
+
+CRO_Value CRO_arcsin(CRO_State* s, int argc, char** argv){
+  CRO_Value ret;
+  
+  /* We only expect one arguement */
+  if(argc == 1){
+    CRO_Value val;
+    val = CRO_innerEval(s, argv[1], 0);
+    
+    /* It has to be a number */
+    if(val.type == CRO_Number){
+      /* Take the sin of it */
+      double result;
+      result = asin(val.numberValue);
+      CRO_toNumber(ret, result);
+      return ret;
+    }
+    else{
+      char* err;
+      err = malloc(128 * sizeof(char));
+      
+      sprintf(err, "(%s): Expected 3 arguements. (%d given)", argv[0], argc);
+      ret = CRO_error(err);
+      free(err);
+    }
+  }
+  else{
+    char* err;
+    err = malloc(128 * sizeof(char));
+    
+    sprintf(err, "(%s): Expected 3 arguements. (%d given)", argv[0], argc);
+    ret = CRO_error(err);
+    free(err);
+  }
+  return ret;
+}
+
+CRO_Value CRO_arccos(CRO_State* s, int argc, char** argv){
+  CRO_Value ret;
+  
+  /* We only expect one arguement */
+  if(argc == 1){
+    CRO_Value val;
+    val = CRO_innerEval(s, argv[1], 0);
+    
+    /* It has to be a number */
+    if(val.type == CRO_Number){
+      /* Take the cos of it */
+      double result;
+      result = acos(val.numberValue);
+      CRO_toNumber(ret, result);
+      return ret;
+    }
+    else{
+      char* err;
+      err = malloc(128 * sizeof(char));
+      
+      sprintf(err, "(%s): Expected 3 arguements. (%d given)", argv[0], argc);
+      ret = CRO_error(err);
+      free(err);
+    }
+  }
+  else{
+    char* err;
+    err = malloc(128 * sizeof(char));
+    
+    sprintf(err, "(%s): Expected 3 arguements. (%d given)", argv[0], argc);
+    ret = CRO_error(err);
+    free(err);
+  }
+  return ret;
+}
+
+CRO_Value CRO_arctan(CRO_State* s, int argc, char** argv){
+  CRO_Value ret;
+  
+  /* We only expect one arguement */
+  if(argc == 1){
+    CRO_Value val;
+    val = CRO_innerEval(s, argv[1], 0);
+    
+    /* It has to be a number */
+    if(val.type == CRO_Number){
+      /* Take the tan of it */
+      double result;
+      result = atan(val.numberValue);
+      CRO_toNumber(ret, result);
+      return ret;
+    }
+    else{
+      char* err;
+      err = malloc(128 * sizeof(char));
+      
+      sprintf(err, "(%s): Expected 3 arguements. (%d given)", argv[0], argc);
+      ret = CRO_error(err);
+      free(err);
+    }
+  }
+  else{
+    char* err;
+    err = malloc(128 * sizeof(char));
+    
+    sprintf(err, "(%s): Expected 3 arguements. (%d given)", argv[0], argc);
+    ret = CRO_error(err);
+    free(err);
+  }
+  return ret;
+}
+
+CRO_Value CRO_sinh(CRO_State* s, int argc, char** argv){
+  CRO_Value ret;
+  
+  /* We only expect one arguement */
+  if(argc == 1){
+    CRO_Value val;
+    val = CRO_innerEval(s, argv[1], 0);
+    
+    /* It has to be a number */
+    if(val.type == CRO_Number){
+      /* Take the sin of it */
+      double result;
+      result = sinh(val.numberValue);
+      CRO_toNumber(ret, result);
+      return ret;
+    }
+    else{
+      char* err;
+      err = malloc(128 * sizeof(char));
+      
+      sprintf(err, "(%s): Expected 3 arguements. (%d given)", argv[0], argc);
+      ret = CRO_error(err);
+      free(err);
+    }
+  }
+  else{
+    char* err;
+    err = malloc(128 * sizeof(char));
+    
+    sprintf(err, "(%s): Expected 3 arguements. (%d given)", argv[0], argc);
+    ret = CRO_error(err);
+    free(err);
+  }
+  return ret;
+}
+
+CRO_Value CRO_cosh(CRO_State* s, int argc, char** argv){
+  CRO_Value ret;
+  
+  /* We only expect one arguement */
+  if(argc == 1){
+    CRO_Value val;
+    val = CRO_innerEval(s, argv[1], 0);
+    
+    /* It has to be a number */
+    if(val.type == CRO_Number){
+      /* Take the cos of it */
+      double result;
+      result = cosh(val.numberValue);
+      CRO_toNumber(ret, result);
+      return ret;
+    }
+    else{
+      char* err;
+      err = malloc(128 * sizeof(char));
+      
+      sprintf(err, "(%s): Expected 3 arguements. (%d given)", argv[0], argc);
+      ret = CRO_error(err);
+      free(err);
+    }
+  }
+  else{
+    char* err;
+    err = malloc(128 * sizeof(char));
+    
+    sprintf(err, "(%s): Expected 3 arguements. (%d given)", argv[0], argc);
+    ret = CRO_error(err);
+    free(err);
+  }
+  return ret;
+}
+
+CRO_Value CRO_tanh(CRO_State* s, int argc, char** argv){
+  CRO_Value ret;
+  
+  /* We only expect one arguement */
+  if(argc == 1){
+    CRO_Value val;
+    val = CRO_innerEval(s, argv[1], 0);
+    
+    /* It has to be a number */
+    if(val.type == CRO_Number){
+      /* Take the tan of it */
+      double result;
+      result = tanh(val.numberValue);
+      CRO_toNumber(ret, result);
+      return ret;
+    }
+    else{
+      char* err;
+      err = malloc(128 * sizeof(char));
+      
+      sprintf(err, "(%s): Expected 3 arguements. (%d given)", argv[0], argc);
+      ret = CRO_error(err);
+      free(err);
+    }
+  }
+  else{
+    char* err;
+    err = malloc(128 * sizeof(char));
+    
+    sprintf(err, "(%s): Expected 3 arguements. (%d given)", argv[0], argc);
+    ret = CRO_error(err);
+    free(err);
+  }
+  return ret;
+}

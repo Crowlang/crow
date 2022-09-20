@@ -19,4 +19,12 @@ CRO_Value CRO_sin(CRO_State* s, int argc, char** argv);
 CRO_Value CRO_cos(CRO_State* s, int argc, char** argv);
 CRO_Value CRO_tan(CRO_State* s, int argc, char** argv);
 
+CRO_Value CRO_arcsin(CRO_State* s, int argc, char** argv);
+CRO_Value CRO_arccos(CRO_State* s, int argc, char** argv);
+CRO_Value CRO_arctan(CRO_State* s, int argc, char** argv);
+
+CRO_Value CRO_sinh(CRO_State* s, int argc, char** argv);
+CRO_Value CRO_cosh(CRO_State* s, int argc, char** argv);
+CRO_Value CRO_tanh(CRO_State* s, int argc, char** argv);
+
 #endif

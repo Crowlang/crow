@@ -133,6 +133,7 @@ void CRO_exposeStandardFunctions(CRO_State* s){
   CRO_exposeFunction(s, "make-struct", CRO_makeStruct);
   CRO_exposeFunction(s, "struct-set", CRO_setStruct);
   CRO_exposeFunction(s, "struct-get", CRO_getStruct);
+  CRO_exposeFunction(s, "number", CRO_number);
 
   /* math.h */
   CRO_exposeFunction(s, "add", CRO_add);
@@ -181,6 +182,9 @@ void CRO_exposeStandardFunctions(CRO_State* s){
   CRO_exposeFunction(s, "block", CRO_block);
   CRO_exposeFunction(s, "{", CRO_block);
   CRO_exposeFunction(s, "&&", CRO_andand);
+  CRO_exposeFunction(s, "all-true", CRO_andand);
+  CRO_exposeFunction(s, "||", CRO_oror);
+  CRO_exposeFunction(s, "any-true", CRO_oror);
   CRO_exposeFunction(s, "=", CRO_equals);
   CRO_exposeFunction(s, "!=", CRO_notEquals);
   CRO_exposeFunction(s, ">", CRO_greaterThan);

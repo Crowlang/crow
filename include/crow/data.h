@@ -16,4 +16,6 @@ CRO_Value CRO_sample(CRO_State* s, int argc, char** argv);
 CRO_Value CRO_makeStruct(CRO_State* s, int argc, char** argv);
 CRO_Value CRO_setStruct(CRO_State* s, int argc, char** argv);
 CRO_Value CRO_getStruct(CRO_State* s, int argc, char** argv);
+
+CRO_Value CRO_number(CRO_State* s, int argc, char** argv);
 #endif

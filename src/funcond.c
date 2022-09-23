@@ -207,6 +207,44 @@ CRO_Value CRO_andand(CRO_State* s, int argc, char** argv){
   return ret;
 }
 
+CRO_Value CRO_oror(CRO_State* s, int argc, char** argv){
+  CRO_Value ret;
+  
+  if(argc >= 2){
+    CRO_Value v;
+    int i;
+    
+    for(i = 1; i <= argc; i++){
+      v = CRO_innerEval(s, argv[i], 0);
+      
+      if(v.type != CRO_Bool){
+        char* err;
+        err = malloc(128 * sizeof(char));
+        
+        sprintf(err, "(%s): %s is not an boolean", argv[0], argv[i]);
+        ret = CRO_error(err);
+        free(err);
+        return ret;
+      }
+      else if(v.integerValue){
+        CRO_toBoolean(ret, 1);
+        return ret;
+      }
+    }
+    
+    CRO_toBoolean(ret, 0);
+  }
+  else{
+    char* err;
+    err = malloc(128 * sizeof(char));
+    
+    sprintf(err, "(%s): 2 or more arguements expected", argv[0]);
+    ret = CRO_error(err);
+    free(err);
+  }
+  return ret;
+}
+
 CRO_Value CRO_equals(CRO_State* s, int argc, char** argv){
   /* TODO: Make this work for any number of operands */
   CRO_Value a;
@@ -337,7 +375,6 @@ CRO_Value CRO_defined(CRO_State* s, int argc, char** argv){
 
   return ret;
 }
-
 
 CRO_Value CRO_if(CRO_State* s, int argc, char** argv){
   int x;

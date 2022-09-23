@@ -471,3 +471,49 @@ CRO_Value CRO_getStruct(CRO_State* s, int argc, char** argv){
   printf("Cound not find\n");
   return v;
 }
+
+CRO_Value CRO_number(CRO_State* s, int argc, char** argv){
+  CRO_Value ret;
+  
+  if(argc == 1){
+    CRO_Value value;
+    value = CRO_innerEval(s, argv[1], 0);
+    
+    if(value.type == CRO_String){
+      double out;
+      char* valuePtr;
+      
+      valuePtr = NULL;
+      
+      out = strtod(value.stringValue, &valuePtr);
+      CRO_toNumber(ret, out);
+      
+    }
+    else if(value.type == CRO_Bool){
+      CRO_toNumber(ret, value.integerValue);
+    }
+    else if(value.type == CRO_Number){
+      /* Even though we could just return the number, we do this here to remove const
+       qualifiers which may or may not exist on that value */
+      CRO_toNumber(ret, value.numberValue);
+    }
+    else{
+      char* err;
+      err = malloc(128 * sizeof(char));
+      
+      sprintf(err, "(%s): Invalid conversion", argv[0]);
+      ret = CRO_error(err);
+      free(err);
+    }
+  }
+  else{
+    char* err;
+    err = malloc(128 * sizeof(char));
+    
+    sprintf(err, "(%s): Expected 1 arguement (%d given)", argv[0], argc);
+    ret = CRO_error(err);
+    free(err);
+  }
+  return ret;
+}
+

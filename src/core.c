@@ -685,8 +685,12 @@ CRO_Value static CRO_callFunction(CRO_State* s, CRO_Value func, int argc, char**
           argvv.hash = CRO_genHash(varname);
           argvv.block = s->block + 1;
           
-          argval = CRO_innerEval(s, argv[varcount], 0);
-
+          if(varcount <= argc){
+            argval = CRO_innerEval(s, argv[varcount], 0);
+          }
+          else{
+            CRO_toNone(argval);
+          }
           argvv.value = argval;
           argarrval.arrayValue[varcount] = argval;
 
@@ -931,7 +935,7 @@ CRO_Value CRO_innerEval(CRO_State* s, char* src, int flags){
     return v;
   }
   else{
-    hash_t vhash = CRO_genHash(src);
+    hash_t vhash;
     int x;
     
     if(CRO_isNumber(src)){
@@ -952,6 +956,8 @@ CRO_Value CRO_innerEval(CRO_State* s, char* src, int flags){
       CRO_toNone(v);
       return v;
     }
+    
+    vhash = CRO_genHash(src);
 
     for(x = s->vptr - 1; x >= 0; x--){
       if(vhash == s->variables[x].hash){

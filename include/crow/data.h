@@ -18,4 +18,6 @@ CRO_Value CRO_setStruct(CRO_State* s, int argc, char** argv);
 CRO_Value CRO_getStruct(CRO_State* s, int argc, char** argv);
 
 CRO_Value CRO_number(CRO_State* s, int argc, char** argv);
+
+CRO_Value CRO_hash(CRO_State* s, int argc, char** argv);
 #endif

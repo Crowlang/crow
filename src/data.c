@@ -517,3 +517,16 @@ CRO_Value CRO_number(CRO_State* s, int argc, char** argv){
   return ret;
 }
 
+CRO_Value CRO_hash(CRO_State* s, int argc, char** argv){
+  CRO_Value ret;
+  
+  if(argc == 1){
+    CRO_Value arg;
+    arg = CRO_innerEval(s, argv[1], 0);
+    
+    if(arg.type == CRO_String){
+      CRO_toNumber(ret, CRO_genHash(arg.stringValue));
+      return ret;
+    }
+  }
+}

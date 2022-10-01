@@ -134,6 +134,7 @@ void CRO_exposeStandardFunctions(CRO_State* s){
   CRO_exposeFunction(s, "struct-set", CRO_setStruct);
   CRO_exposeFunction(s, "struct-get", CRO_getStruct);
   CRO_exposeFunction(s, "number", CRO_number);
+  CRO_exposeFunction(s, "hash", CRO_hash);
 
   /* math.h */
   CRO_exposeFunction(s, "add", CRO_add);
@@ -635,7 +636,7 @@ CRO_Value static CRO_callFunction(CRO_State* s, CRO_Value func, int argc, char**
     char* funcbody, *varname;
     int varnameptr, varcount, varnamesize, lastblock;
     
-    
+    s->block += 1;
 
     strname.type = CRO_String;
     strname.stringValue = CRO_cloneStr(argv[0]);
@@ -654,7 +655,7 @@ CRO_Value static CRO_callFunction(CRO_State* s, CRO_Value func, int argc, char**
     argarrval.arraySize = argc;
     
     argarr.hash = CRO_genHash("ARGS");
-    argarr.block = s->block + 1;
+    argarr.block = s->block;
     argarr.value = argarrval;
 
     s->variables[s->vptr] = argarr;
@@ -683,9 +684,10 @@ CRO_Value static CRO_callFunction(CRO_State* s, CRO_Value func, int argc, char**
 
           varname[varnameptr] = 0;
           argvv.hash = CRO_genHash(varname);
-          argvv.block = s->block + 1;
+          argvv.block = s->block;
           
           if(varcount <= argc){
+            
             argval = CRO_innerEval(s, argv[varcount], 0);
           }
           else{
@@ -746,15 +748,18 @@ CRO_Value static CRO_callFunction(CRO_State* s, CRO_Value func, int argc, char**
     }
     
     lastblock = s->functionBlock;
-    s->block += 1;
     s->functionBlock = s->block;
     
     v = CRO_innerEval(s, &funcbody[x], 0);
     
-
     for(x = s->vptr - 1; x >= 0; x--){
-      if(s->block == s->variables[x].block){
+      if(s->block <= s->variables[x].block){
         s->vptr--;
+      }
+      else{
+        /* If we hit a variable not in our same block, safe bet says
+         * the ones below it also aren't */
+        break;
       }
     }
     

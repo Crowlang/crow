@@ -408,6 +408,34 @@ CRO_Value CRO_if(CRO_State* s, int argc, char** argv){
   return v;
 }
 
+CRO_Value CRO_not(CRO_State* s, int argc, char** argv){
+  CRO_Value ret;
+  if(argc == 1){
+    CRO_Value bolexpr = CRO_innerEval(s, argv[1], 0);
+    if(bolexpr.type == CRO_Bool){
+      bolexpr.integerValue = !bolexpr.integerValue;
+      return bolexpr;
+    }
+    else{
+      char* err;
+      err = malloc(128 * sizeof(char));
+      
+      sprintf(err, "(%s): %s is not a bool", argv[0], argv[1]);
+      ret = CRO_error(err);
+      free(err);
+    }
+  }
+  else{
+    char* err;
+    err = malloc(128 * sizeof(char));
+    
+    sprintf(err, "(%s): Expected 1 arguement. (%d given)", argv[0], argc);
+    ret = CRO_error(err);
+    free(err);
+  }
+  return ret;
+}
+
 /* For reference with these next loops, the exit context is reset to whatever 
  * would be the MINIMUM to break the loop, for example, most of these use 
  * CRO_BreakCode, or the (break) statement.  If the context is equal to the code

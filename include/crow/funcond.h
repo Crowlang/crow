@@ -15,6 +15,8 @@ CRO_Value CRO_defined(CRO_State* s, int argc, char** argv);
 
 CRO_Value CRO_if(CRO_State*s, int argc, char** argv);
 
+CRO_Value CRO_not(CRO_State* s, int argc, char** argv);
+
 CRO_Value CRO_each(CRO_State* s, int argc, char** argv);
 CRO_Value CRO_eachWithIterator(CRO_State* s, int argc, char** argv);
 

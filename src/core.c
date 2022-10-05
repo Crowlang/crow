@@ -192,6 +192,8 @@ void CRO_exposeStandardFunctions(CRO_State* s){
   CRO_exposeFunction(s, "<", CRO_lessThan);
   CRO_exposeFunction(s, "defined", CRO_defined);
   CRO_exposeFunction(s, "if", CRO_if);
+  CRO_exposeFunction(s, "!", CRO_not);
+  CRO_exposeFunction(s, "not", CRO_not);
   CRO_exposeFunction(s, "each", CRO_each);
   CRO_exposeFunction(s, "each-with-iterator", CRO_eachWithIterator);
   CRO_exposeFunction(s, "while", CRO_while);

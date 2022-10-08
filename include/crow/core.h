@@ -4,6 +4,7 @@
 #include <stdio.h>
 
 extern int running;
+extern char* errorMsg;
 
 CRO_State* CRO_createState(void);
 void CRO_exposeStandardFunctions(CRO_State* s);
@@ -21,9 +22,10 @@ char* CRO_cloneStr(const char* str);
 allotok_t CRO_malloc(CRO_State* s, void* memory);
 void CRO_GC(CRO_State* s);
 
-CRO_Value CRO_error(const char*);
+CRO_Value CRO_error(CRO_State* s, const char*);
+void CRO_printError();
 
-CRO_Value CRO_innerEval(CRO_State* s, char* src, int ptr);
+CRO_Value CRO_innerEval(CRO_State* s, char* src);
 CRO_Value CRO_eval(CRO_State *s, char* src);
 CRO_Value CRO_evalFile(CRO_State *s, FILE* src);
 

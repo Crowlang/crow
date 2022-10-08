@@ -160,8 +160,8 @@ CRO_Value CRO_defun(CRO_State* s, int argc, char** argv){
     err = malloc(128 * sizeof(char));
     
     sprintf(err, "(%s): Expected 3 arguements (%d given)", argv[0], argc);
-    ret = CRO_error(err);
-    free(err);
+    ret = CRO_error(s, err);
+    
     return ret;
   }
 
@@ -177,15 +177,15 @@ CRO_Value CRO_andand(CRO_State* s, int argc, char** argv){
     int i;
     
     for(i = 1; i <= argc; i++){
-      v = CRO_innerEval(s, argv[i], 0);
+      v = CRO_innerEval(s, argv[i]);
       
       if(v.type != CRO_Bool){
         char* err;
         err = malloc(128 * sizeof(char));
         
         sprintf(err, "(%s): %s is not an boolean", argv[0], argv[i]);
-        ret = CRO_error(err);
-        free(err);
+        ret = CRO_error(s, err);
+        
         return ret;
       }
       else if(!v.integerValue){
@@ -201,8 +201,8 @@ CRO_Value CRO_andand(CRO_State* s, int argc, char** argv){
     err = malloc(128 * sizeof(char));
     
     sprintf(err, "(%s): 2 or more arguements expected", argv[0]);
-    ret = CRO_error(err);
-    free(err);
+    ret = CRO_error(s, err);
+    
   }
   return ret;
 }
@@ -215,15 +215,15 @@ CRO_Value CRO_oror(CRO_State* s, int argc, char** argv){
     int i;
     
     for(i = 1; i <= argc; i++){
-      v = CRO_innerEval(s, argv[i], 0);
+      v = CRO_innerEval(s, argv[i]);
       
       if(v.type != CRO_Bool){
         char* err;
         err = malloc(128 * sizeof(char));
         
         sprintf(err, "(%s): %s is not an boolean", argv[0], argv[i]);
-        ret = CRO_error(err);
-        free(err);
+        ret = CRO_error(s, err);
+        
         return ret;
       }
       else if(v.integerValue){
@@ -239,8 +239,8 @@ CRO_Value CRO_oror(CRO_State* s, int argc, char** argv){
     err = malloc(128 * sizeof(char));
     
     sprintf(err, "(%s): 2 or more arguements expected", argv[0]);
-    ret = CRO_error(err);
-    free(err);
+    ret = CRO_error(s, err);
+    
   }
   return ret;
 }
@@ -250,9 +250,10 @@ CRO_Value CRO_equals(CRO_State* s, int argc, char** argv){
   CRO_Value a;
   CRO_Value b;
   CRO_Value ret;
-
-  a = CRO_innerEval(s, argv[1], 0);
-  b = CRO_innerEval(s, argv[2], 0);
+  
+  
+  a = CRO_innerEval(s, argv[1]);
+  b = CRO_innerEval(s, argv[2]);
 
   if(a.type == b.type){
     if(a.type == CRO_Number){
@@ -298,8 +299,8 @@ CRO_Value CRO_greaterThan(CRO_State* s, int argc, char** argv){
   CRO_Value b;
   CRO_Value ret;
 
-  a = CRO_innerEval(s, argv[1], 0);
-  b = CRO_innerEval(s, argv[2], 0);
+  a = CRO_innerEval(s, argv[1]);
+  b = CRO_innerEval(s, argv[2]);
 
   if(a.type == b.type){
     if(a.type == CRO_Number){
@@ -328,8 +329,8 @@ CRO_Value CRO_lessThan(CRO_State* s, int argc, char** argv){
   CRO_Value b;
   CRO_Value ret;
 
-  a = CRO_innerEval(s, argv[1], 0);
-  b = CRO_innerEval(s, argv[2], 0);
+  a = CRO_innerEval(s, argv[1]);
+  b = CRO_innerEval(s, argv[2]);
 
   if(a.type == b.type){
     if(a.type == CRO_Number){
@@ -359,7 +360,10 @@ CRO_Value CRO_defined(CRO_State* s, int argc, char** argv){
   CRO_Value a, ret;
   
   if(argc == 1){
-    a = CRO_innerEval(s, argv[1], CRO_FLAG_NoVarError);
+    a = CRO_innerEval(s, argv[1]);
+    if(s->exitCode == CRO_ErrorCode){
+      s->exitCode = CRO_None;
+    }
     if(a.type != CRO_None){
       CRO_toBoolean(ret, 1);
     }
@@ -387,15 +391,15 @@ CRO_Value CRO_if(CRO_State* s, int argc, char** argv){
   for(x = 1; x <= argc; x+=2){
     /* If x is equal to argc, we are in the else statement (which is optional) */
     if(x == argc){
-      v = CRO_innerEval(s, argv[x], 0);
+      v = CRO_innerEval(s, argv[x]);
       return v;
     }
     /* Otherwise the first word is a conditional, and the second is the body */
     else{
-      v = CRO_innerEval(s, argv[x], 0);
+      v = CRO_innerEval(s, argv[x]);
       if(v.type == CRO_Bool){
         if(v.integerValue){
-          v = CRO_innerEval(s, argv[x + 1], 0);
+          v = CRO_innerEval(s, argv[x + 1]);
           return v;
         }
       }
@@ -411,7 +415,7 @@ CRO_Value CRO_if(CRO_State* s, int argc, char** argv){
 CRO_Value CRO_not(CRO_State* s, int argc, char** argv){
   CRO_Value ret;
   if(argc == 1){
-    CRO_Value bolexpr = CRO_innerEval(s, argv[1], 0);
+    CRO_Value bolexpr = CRO_innerEval(s, argv[1]);
     if(bolexpr.type == CRO_Bool){
       bolexpr.integerValue = !bolexpr.integerValue;
       return bolexpr;
@@ -421,8 +425,8 @@ CRO_Value CRO_not(CRO_State* s, int argc, char** argv){
       err = malloc(128 * sizeof(char));
       
       sprintf(err, "(%s): %s is not a bool", argv[0], argv[1]);
-      ret = CRO_error(err);
-      free(err);
+      ret = CRO_error(s, err);
+      
     }
   }
   else{
@@ -430,8 +434,8 @@ CRO_Value CRO_not(CRO_State* s, int argc, char** argv){
     err = malloc(128 * sizeof(char));
     
     sprintf(err, "(%s): Expected 1 arguement. (%d given)", argv[0], argc);
-    ret = CRO_error(err);
-    free(err);
+    ret = CRO_error(s, err);
+    
   }
   return ret;
 }
@@ -452,7 +456,7 @@ CRO_Value CRO_each(CRO_State* s, int argc, char** argv){
   s->exitContext = CRO_BreakCode;
   
   if(argc == 3){
-    array = CRO_innerEval(s, argv[1], 0);
+    array = CRO_innerEval(s, argv[1]);
     
     if(array.type == CRO_Array){
       CRO_Variable item;
@@ -484,7 +488,7 @@ CRO_Value CRO_each(CRO_State* s, int argc, char** argv){
         s->variables[itemPtr].value = itemV;
         
         /* Now execute it with the variable in place */
-        ret = CRO_innerEval(s, argv[3], 0);
+        ret = CRO_innerEval(s, argv[3]);
         
         if(s->exitCode >= s->exitContext){
           if(s->exitCode == s->exitContext){
@@ -502,8 +506,8 @@ CRO_Value CRO_each(CRO_State* s, int argc, char** argv){
       err = malloc(128 * sizeof(char));
       
       sprintf(err, "(%s): %s is not an Array", argv[0], argv[1]);
-      ret = CRO_error(err);
-      free(err);
+      ret = CRO_error(s, err);
+      
     }
   }
   else{
@@ -511,8 +515,8 @@ CRO_Value CRO_each(CRO_State* s, int argc, char** argv){
     err = malloc(128 * sizeof(char));
     
     sprintf(err, "(%s): Expected 3 arguements. (%d given)", argv[0], argc);
-    ret = CRO_error(err);
-    free(err);
+    ret = CRO_error(s, err);
+    
   }
   s->exitContext = lastExitContext;
   
@@ -529,7 +533,7 @@ CRO_Value CRO_eachWithIterator(CRO_State* s, int argc, char** argv){
   s->exitContext = CRO_BreakCode;
   
   if(argc == 3){
-    array = CRO_innerEval(s, argv[1], 0);
+    array = CRO_innerEval(s, argv[1]);
     
     if(array.type == CRO_Array){
       CRO_Variable item, counter;
@@ -586,7 +590,7 @@ CRO_Value CRO_eachWithIterator(CRO_State* s, int argc, char** argv){
         s->variables[itemPtr].value = itemV;
         s->variables[counterPtr].value = counterV;
         /* Now execute it with the variable in place */
-        ret = CRO_innerEval(s, argv[3], 0);
+        ret = CRO_innerEval(s, argv[3]);
         
         if(s->exitCode >= s->exitContext){
           if(s->exitCode == s->exitContext){
@@ -604,8 +608,8 @@ CRO_Value CRO_eachWithIterator(CRO_State* s, int argc, char** argv){
       err = malloc(128 * sizeof(char));
       
       sprintf(err, "(%s): %s is not an Array.", argv[0], argv[1]);
-      ret = CRO_error(err);
-      free(err);
+      ret = CRO_error(s, err);
+      
     }
   }
   else{
@@ -613,8 +617,8 @@ CRO_Value CRO_eachWithIterator(CRO_State* s, int argc, char** argv){
     err = malloc(128 * sizeof(char));
     
     sprintf(err, "(%s): Expected 3 arguements. (%d given)", argv[0], argc);
-    ret = CRO_error(err);
-    free(err);
+    ret = CRO_error(s, err);
+    
   }
   s->exitContext = lastExitContext;
 
@@ -629,10 +633,10 @@ CRO_Value CRO_while(CRO_State* s, int argc, char** argv){
   s->exitContext = CRO_BreakCode;
   
   if(argc == 2){
-    cond = CRO_innerEval(s, argv[1], 0);
+    cond = CRO_innerEval(s, argv[1]);
     
     while(cond.type == CRO_Bool && cond.integerValue){
-      ret = CRO_innerEval(s, argv[2], 0);
+      ret = CRO_innerEval(s, argv[2]);
       
       if(s->exitCode >= s->exitContext){
         if(s->exitCode == s->exitContext){
@@ -642,7 +646,7 @@ CRO_Value CRO_while(CRO_State* s, int argc, char** argv){
         break;
       }
       
-      cond = CRO_innerEval(s, argv[1], 0);
+      cond = CRO_innerEval(s, argv[1]);
       CRO_callGC(s);
     }
   }
@@ -651,8 +655,8 @@ CRO_Value CRO_while(CRO_State* s, int argc, char** argv){
     err = malloc(128 * sizeof(char));
     
     sprintf(err, "(%s): Expected 3 arguements. (%d given)", argv[0], argc);
-    ret = CRO_error(err);
-    free(err);
+    ret = CRO_error(s, err);
+    
   }
   
   s->exitContext = lastExitContext;
@@ -671,7 +675,7 @@ CRO_Value CRO_doWhile(CRO_State* s, int argc, char** argv){
     
     do {
       
-      ret = CRO_innerEval(s, argv[1], 0);
+      ret = CRO_innerEval(s, argv[1]);
       
       
       if(s->exitCode >= s->exitContext){
@@ -683,7 +687,7 @@ CRO_Value CRO_doWhile(CRO_State* s, int argc, char** argv){
       }
       CRO_callGC(s);
       
-      cond = CRO_innerEval(s, argv[2], 0);
+      cond = CRO_innerEval(s, argv[2]);
     } while(cond.type == CRO_Bool && cond.integerValue);
   }
   else{
@@ -691,8 +695,8 @@ CRO_Value CRO_doWhile(CRO_State* s, int argc, char** argv){
     err = malloc(128 * sizeof(char));
     
     sprintf(err, "(%s): Expected 3 arguements. (%d given)", argv[0], argc);
-    ret = CRO_error(err);
-    free(err);
+    ret = CRO_error(s, err);
+    
   }
   
   s->exitContext = lastExitContext;
@@ -708,7 +712,7 @@ CRO_Value CRO_loop(CRO_State* s, int argc, char** argv){
   
   while(1){
     
-    ret = CRO_innerEval(s, argv[1], 0);
+    ret = CRO_innerEval(s, argv[1]);
     
     if(s->exitCode >= s->exitContext){
       if(s->exitCode == s->exitContext){
@@ -728,7 +732,7 @@ CRO_Value CRO_loop(CRO_State* s, int argc, char** argv){
 CRO_Value CRO_break(CRO_State* s, int argc, char** argv){
   CRO_Value v;
   if(argc == 1){
-    v = CRO_innerEval(s, argv[1], 0);
+    v = CRO_innerEval(s, argv[1]);
   }
   else{
     CRO_toNone(v);
@@ -742,7 +746,7 @@ CRO_Value CRO_break(CRO_State* s, int argc, char** argv){
 CRO_Value CRO_return(CRO_State* s, int argc, char** argv){
   CRO_Value v;
   if(argc == 1){
-    v = CRO_innerEval(s, argv[1], 0);
+    v = CRO_innerEval(s, argv[1]);
   }
   else{
     CRO_toNone(v);
@@ -756,7 +760,7 @@ CRO_Value CRO_return(CRO_State* s, int argc, char** argv){
 CRO_Value CRO_exit(CRO_State* s, int argc, char** argv){
   CRO_Value v;
   if(argc == 1){
-    v = CRO_innerEval(s, argv[1], 0);
+    v = CRO_innerEval(s, argv[1]);
   }
   else{
     CRO_toNone(v);

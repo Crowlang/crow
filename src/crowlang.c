@@ -106,6 +106,13 @@ int main(int argc, char* argv[]){
 
   CRO_exposeStandardFunctions(s);
 
+  /* We probably shouldnt be executing this, but in the off chance that
+   * we are, we return the error and exit */
+  if(s->exitCode >= CRO_ExitCode){
+    CRO_printError();
+    exit(1);
+  }
+  
   if(argc > 1){
     CRO_Value v;
     
@@ -113,6 +120,11 @@ int main(int argc, char* argv[]){
     srcfile = fopen(argv[1], "r");
 
     v = CRO_evalFile(s, srcfile);
+    
+    if(s->exitCode >= CRO_ExitCode){
+      CRO_printError();
+      exit(1);
+    }
     
     fclose(srcfile);
     CRO_freeState(s);
@@ -299,7 +311,7 @@ int main(int argc, char* argv[]){
         case CC_EXEC: {
           input[ptr] = 0;
           
-          v = CRO_innerEval(s, input, 0);
+          v = CRO_innerEval(s, input);
           
           
           
@@ -307,6 +319,9 @@ int main(int argc, char* argv[]){
           if(s->exitCode == CRO_ExitCode){
             c = EOF;
             continue;
+          }
+          else if(s->exitCode == CRO_ErrorCode){
+            CRO_printError();
           }
           
           CRO_printValue(v);

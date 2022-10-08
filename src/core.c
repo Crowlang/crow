@@ -16,15 +16,23 @@
 
 int running = 1;
 
-CRO_Value CRO_error(const char* msg){
+char* errorMsg;
+
+CRO_Value CRO_error(CRO_State* s, const char* msg){
   CRO_Value v;
   CRO_toNone(v);
-
-  CRO_setColor(RED);
-  printf("ERROR: %s\n", msg);
-  CRO_setColor(RESET);
-
+  
+  errorMsg = (char*)msg;
+  
+  s->exitCode = CRO_ErrorCode;
   return v;
+}
+
+void CRO_printError(){
+  CRO_setColor(RED);
+  printf("%s\n", errorMsg);
+  CRO_setColor(RESET);
+  return;
 }
 
 CRO_State* CRO_createState(void){
@@ -37,7 +45,7 @@ CRO_State* CRO_createState(void){
 
   /* Make sure state is allocated */
   if(s == NULL){
-    CRO_error("Failed to allocate space for state");
+    CRO_error(s, "Failed to allocate space for state");
     exit(1);
   }
 
@@ -49,8 +57,8 @@ CRO_State* CRO_createState(void){
   
   /* Make sure variables is allocated */
   if(s->variables == NULL){
-    CRO_error("Failed to allocate space for variables");
-    exit(1);
+    CRO_error(s, "Failed to allocate space for variables");
+    return s;
   }
 
   /* Maybe make allocations use CALLOC and have it be a standard size */
@@ -65,8 +73,8 @@ CRO_State* CRO_createState(void){
   
   /* Make sure allocations is allocated */
   if(s->allocations == NULL){
-    CRO_error("Failed to allocate space for allocations");
-    exit(1);
+    CRO_error(s, "Failed to allocate space for allocations");
+    return s;
   }
 
   s->fileDescriptors = (CRO_FD*)malloc(CRO_BUFFER_SIZE * sizeof(CRO_FD));
@@ -74,7 +82,7 @@ CRO_State* CRO_createState(void){
   s->fdsize = CRO_BUFFER_SIZE;
   
   if(s->fileDescriptors == NULL){
-    CRO_error("Failed to allocate space for fileDescriptors");
+    CRO_error(s, "Failed to allocate space for fileDescriptors");
     exit(1);
   }
 
@@ -616,7 +624,7 @@ void CRO_GC(CRO_State* s){
   }
 }
 
-CRO_Value CRO_innerEval(CRO_State* s, char* src, int ptr);
+CRO_Value CRO_innerEval(CRO_State* s, char* src);
 
 CRO_Value static CRO_callFunction(CRO_State* s, CRO_Value func, int argc, char** argv, int isStruct, CRO_Value str){
   CRO_Value v;
@@ -651,7 +659,7 @@ CRO_Value static CRO_callFunction(CRO_State* s, CRO_Value func, int argc, char**
     argarrval.allotok = CRO_malloc(s, (void*)argarrval.arrayValue);
 
     for(x = 1; x <= argc; x++){
-      argarrval.arrayValue[x - 1] = CRO_innerEval(s, argv[x], 0);
+      argarrval.arrayValue[x - 1] = CRO_innerEval(s, argv[x]);
     }
 
     argarrval.arraySize = argc;
@@ -690,7 +698,7 @@ CRO_Value static CRO_callFunction(CRO_State* s, CRO_Value func, int argc, char**
           
           if(varcount <= argc){
             
-            argval = CRO_innerEval(s, argv[varcount], 0);
+            argval = CRO_innerEval(s, argv[varcount]);
           }
           else{
             CRO_toNone(argval);
@@ -752,7 +760,7 @@ CRO_Value static CRO_callFunction(CRO_State* s, CRO_Value func, int argc, char**
     lastblock = s->functionBlock;
     s->functionBlock = s->block;
     
-    v = CRO_innerEval(s, &funcbody[x], 0);
+    v = CRO_innerEval(s, &funcbody[x]);
     
     for(x = s->vptr - 1; x >= 0; x--){
       if(s->block <= s->variables[x].block){
@@ -780,7 +788,7 @@ CRO_Value static CRO_callFunction(CRO_State* s, CRO_Value func, int argc, char**
   return v;
 }
 
-CRO_Value CRO_innerEval(CRO_State* s, char* src, int flags){
+CRO_Value CRO_innerEval(CRO_State* s, char* src){
   CRO_Value v;
 
   int ptr = 0;
@@ -801,7 +809,7 @@ CRO_Value CRO_innerEval(CRO_State* s, char* src, int flags){
     
     ptr++;
     fname = getWord(src, &ptr, &end);
-    func = CRO_innerEval(s, fname, 0);
+    func = CRO_innerEval(s, fname);
 
     argv[0] = fname;
     
@@ -871,8 +879,8 @@ CRO_Value CRO_innerEval(CRO_State* s, char* src, int flags){
     {
       char* errorMsg = malloc(64 * sizeof(char));
       sprintf(errorMsg, "Function '%s' is not defined", src);
-      v = CRO_error(errorMsg);
-      free(errorMsg);
+      v = CRO_error(s, errorMsg);
+      return v;
     }
     
   }
@@ -974,16 +982,12 @@ CRO_Value CRO_innerEval(CRO_State* s, char* src, int flags){
       }
     }
 
-    if(flags != CRO_FLAG_NoVarError){
-      char* errorMsg = malloc(64 * sizeof(char));
-      sprintf(errorMsg, "Variable '%s' is not defined", src);
-      v = CRO_error(errorMsg);
-      free(errorMsg);
+    {
+    char* errorMsg = malloc(64 * sizeof(char));
+    sprintf(errorMsg, "Variable '%s' is not defined", src);
+    v = CRO_error(s, errorMsg);
+    return v;
     }
-    else{
-      CRO_toNone(v);
-    }
-    
   }
   CRO_toNone(v);
   return v;
@@ -1016,7 +1020,7 @@ CRO_Value CRO_eval(CRO_State *s, char* src){
       /* We are at the end of the statement */
       if(paren == 0){
         input[inptr++] = '\0';
-        v = CRO_innerEval(s, input, 0);
+        v = CRO_innerEval(s, input);
 
         inptr = 0;
       }
@@ -1174,7 +1178,7 @@ CRO_Value CRO_evalFile(CRO_State* s, FILE* src){
       /* We are executing the command */
       case CC_EXEC: {
         input[ptr] = 0;
-        v = CRO_innerEval(s, input, 0);
+        v = CRO_innerEval(s, input);
         
         
         
@@ -1210,7 +1214,7 @@ CRO_Value CRO_evalFile(CRO_State* s, FILE* src){
   if(running && ptr > 0){
     input[ptr] = 0;
         
-    v = CRO_innerEval(s, input, 0);
+    v = CRO_innerEval(s, input);
     CRO_callGC(s);
   }
   

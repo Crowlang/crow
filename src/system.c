@@ -9,16 +9,14 @@
 
 CRO_Value CRO_sh(CRO_State* s, int argc, char** argv){
   CRO_Value v, name;
-  name = CRO_innerEval(s, argv[1], 0);
+  name = CRO_innerEval(s, argv[1]);
 
   if(name.type != CRO_String){
     char* msg;
     msg = (char*)malloc(512 * sizeof(char));
     sprintf(msg, "Arguement '%s' is not a string", argv[1]);
 
-    v = CRO_error(msg);
-    
-    free(msg);
+    v = CRO_error(s, msg);
 
     return v;
   }
@@ -61,16 +59,14 @@ CRO_Value CRO_sh(CRO_State* s, int argc, char** argv){
 CRO_Value CRO_system(CRO_State* s, int argc, char** argv){
   int ret;
   CRO_Value v, name;
-  name = CRO_innerEval(s, argv[1], 0);
+  name = CRO_innerEval(s, argv[1]);
 
   if(name.type != CRO_String){
     char* msg;
     msg = (char*)malloc(512 * sizeof(char));
     sprintf(msg, "Arguement '%s' is not a string", argv[1]);
 
-    v = CRO_error(msg);
-    
-    free(msg);
+    v = CRO_error(s, msg);
 
     return v;
   }
@@ -96,49 +92,45 @@ CRO_Value CRO_time(CRO_State* s, int argc, char** argv){
     msg = (char*)malloc(512 * sizeof(char));
     sprintf(msg, "Not implemented yet");
 
-    ret = CRO_error(msg);
-    
-    free(msg);
+    ret = CRO_error(s, msg);
   }
   else{
     char* err;
     err = malloc(128 * sizeof(char));
     
     sprintf(err, "(%s): Expected 1 or 2 arguements. (%d given)", argv[0], argc);
-    ret = CRO_error(err);
-    free(err);
+    ret = CRO_error(s, err);
   }
   
   return ret;  
 }
 
 CRO_Value CRO_evalCommand(CRO_State* s, int argc, char** argv){
-	CRO_Value ret;
+  CRO_Value ret;
 
-	if(argc == 1){
-		CRO_Value e;
-		e = CRO_innerEval(s, argv[1], 0);
+  if(argc == 1){
+    CRO_Value e;
+    e = CRO_innerEval(s, argv[1]);
 
-		if(e.type == CRO_String){
-			ret = CRO_eval(s, e.stringValue);
-		}
-		else{
-			char* err;
-			err = malloc(128 * sizeof(char));
+    if(e.type == CRO_String){
+      ret = CRO_eval(s, e.stringValue);
+    }
+    else{
+      char* err;
+      err = malloc(128 * sizeof(char));
 
-			sprintf(err, "(%s): %s is not a String", argv[0], argv[1]);
-			ret = CRO_error(err);
-			free(err);
-		}
-	}
-	else{
-		char* err;
-		err = malloc(128 * sizeof(char));
+      sprintf(err, "(%s): %s is not a String", argv[0], argv[1]);
+      ret = CRO_error(s, err);
 
-		sprintf(err, "(%s): Expected 1 arguement. (%d given)", argv[0], argc);
-		ret = CRO_error(err);
-		free(err);
-	}
+    }
+  }
+  else{
+    char* err;
+    err = malloc(128 * sizeof(char));
 
-	return ret;
+    sprintf(err, "(%s): Expected 1 arguement. (%d given)", argv[0], argc);
+    ret = CRO_error(s, err);
+  }
+
+  return ret;
 }

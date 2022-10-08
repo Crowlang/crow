@@ -130,11 +130,11 @@ typedef struct CRO_State {
 
 /*#define CRO_error(x) CRO_setColor(RED);printf("ERROR: "); x; CRO_setColor(RESET); return CRO_toNone();*/
 
-#define CRO_None       0
-#define CRO_BreakCode  1
-#define CRO_ReturnCode 2
-#define CRO_ErrorCode  3
-#define CRO_ExitCode   4
+#define CRO_None        0
+#define CRO_BreakCode   1
+#define CRO_ReturnCode  2
+#define CRO_ExitCode    3
+#define CRO_ErrorCode   4
 
 #define CC_NONE         0
 #define CC_STATEMENT    1

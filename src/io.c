@@ -22,7 +22,7 @@ CRO_Value CRO_import(CRO_State* s, int argc, char** argv){
     CRO_Value file;
     FILE* importFile;
     
-    file = CRO_innerEval(s, argv[1], 0);
+    file = CRO_innerEval(s, argv[1]);
     
     if(file.type == CRO_String){
       importFile = fopen(file.stringValue, "r");
@@ -107,12 +107,12 @@ CRO_Value CRO_open(CRO_State* s, int argc, char** argv){
   char* modeStr;
 
   fdptr = 0;
-  file = CRO_innerEval(s, argv[1], 0);
+  file = CRO_innerEval(s, argv[1]);
   ret.constant = 0;
 
   /* If we have two arguments, we have a mode specifier as well */
   if(argc == 2){
-    mode = CRO_innerEval(s, argv[2], 0);
+    mode = CRO_innerEval(s, argv[2]);
     modeStr = mode.stringValue;
   }
   else{
@@ -167,7 +167,7 @@ CRO_Value CRO_read(CRO_State* s, int argc, char** argv){
   CRO_FD fd;
   
   if(argc == 1){
-    file = CRO_innerEval(s, argv[1], 0);
+    file = CRO_innerEval(s, argv[1]);
     
     if(file.type == CRO_FileDescriptor){
       char *body, c;
@@ -204,15 +204,15 @@ CRO_Value CRO_read(CRO_State* s, int argc, char** argv){
       err = malloc(128 * sizeof(char));
       
       sprintf(err, "(%s): %s is not a File Descriptor", argv[0], argv[1]);
-      ret = CRO_error(err);
-      free(err);
+      ret = CRO_error(s, err);
+      
     }
   }
   else if(argc == 2){
     CRO_Value amount;
     
-    file = CRO_innerEval(s, argv[1], 0);
-    amount = CRO_innerEval(s, argv[2], 0);
+    file = CRO_innerEval(s, argv[1]);
+    amount = CRO_innerEval(s, argv[2]);
     
     if(amount.type != CRO_Number){
       /* Error */
@@ -276,8 +276,8 @@ CRO_Value CRO_read(CRO_State* s, int argc, char** argv){
         err = malloc(128 * sizeof(char));
         
         sprintf(err, "(%s): Unsupported file type", argv[0]);
-        ret = CRO_error(err);
-        free(err);
+        ret = CRO_error(s, err);
+        
         return ret;
       }
       body[bptr] = 0;
@@ -289,8 +289,8 @@ CRO_Value CRO_read(CRO_State* s, int argc, char** argv){
       err = malloc(128 * sizeof(char));
         
       sprintf(err, "(%s): %s is not a File", argv[0], argv[1]);
-      ret = CRO_error(err);
-      free(err);
+      ret = CRO_error(s, err);
+      
       return ret;
     }
   }
@@ -299,8 +299,8 @@ CRO_Value CRO_read(CRO_State* s, int argc, char** argv){
     err = malloc(128 * sizeof(char));
     
     sprintf(err, "(%s): Expected 1 or 2 arguements. (%d given)", argv[0], argc);
-    ret = CRO_error(err);
-    free(err);
+    ret = CRO_error(s, err);
+    
   }
   
   return ret;
@@ -311,7 +311,7 @@ CRO_Value CRO_readLine(CRO_State* s, int argc, char** argv){
   CRO_FD file;
   CRO_Value fileValue, ret;
   
-  fileValue = CRO_innerEval(s, argv[1], 0);
+  fileValue = CRO_innerEval(s, argv[1]);
   
   if(fileValue.type == CRO_FileDescriptor){
     char c, *line;
@@ -364,7 +364,7 @@ CRO_Value CRO_write(CRO_State* s, int argc, char** argv){
   CRO_Value fileValue;
 
   /* Get our file descirptor */
-  fileValue = CRO_innerEval(s, argv[1], 0);
+  fileValue = CRO_innerEval(s, argv[1]);
   
   /* Make sure it is of type File Descriptor */
   if(fileValue.type == CRO_FileDescriptor){
@@ -372,7 +372,7 @@ CRO_Value CRO_write(CRO_State* s, int argc, char** argv){
     const char* stringValue;
     
     file = s->fileDescriptors[fileValue.integerValue];
-    writeValue = CRO_innerEval(s, argv[2], 0);
+    writeValue = CRO_innerEval(s, argv[2]);
     stringValue = writeValue.stringValue;
     
     /* TODO: Make this work for other types of CRO_File */
@@ -391,7 +391,7 @@ CRO_Value CRO_writeLine(CRO_State* s, int argc, char** argv){
   CRO_Value fileValue;
 
   /* Get our file descirptor */
-  fileValue = CRO_innerEval(s, argv[1], 0);
+  fileValue = CRO_innerEval(s, argv[1]);
   
   /* Make sure it is of type File Descriptor */
   if(fileValue.type == CRO_FileDescriptor){
@@ -399,7 +399,7 @@ CRO_Value CRO_writeLine(CRO_State* s, int argc, char** argv){
     const char* stringValue;
     
     file = s->fileDescriptors[fileValue.integerValue];
-    writeValue = CRO_innerEval(s, argv[2], 0);
+    writeValue = CRO_innerEval(s, argv[2]);
     stringValue = writeValue.stringValue;
     
     /* TODO: Make this work for other types of CRO_File */
@@ -419,7 +419,7 @@ CRO_Value CRO_eof(CRO_State* s, int argc, char** argv){
   if(argc == 1){
     CRO_Value fileValue;
     
-    fileValue = CRO_innerEval(s, argv[1], 0);
+    fileValue = CRO_innerEval(s, argv[1]);
     
     /* Make sure we actually have a file */
     if(fileValue.type == CRO_FileDescriptor){
@@ -442,8 +442,8 @@ CRO_Value CRO_eof(CRO_State* s, int argc, char** argv){
         err = malloc(128 * sizeof(char));
         
         sprintf(err, "(%s): File type not supported", argv[0]);
-        r = CRO_error(err);
-        free(err);
+        r = CRO_error(s, err);
+        
         return r;
       }
     }
@@ -452,8 +452,8 @@ CRO_Value CRO_eof(CRO_State* s, int argc, char** argv){
       err = malloc(128 * sizeof(char));
       
       sprintf(err, "(%s): %s is not a File", argv[0], argv[1]);
-      r = CRO_error(err);
-      free(err);
+      r = CRO_error(s, err);
+      
       return r;
     }
   }
@@ -462,8 +462,8 @@ CRO_Value CRO_eof(CRO_State* s, int argc, char** argv){
     err = malloc(128 * sizeof(char));
     
     sprintf(err, "(%s): Expected 1 arguement. (%d given)", argv[0], argc);
-    r = CRO_error(err);
-    free(err);
+    r = CRO_error(s, err);
+    
     return r;
   }
 }
@@ -475,7 +475,7 @@ CRO_Value CRO_close(CRO_State* s, int argc, char** argv){
   CRO_toNone(r);
   
   if(argc == 1){
-    fileValue = CRO_innerEval(s, argv[1], 0);
+    fileValue = CRO_innerEval(s, argv[1]);
     
     if(fileValue.type == CRO_FileDescriptor){
       file = s->fileDescriptors[fileValue.integerValue];
@@ -499,7 +499,7 @@ CRO_Value CRO_dir(CRO_State* s, int argc, char** argv){
     struct dirent *de;
     int arrayPtr, arraySize;
     
-    dirstr = CRO_innerEval(s, argv[1], 0);
+    dirstr = CRO_innerEval(s, argv[1]);
     
     if(dirstr.type != CRO_String){
       /* Error */

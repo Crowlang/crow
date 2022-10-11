@@ -322,6 +322,7 @@ int main(int argc, char* argv[]){
           }
           else if(s->exitCode == CRO_ErrorCode){
             CRO_printError();
+            s->exitCode = CRO_None;
           }
           
           CRO_printValue(v);

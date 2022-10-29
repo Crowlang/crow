@@ -105,6 +105,10 @@ int main(int argc, char* argv[]){
   s = CRO_createState();
 
   CRO_exposeStandardFunctions(s);
+  
+  if(argc >= 1){
+    CRO_exposeArguements(s, argc - 1, &argv[1], 1);
+  }
 
   /* We probably shouldnt be executing this, but in the off chance that
    * we are, we return the error and exit */

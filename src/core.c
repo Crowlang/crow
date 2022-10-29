@@ -230,6 +230,55 @@ void CRO_exposeStandardFunctions(CRO_State* s){
   CRO_eval(s, "(defvar PI (const 3.141592653589793))");
 }
 
+void CRO_exposeArguements(CRO_State* s, int argc, char** argv, char treatAsString){
+  CRO_Variable argarr;
+  CRO_Value argarrval;
+  int x;
+  
+  /* All values of argv need to be processes into an array called ARGS */
+  argarrval.type = CRO_Array;
+  argarrval.arrayValue = (CRO_Value*)malloc((argc + 1) * sizeof(CRO_Value));
+  argarrval.allotok = CRO_malloc(s, (void*)argarrval.arrayValue);
+
+  /* If we are treating all the args as a string, we need to make them into CRO strings*/
+  if(treatAsString){
+    for(x = 0; x < argc; x++){
+      CRO_Value str;
+      
+      /* We manually create the strings because we don't want the GC to intervene*/
+      str.type = CRO_String;
+      str.constant = 1;
+      str.stringValue = argv[x];
+      
+      argarrval.arrayValue[x] = str;
+    }
+  }
+  else{
+    for(x = 0; x < argc; x++){
+      /* Otherwise we just evaluate the arguements */
+      argarrval.arrayValue[x] = CRO_innerEval(s, argv[x]);
+    }
+  }
+
+  argarrval.arraySize = argc;
+  
+  /* Now expose it all to the state*/
+  argarr.hash = CRO_genHash("ARGS");
+  argarr.block = s->block;
+  argarr.value = argarrval;
+
+  s->variables[s->vptr] = argarr;
+
+  s->vptr++;
+  if(s->vptr >= s->vsize){
+    s->vsize *= 2;
+    s->variables = (CRO_Variable*)realloc(s->variables, s->vsize * sizeof(CRO_Variable));
+    #ifdef CROWLANG_ALLOC_DEBUG
+    printf("[Alloc Debug]\t Variables size increased to %d\n", s->vsize);
+    #endif
+  }
+}
+
 void CRO_freeState(CRO_State* s){
   int i;
   
@@ -626,7 +675,7 @@ void CRO_GC(CRO_State* s){
 
 CRO_Value CRO_innerEval(CRO_State* s, char* src);
 
-CRO_Value static CRO_callFunction(CRO_State* s, CRO_Value func, int argc, char** argv, int isStruct, CRO_Value str){
+CRO_Value CRO_callFunction(CRO_State* s, CRO_Value func, int argc, char** argv, int isStruct, CRO_Value str){
   CRO_Value v;
   int x;
   
@@ -653,31 +702,7 @@ CRO_Value static CRO_callFunction(CRO_State* s, CRO_Value func, int argc, char**
 
     strname.allotok = CRO_malloc(s, (void*)strname.stringValue);
 
-    /* All values of argv need to be processes into an array called ARGS */
-    argarrval.type = CRO_Array;
-    argarrval.arrayValue = (CRO_Value*)malloc((argc + 1) * sizeof(CRO_Value));
-    argarrval.allotok = CRO_malloc(s, (void*)argarrval.arrayValue);
-
-    for(x = 1; x <= argc; x++){
-      argarrval.arrayValue[x - 1] = CRO_innerEval(s, argv[x]);
-    }
-
-    argarrval.arraySize = argc;
-    
-    argarr.hash = CRO_genHash("ARGS");
-    argarr.block = s->block;
-    argarr.value = argarrval;
-
-    s->variables[s->vptr] = argarr;
-
-    s->vptr++;
-    if(s->vptr >= s->vsize){
-      s->vsize *= 2;
-      s->variables = (CRO_Variable*)realloc(s->variables, s->vsize * sizeof(CRO_Variable));
-      #ifdef CROWLANG_ALLOC_DEBUG
-      printf("[Alloc Debug]\t Variables size increased to %d\n", s->vsize);
-      #endif
-    }
+    CRO_exposeArguements(s, argc, &argv[1], 0);
 
     funcbody = func.stringValue;
     varname = (char*)malloc(CRO_BUFFER_SIZE * sizeof(char));
@@ -704,8 +729,6 @@ CRO_Value static CRO_callFunction(CRO_State* s, CRO_Value func, int argc, char**
             CRO_toNone(argval);
           }
           argvv.value = argval;
-          argarrval.arrayValue[varcount] = argval;
-
           s->variables[s->vptr] = argvv;
           
           s->vptr++;

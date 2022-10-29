@@ -8,7 +8,10 @@ extern char* errorMsg;
 
 CRO_State* CRO_createState(void);
 void CRO_exposeStandardFunctions(CRO_State* s);
+void CRO_exposeArguements(CRO_State* s, int argc, char** argv, char treatAsString);
 void CRO_freeState(CRO_State* s);
+
+CRO_Value CRO_callFunction(CRO_State* s, CRO_Value func, int argc, char** argv, int isStruct, CRO_Value str);
 
 hash_t CRO_genHash(const char* name);
 void CRO_exposeFunction(CRO_State* s, const char* name, CRO_Value (*func)(CRO_State* s, int argc, char** argv));

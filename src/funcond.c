@@ -39,11 +39,11 @@ CRO_Value CRO_func(CRO_State* s, int argc, char** argv){
   CRO_Value v;
   char* args;
   char* body;
-  int arglen, x, bsize, bptr;
+  int arglen, x, bsize, bptr, i;
   allotok_t allotok;
 
-  if(argc != 2){
-    printf("Error (func) requires 2 arguements\n");
+  if(argc < 2){
+    printf("Error (func) requires at least 2 arguements\n");
   }
 
   args = argv[1];
@@ -62,12 +62,12 @@ CRO_Value CRO_func(CRO_State* s, int argc, char** argv){
     int argc = 1;
     arglen = 0;
     for(x = 1; args[x] != 0; x++){
-      if(args[x] == ',' || args[x] == ')'){
+      if(args[x] == ' ' || args[x] == ')'){
         if(arglen > 0){
           
         }
 
-        body[bptr++] = ',';
+        body[bptr++] = ' ';
 
         arglen++;
         argc++;
@@ -89,15 +89,64 @@ CRO_Value CRO_func(CRO_State* s, int argc, char** argv){
     bptr++;
   }
   
-  for(x = 0; argv[2][x] != 0; x++){
-    body[bptr++] = argv[2][x];
-    
-    if(bptr >= bsize){
-      bsize *= 2;
-      body = realloc(body, bsize * sizeof(char));
+  for(i = 2; i <= argc; i++){
+    for(x = 0; argv[i][x] != 0; x++){
+      body[bptr++] = argv[i][x];
+      
+      if(bptr >= bsize){
+        bsize *= 2;
+        body = realloc(body, bsize * sizeof(char));
+      }
     }
+    body[bptr++] = ' ';
   }
-  body[bptr] = 0;
+  body[bptr - 1] = 0;
+  
+  allotok = CRO_malloc(s, body);
+
+  v.type = CRO_Function;
+  v.functionValue = NULL;
+  v.stringValue = body;
+  v.allotok = allotok;
+  v.constant = 0;
+
+  return v;
+
+}
+
+CRO_Value CRO_subroutine(CRO_State* s, int argc, char** argv){
+  CRO_Value v;
+  char* body;
+  int arglen, x, bsize, bptr, i;
+  allotok_t allotok;
+
+  if(argc < 1){
+    printf("Error (subroutine) requires at least 1 arguement\n");
+  }
+
+  body = (char*)malloc(CRO_BUFFER_SIZE * sizeof(char));
+  bsize = CRO_BUFFER_SIZE;
+  bptr = 0;
+
+  /* Do this or some systems may freak out */
+  /*memset(body, 0, 512 * sizeof(char));*/
+  body[0] = 0;
+  
+  body[bptr++] = '(';
+  body[bptr++] = ')';
+  
+  for(i = 1; i <= argc; i++){
+    for(x = 0; argv[i][x] != 0; x++){
+      body[bptr++] = argv[i][x];
+      
+      if(bptr >= bsize){
+        bsize *= 2;
+        body = realloc(body, bsize * sizeof(char));
+      }
+    }
+    body[bptr++] = ' ';
+  }
+  body[bptr - 1] = 0;
   
   allotok = CRO_malloc(s, body);
 

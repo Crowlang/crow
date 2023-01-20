@@ -3,6 +3,7 @@
 CRO_Value CRO_defun(CRO_State* s, int argc, char** argv);
 CRO_Value CRO_block(CRO_State* s, int argc, char**argv);
 CRO_Value CRO_func(CRO_State* s, int argc, char** argv);
+CRO_Value CRO_subroutine(CRO_State* s, int argc, char** argv);
 
 CRO_Value CRO_andand(CRO_State* s, int argc, char** argv);
 CRO_Value CRO_oror(CRO_State* s, int argc, char** argv);

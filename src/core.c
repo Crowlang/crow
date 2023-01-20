@@ -188,6 +188,7 @@ void CRO_exposeStandardFunctions(CRO_State* s){
   /* funcond.h */
   CRO_exposeFunction(s, "defun", CRO_defun);
   CRO_exposeFunction(s, "func", CRO_func);
+  CRO_exposeFunction(s, "=>", CRO_subroutine);
   CRO_exposeFunction(s, "block", CRO_block);
   CRO_exposeFunction(s, "{", CRO_block);
   CRO_exposeFunction(s, "&&", CRO_andand);
@@ -712,7 +713,7 @@ CRO_Value CRO_callFunction(CRO_State* s, CRO_Value func, int argc, char** argv, 
 
     /* funcbody[0] should be a '(' */
     for(x = 1; funcbody[x] != 0; x++){
-      if(funcbody[x] == ')' || funcbody[x] == ','){
+      if(funcbody[x] == ')' || funcbody[x] == ' '){
         if(varnameptr > 0){
           CRO_Variable argvv;
           CRO_Value argval;
@@ -783,7 +784,7 @@ CRO_Value CRO_callFunction(CRO_State* s, CRO_Value func, int argc, char** argv, 
     lastblock = s->functionBlock;
     s->functionBlock = s->block;
     
-    v = CRO_innerEval(s, &funcbody[x]);
+    v = CRO_eval(s, &funcbody[x]);
     
     for(x = s->vptr - 1; x >= 0; x--){
       if(s->block <= s->variables[x].block){
@@ -1016,43 +1017,191 @@ CRO_Value CRO_innerEval(CRO_State* s, char* src){
   return v;
 }
 
-CRO_Value CRO_eval(CRO_State *s, char* src){
-  int x, inptr, paren;
+CRO_Value CRO_eval(CRO_State* s, char* src){
+  CRO_Value v;
+  int c, paren, state, ptr, size, com, lsp, le, sc, srcptr;
   char* input;
   
-  CRO_Value v;
-    
-  inptr = 0;
+  com = 0;
   paren = 0;
-  input = (char*)malloc(2048 * sizeof(char));
-
-  for(x = 0; running && src[x] != 0; x++){
-    /* We ignore all loose values here and only care about function calls */
-    if(inptr == 0 && src[x] == '('){
-      input[inptr++] = src[x];
-      paren += 1;
+  state = CC_NONE;
+  lsp = 1;
+  srcptr = 0;
+  
+  size = CRO_BUFFER_SIZE;
+  ptr = 0;
+  input = (char*)malloc(size * sizeof(char));
+  
+  c = src[srcptr++];
+  
+  /* Run for as long as we aren't hitting EOF */
+  while(running && c != 0){
+    
+    if(com != 2 && c == ';'){
+      com++;
     }
-    else if(src[x] == '('){
-      input[inptr++] = src[x];
-      paren += 1;
+    else if(com == 1){
+      com = 0;
     }
-    else if(src[x] == ')'){
-      input[inptr++] = src[x];
-      paren -= 1;
-
-      /* We are at the end of the statement */
-      if(paren == 0){
-        input[inptr++] = '\0';
-        v = CRO_innerEval(s, input);
-
-        inptr = 0;
+    
+    /* We are, so deal with that accordingly */
+    if(com == 2){
+      /* Read until the new line, thats how we figure out if we are out
+       * of the comment or not */
+      if(c == '\n'){
+        com = 0;
+        
+        /* There should be one paren still in here */
+        ptr--;
+        
+      }
+      
+      c = src[srcptr++];;
+      lsp = 1;
+      state = CC_NONE;
+      continue;
+    }
+    
+    /* Make sure we normalize how many spaces we take in */
+    
+    /* If the state is CC_EXEC, we need to ignore this so that we execute
+     * normally, in CC_EXEC the final character of the input is a \n, which
+     * means it will be trapped here and not execute, we ignore the \n in
+     * execution anyway */
+     
+     /* Also make sure we don't trim strings */
+    if(state != CC_EXEC && state != CC_STRING && c <= 32){
+      if(lsp){
+        c = src[srcptr++];;
+        continue;
+      }
+      else{
+        c = ' ';
+        lsp = 1;
       }
     }
-    else if(inptr > 0){
-      input[inptr++] = src[x];
+    else{
+      lsp = 0;
     }
+    
+    switch(state){
+      
+      /* We currently aren't processing anything yet */
+      case CC_NONE: {
+        
+        /* TODO: Eventually make a CC_STRING to make sure strings are properly
+         * closed */
+        if(c <= 32){
+          c = src[srcptr++];;
+          continue;
+        }
+        else if(c == '('){
+          paren = 1;
+          state = CC_STATEMENT;
+        }
+        else if(c == '\"' || c == '\''){
+          state = CC_STRING;
+          sc = c;
+        }
+        else{
+          state = CC_VARIABLE;
+        }
+      }
+      break;
+      
+      /* We are processing a function call */
+      case CC_STATEMENT: {
+        /* Keep track of how many parenthesis deep we are */
+        if(c == '('){
+          paren += 1;
+        }
+        else if(c == ')'){
+          paren -= 1;
+          
+          /* If we reached zero, we know we can start executing */
+          if(paren == 0){
+            state = CC_EXEC;
+          }
+        }
+      }
+      break;
+      
+      /* We are processing a value call */
+      case CC_VARIABLE: {
+        /* If we are reading a value statement and we see a (, we know we
+         * are now reading a function call.  Likewise if we see a space we
+         * know we reached the end of the statement */
+        if(c == '(' || c <= 32){
+          state = CC_EXEC;
+          continue;
+        }
+      }
+      break;
+      
+      case CC_STRING: {
+        /* If we see a \, and our last character was not an escape, then this
+         * one is. */
+        if(le == 0 && c == '\\'){
+          le = 1;
+        }
+        /* If we had an escape last character, it means the escape is now over
+         * since we have no support for the longer escapes */
+        else if(le == 1){
+          le = 0;
+        }
+        /* If we don't have an escape, but we do have either a ' or ", which
+         * ever started the string, then we are at the end of the string and
+         * are safe to start executing */
+        else if(le == 0 && c == sc){
+          state = CC_EXEC;
+        }
+        
+      }
+      break;
+      
+      /* We are executing the command */
+      case CC_EXEC: {
+        input[ptr] = 0;
+        v = CRO_innerEval(s, input);
+        
+        
+        
+        /* Check our exit code */
+        if(s->exitCode == CRO_ExitCode){
+          c = 0;
+          continue;
+        }
+        
+        ptr = 0;
+        lsp = 1;
+        
+        CRO_callGC(s);
+        
+        state = CC_NONE;
+      }
+      continue;
+      
+    }
+    
+    /* If we get here, was are intending on adding the character to input, if
+     * we don't intend on doing this, call 'continue' rather than 'break' */
+    input[ptr++] = (char)c;
+    
+    if(ptr >= size){
+      size *= 2;
+      input = realloc(input, size * sizeof(char));
+    }
+    
+    c = src[srcptr++];;
   }
-
+  
+  if(running && ptr > 0){
+    input[ptr] = 0;
+        
+    v = CRO_innerEval(s, input);
+    CRO_callGC(s);
+  }
+  
   free(input);
   return v;
 }

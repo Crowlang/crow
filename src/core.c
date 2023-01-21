@@ -188,7 +188,8 @@ void CRO_exposeStandardFunctions(CRO_State* s){
   /* funcond.h */
   CRO_exposeFunction(s, "defun", CRO_defun);
   CRO_exposeFunction(s, "func", CRO_func);
-  CRO_exposeFunction(s, "=>", CRO_subroutine);
+  CRO_exposeFunction(s, "=>", CRO_func);
+  CRO_exposeFunction(s, "->", CRO_subroutine);
   CRO_exposeFunction(s, "block", CRO_block);
   CRO_exposeFunction(s, "{", CRO_block);
   CRO_exposeFunction(s, "&&", CRO_andand);

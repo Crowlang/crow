@@ -479,7 +479,7 @@ CRO_Value CRO_close(CRO_State* s, int argc, char** argv){
     
     if(fileValue.type == CRO_FileDescriptor){
       file = s->fileDescriptors[fileValue.integerValue];
-      file.type = CRO_None;
+      file.type = CRO_Undefined;
       fclose(file.file);
     }
   }

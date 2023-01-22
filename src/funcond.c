@@ -413,7 +413,7 @@ CRO_Value CRO_defined(CRO_State* s, int argc, char** argv){
     if(s->exitCode == CRO_ErrorCode){
       s->exitCode = CRO_None;
     }
-    if(a.type != CRO_None){
+    if(a.type != CRO_Undefined){
       CRO_toBoolean(ret, 1);
     }
     else{

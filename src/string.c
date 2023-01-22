@@ -38,7 +38,7 @@ CRO_Value CRO_string(CRO_State* s, int argc, char** argv){
     else if(v.type == CRO_String){
       innerBuffer = v.stringValue;
     }
-    else if(v.type == CRO_None){
+    else if(v.type == CRO_Undefined){
       innerBuffer = "Undefined";
     }
     else if(v.type == CRO_Array){

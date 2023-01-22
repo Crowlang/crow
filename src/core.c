@@ -35,6 +35,68 @@ void CRO_printError(){
   return;
 }
 
+void (*CRO_printValue[64])(CRO_Value);
+unsigned int PVptr = 1;
+
+CRO_TypeDescriptor CRO_Undefined = 0;
+CRO_TypeDescriptor CRO_Number = 0;
+CRO_TypeDescriptor CRO_Bool = 0;
+CRO_TypeDescriptor CRO_Function = 0;
+CRO_TypeDescriptor CRO_Array = 0;
+CRO_TypeDescriptor CRO_String = 0;
+CRO_TypeDescriptor CRO_Struct = 0;
+CRO_TypeDescriptor CRO_FileDescriptor = 0;
+/* If CRO_Number == 0 then we add it to the types, otherwise its already been added*/
+
+CRO_TypeDescriptor CRO_exposeType(void (*print)(CRO_Value)){
+  CRO_printValue[PVptr] = print;
+  PVptr += 1;
+  
+  return PVptr - 1;
+}
+
+void CRO_printStd(CRO_Value v){
+  if(v.type == CRO_Undefined){
+    CRO_setColor(YELLOW);
+    printf("Undefined\n");
+  }
+  else if(v.type == CRO_Number){
+    CRO_setColor(GREEN);
+    printf("%.15g\n", v.numberValue);
+  }
+  else if(v.type == CRO_Function){
+    CRO_setColor(CYAN);
+    printf("Function\n");
+  }
+  else if(v.type == CRO_String){
+    CRO_setColor(GREEN);
+    printf("\"%s\"\n", v.stringValue);
+  }
+  else if(v.type == CRO_Array){
+    CRO_setColor(GREEN);
+    printf("Array []\n");
+  }
+  else if(v.type == CRO_Struct){
+    CRO_setColor(GREEN);
+    printf("Struct {}\n");
+  }
+  else if(v.type == CRO_FileDescriptor){
+    CRO_setColor(CYAN);
+    printf("File\n");
+  }
+  else if(v.type == CRO_Bool){
+    CRO_setColor(GREEN);
+    if(v.integerValue == 1){
+      printf("true\n");
+    }
+    else{
+      printf("false\n");
+    }
+  }
+
+  CRO_setColor(RESET);
+}
+
 CRO_State* CRO_createState(void){
   CRO_State* s;
   
@@ -84,6 +146,19 @@ CRO_State* CRO_createState(void){
   if(s->fileDescriptors == NULL){
     CRO_error(s, "Failed to allocate space for fileDescriptors");
     exit(1);
+  }
+  
+  /* Expose types */
+  
+  if(CRO_Undefined == 0){
+    CRO_Undefined = CRO_exposeType(CRO_printStd);
+    CRO_Number = CRO_exposeType(CRO_printStd);
+    CRO_Bool = CRO_exposeType(CRO_printStd);
+    CRO_Function = CRO_exposeType(CRO_printStd);
+    CRO_Array = CRO_exposeType(CRO_printStd);
+    CRO_String = CRO_exposeType(CRO_printStd);
+    CRO_Struct = CRO_exposeType(CRO_printStd);
+    CRO_FileDescriptor = CRO_exposeType(CRO_printStd);
   }
 
   /* Setup those predefined file descriptors */

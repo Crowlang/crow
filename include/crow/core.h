@@ -6,6 +6,8 @@
 extern int running;
 extern char* errorMsg;
 
+extern void (*CRO_printValue[64])(CRO_Value);
+
 CRO_State* CRO_createState(void);
 void CRO_exposeStandardFunctions(CRO_State* s);
 void CRO_exposeArguements(CRO_State* s, int argc, char** argv, char treatAsString);

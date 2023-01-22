@@ -30,48 +30,6 @@
   return CRO_toNone();
 */
 
-static void CRO_printValue(CRO_Value v){
-  if(v.type == CRO_None){
-    CRO_setColor(YELLOW);
-    printf("Undefined\n");
-  }
-  else if(v.type == CRO_Number){
-    CRO_setColor(GREEN);
-    printf("%.15g\n", v.numberValue);
-  }
-  else if(v.type == CRO_Function){
-    CRO_setColor(CYAN);
-    printf("Function\n");
-  }
-  else if(v.type == CRO_String){
-    CRO_setColor(GREEN);
-    printf("\"%s\"\n", v.stringValue);
-  }
-  else if(v.type == CRO_Array){
-    CRO_setColor(GREEN);
-    printf("Array []\n");
-  }
-  else if(v.type == CRO_Struct){
-    CRO_setColor(GREEN);
-    printf("Struct {}\n");
-  }
-  else if(v.type == CRO_FileDescriptor){
-    CRO_setColor(CYAN);
-    printf("File\n");
-  }
-  else if(v.type == CRO_Bool){
-    CRO_setColor(GREEN);
-    if(v.integerValue == 1){
-      printf("true\n");
-    }
-    else{
-      printf("false\n");
-    }
-  }
-
-  CRO_setColor(RESET);
-}
-
 static CRO_Value hello(CRO_State* s, int argc, char** argv){
   CRO_Value v;
   printf("Hello %s\n", argv[1]);
@@ -329,7 +287,7 @@ int main(int argc, char* argv[]){
             s->exitCode = CRO_None;
           }
           
-          CRO_printValue(v);
+          CRO_printValue[v.type](v);
           
           ptr = 0;
           lsp = 1;

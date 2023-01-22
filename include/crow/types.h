@@ -72,6 +72,18 @@ typedef struct CRO_State {
   #define CRO_callGC(s) CRO_GC(s);
 #endif
 
+typedef unsigned int CRO_TypeDescriptor;
+
+extern CRO_TypeDescriptor CRO_Undefined;
+extern CRO_TypeDescriptor CRO_Number;
+extern CRO_TypeDescriptor CRO_Bool;
+extern CRO_TypeDescriptor CRO_Function;
+extern CRO_TypeDescriptor CRO_Array;
+extern CRO_TypeDescriptor CRO_String;
+extern CRO_TypeDescriptor CRO_Struct;
+extern CRO_TypeDescriptor CRO_FileDescriptor;
+
+/*
 #define CRO_None 0
 #define CRO_Number 1
 #define CRO_Bool 2
@@ -81,7 +93,8 @@ typedef struct CRO_State {
 #define CRO_Struct 6
 #define CRO_Skip 7
 #define CRO_FileDescriptor 8
-
+*/
+ 
 #define CRO_FLAG_None       0
 #define CRO_FLAG_NoVarError 1
 
@@ -123,7 +136,7 @@ typedef struct CRO_State {
 */
 
 #define CRO_toNumber(v, x) v.type = CRO_Number; v.numberValue = x; v.stringValue = NULL; v.functionValue = NULL; v.allotok = 0; v.constant = 0;
-#define CRO_toNone(v) v.type = CRO_None; v.numberValue = 0; v.stringValue = NULL; v.functionValue = NULL; v.allotok = 0; v.constant = 0;
+#define CRO_toNone(v) v.type = CRO_Undefined; v.numberValue = 0; v.stringValue = NULL; v.functionValue = NULL; v.allotok = 0; v.constant = 0;
 #define CRO_toSkip(v) v.type = CRO_Skip; v.numberValue = 0; v.stringValue = NULL; v.functionValue = NULL; v.allotok = 0; v.constant = 0;
 #define CRO_toBoolean(v, x) v.type = CRO_Bool; v.numberValue = 0; v.stringValue = NULL; v.functionValue = NULL; v.allotok = 0; v.integerValue = x; v.constant = 0;
 #define CRO_toString(s, v, x) v.type = CRO_String; v.numberValue = 0; v.stringValue = x; v.functionValue = NULL; v.allotok = CRO_malloc(s, x); v.integerValue = 0; v.constant = 0;
@@ -145,7 +158,7 @@ typedef struct CRO_State {
 
 /* TODO: Maybe redefine value to be held by a void* pointer and use type to determine which type void* should be*/
 typedef struct CRO_Value {
-  char type;
+  CRO_TypeDescriptor type;
   char constant;
   
   double numberValue;

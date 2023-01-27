@@ -184,7 +184,6 @@ typedef struct{
 } CRO_InnerValue;
 #endif
 
-/* TODO: Maybe redefine value to be held by a void* pointer and use type to determine which type void* should be*/
 typedef struct CRO_Value {
   CRO_TypeDescriptor type;
   char constant;
@@ -192,7 +191,6 @@ typedef struct CRO_Value {
   CRO_InnerValue value;
   
   int arraySize;
-  
   #ifdef CROWLANG_GREEDY_MEMORY_ALLOCATION
   int arrayCapacity;
   #endif

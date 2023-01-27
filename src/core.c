@@ -36,6 +36,7 @@ void CRO_printError(){
 }
 
 void (*CRO_printValue[64])(CRO_Value);
+void (*CRO_freeValue[64])(CRO_Value);
 unsigned int PVptr = 2;
 
 CRO_TypeDescriptor CRO_Undefined = 0;
@@ -56,6 +57,14 @@ CRO_TypeDescriptor CRO_exposeType(void (*print)(CRO_Value)){
   return PVptr - 1;
 }
 
+CRO_TypeDescriptor CRO_exposeGCType(void (*print)(CRO_Value), void (*free)(CRO_Value)){
+  CRO_printValue[PVptr] = print;
+  CRO_freeValue[PVptr] = free;
+  PVptr += 1;
+  
+  return PVptr - 1;
+}
+
 void CRO_printStd(CRO_Value v){
   if(v.type == CRO_Undefined){
     CRO_setColor(YELLOW);
@@ -70,15 +79,15 @@ void CRO_printStd(CRO_Value v){
     printf("Function\n");
   }
   else if(v.type == CRO_String){
-    CRO_setColor(GREEN);
+    CRO_setColor(MAGENTA);
     printf("\"%s\"\n", v.value.string);
   }
   else if(v.type == CRO_Array){
-    CRO_setColor(GREEN);
+    CRO_setColor(MAGENTA);
     printf("Array []\n");
   }
   else if(v.type == CRO_Struct){
-    CRO_setColor(GREEN);
+    CRO_setColor(MAGENTA);
     printf("Struct {}\n");
   }
   else if(v.type == CRO_FileDescriptor){

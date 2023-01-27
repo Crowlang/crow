@@ -32,7 +32,7 @@ CRO_Value CRO_add(CRO_State* s, int argc, char** argv){
 
       return v;
     }
-    ret += v.numberValue;
+    ret += v.value.number;
   }
   CRO_toNumber(v, ret);
   return v;
@@ -49,7 +49,7 @@ CRO_Value CRO_sub(CRO_State* s, int argc, char** argv){
   }
 
   v = CRO_innerEval(s, argv[1]);
-  ret = v.numberValue;
+  ret = v.value.number;
 
   for(x = 2; x <= argc; x++){
     v = CRO_innerEval(s, argv[x]);
@@ -57,7 +57,7 @@ CRO_Value CRO_sub(CRO_State* s, int argc, char** argv){
     if(v.type != CRO_Number){
       /*CRO_error("%s is not a number", argv[x]);*/
     }
-    ret -= v.numberValue;
+    ret -= v.value.number;
   }
   CRO_toNumber(v, ret);
   return v;
@@ -74,7 +74,7 @@ CRO_Value CRO_mul(CRO_State* s, int argc, char** argv){
   }
 
   v = CRO_innerEval(s, argv[1]);
-  ret = v.numberValue;
+  ret = v.value.number;
 
   for(x = 2; x <= argc; x++){
     v = CRO_innerEval(s, argv[x]);
@@ -82,7 +82,7 @@ CRO_Value CRO_mul(CRO_State* s, int argc, char** argv){
     if(v.type != CRO_Number){
       /*CRO_error("%s is not a number", argv[x]);*/
     }
-    ret *= v.numberValue;
+    ret *= v.value.number;
   }
   CRO_toNumber(v, ret);
   return v;
@@ -98,7 +98,7 @@ CRO_Value CRO_div(CRO_State* s, int argc, char** argv){
   }
 
   v = CRO_innerEval(s, argv[1]);
-  ret = v.numberValue;
+  ret = v.value.number;
 
   for(x = 2; x <= argc; x++){
     v = CRO_innerEval(s, argv[x]);
@@ -106,7 +106,7 @@ CRO_Value CRO_div(CRO_State* s, int argc, char** argv){
     if(v.type != CRO_Number){
       /*CRO_error("%s is not a number", argv[x]);*/
     }
-    ret /= v.numberValue;
+    ret /= v.value.number;
   }
   CRO_toNumber(v, ret);
   return v;
@@ -123,7 +123,7 @@ CRO_Value CRO_mod(CRO_State* s, int argc, char** argv){
   }
 
   v = CRO_innerEval(s, argv[1]);
-  ret = v.numberValue;
+  ret = v.value.number;
 
   for(x = 2; x <= argc; x++){
     v = CRO_innerEval(s, argv[x]);
@@ -131,7 +131,7 @@ CRO_Value CRO_mod(CRO_State* s, int argc, char** argv){
     if(v.type != CRO_Number){
       /*CRO_error("%s is not a number", argv[x]);*/
     }
-    ret = fmod(ret, v.numberValue);
+    ret = fmod(ret, v.value.number);
   }
   CRO_toNumber(v, ret);
   return v;
@@ -151,7 +151,7 @@ CRO_Value CRO_sqrt(CRO_State* s, int argc, char** argv){
     /*CRO_error("%s is not a number", argv[x]);*/
   }
 
-  val = sqrt(v.numberValue);
+  val = sqrt(v.value.number);
   CRO_toNumber(v, val);
   return v;
 }
@@ -164,13 +164,13 @@ CRO_Value CRO_srand(CRO_State* s, int argc, char** argv){
     seed = CRO_innerEval(s, argv[1]);
     
     if(seed.type == CRO_Number){
-      srand((unsigned int)seed.numberValue);
+      srand((unsigned int)seed.value.number);
       return seed;
     }
     else if(seed.type == CRO_String){
       CRO_Value seeder;
-      CRO_toNumber(seeder, CRO_genHash(seed.stringValue));
-      srand(seeder.numberValue);
+      CRO_toNumber(seeder, CRO_genHash(seed.value.string));
+      srand(seeder.value.number);
       return seeder;
     }
   }
@@ -194,7 +194,7 @@ CRO_Value CRO_floor(CRO_State* s, int argc, char** argv){
     num = CRO_innerEval(s, argv[1]);
     
     if(num.type == CRO_Number){
-      CRO_toNumber(ret, floor(num.numberValue));
+      CRO_toNumber(ret, floor(num.value.number));
       return ret;
     }
     else{
@@ -219,7 +219,7 @@ CRO_Value CRO_ceil(CRO_State* s, int argc, char** argv){
     num = CRO_innerEval(s, argv[1]);
     
     if(num.type == CRO_Number){
-      CRO_toNumber(ret, ceil(num.numberValue));
+      CRO_toNumber(ret, ceil(num.value.number));
       return ret;
     }
     else{
@@ -245,8 +245,8 @@ CRO_Value CRO_round(CRO_State* s, int argc, char** argv){
     
     if(num.type == CRO_Number){
       double floored, dec;
-      floored = floor(num.numberValue);
-      dec = num.numberValue - floored;
+      floored = floor(num.value.number);
+      dec = num.value.number - floored;
       
       if(dec < 0.5){
         return CRO_floor(s, argc, argv);
@@ -279,7 +279,7 @@ CRO_Value CRO_sin(CRO_State* s, int argc, char** argv){
     if(val.type == CRO_Number){
       /* Take the sin of it */
       double result;
-      result = sin(val.numberValue);
+      result = sin(val.value.number);
       CRO_toNumber(ret, result);
       return ret;
     }
@@ -315,7 +315,7 @@ CRO_Value CRO_cos(CRO_State* s, int argc, char** argv){
     if(val.type == CRO_Number){
       /* Take the cos of it */
       double result;
-      result = cos(val.numberValue);
+      result = cos(val.value.number);
       CRO_toNumber(ret, result);
       return ret;
     }
@@ -351,7 +351,7 @@ CRO_Value CRO_tan(CRO_State* s, int argc, char** argv){
     if(val.type == CRO_Number){
       /* Take the tan of it */
       double result;
-      result = tan(val.numberValue);
+      result = tan(val.value.number);
       CRO_toNumber(ret, result);
       return ret;
     }
@@ -387,7 +387,7 @@ CRO_Value CRO_arcsin(CRO_State* s, int argc, char** argv){
     if(val.type == CRO_Number){
       /* Take the sin of it */
       double result;
-      result = asin(val.numberValue);
+      result = asin(val.value.number);
       CRO_toNumber(ret, result);
       return ret;
     }
@@ -422,7 +422,7 @@ CRO_Value CRO_arccos(CRO_State* s, int argc, char** argv){
     if(val.type == CRO_Number){
       /* Take the cos of it */
       double result;
-      result = acos(val.numberValue);
+      result = acos(val.value.number);
       CRO_toNumber(ret, result);
       return ret;
     }
@@ -458,7 +458,7 @@ CRO_Value CRO_arctan(CRO_State* s, int argc, char** argv){
     if(val.type == CRO_Number){
       /* Take the tan of it */
       double result;
-      result = atan(val.numberValue);
+      result = atan(val.value.number);
       CRO_toNumber(ret, result);
       return ret;
     }
@@ -494,7 +494,7 @@ CRO_Value CRO_sinh(CRO_State* s, int argc, char** argv){
     if(val.type == CRO_Number){
       /* Take the sin of it */
       double result;
-      result = sinh(val.numberValue);
+      result = sinh(val.value.number);
       CRO_toNumber(ret, result);
       return ret;
     }
@@ -530,7 +530,7 @@ CRO_Value CRO_cosh(CRO_State* s, int argc, char** argv){
     if(val.type == CRO_Number){
       /* Take the cos of it */
       double result;
-      result = cosh(val.numberValue);
+      result = cosh(val.value.number);
       CRO_toNumber(ret, result);
       return ret;
     }
@@ -566,7 +566,7 @@ CRO_Value CRO_tanh(CRO_State* s, int argc, char** argv){
     if(val.type == CRO_Number){
       /* Take the tan of it */
       double result;
-      result = tanh(val.numberValue);
+      result = tanh(val.value.number);
       CRO_toNumber(ret, result);
       return ret;
     }

@@ -30,13 +30,13 @@ CRO_Value CRO_string(CRO_State* s, int argc, char** argv){
       
     if(v.type == CRO_Number){
       innerBuffer = malloc(CRO_BUFFER_SIZE * sizeof(char));
-      sprintf(innerBuffer, "%.15g", v.numberValue);
+      sprintf(innerBuffer, "%.15g", v.value.number);
     }
     else if(v.type == CRO_Function){
       innerBuffer = "Function";
     }
     else if(v.type == CRO_String){
-      innerBuffer = v.stringValue;
+      innerBuffer = v.value.string;
     }
     else if(v.type == CRO_Undefined){
       innerBuffer = "Undefined";
@@ -49,7 +49,7 @@ CRO_Value CRO_string(CRO_State* s, int argc, char** argv){
       innerBuffer = "Struct {}";
     }
     else if(v.type == CRO_Bool){
-      if(v.integerValue){
+      if(v.value.integer){
         innerBuffer = "true";
       }
       else{
@@ -103,12 +103,12 @@ CRO_Value CRO_strInsert(CRO_State* s, int argc, char** argv){
         int i, j;
         unsigned char* string;
         
-        string = (unsigned char*)str.stringValue;
+        string = (unsigned char*)str.value.string;
         
         i = 0;
         j = 0;
         
-        for(;string[j] != 0 && i != index.numberValue; i++){
+        for(;string[j] != 0 && i != index.value.number; i++){
           int k;
           
           if(string[j] >= 240){
@@ -136,7 +136,7 @@ CRO_Value CRO_strInsert(CRO_State* s, int argc, char** argv){
         }
         
         /* Now copy the inserted string into the new string */
-        string = (unsigned char*)insert.stringValue;
+        string = (unsigned char*)insert.value.string;
         for(i = 0; string[i] != 0; i++){
           newString[nsPtr++] = string[i];
           
@@ -147,7 +147,7 @@ CRO_Value CRO_strInsert(CRO_State* s, int argc, char** argv){
         }
         
         /* Now copy the rest of the string */
-        string = (unsigned char*)str.stringValue;
+        string = (unsigned char*)str.value.string;
         for(; string[j] != 0; j++){
           newString[nsPtr++] = string[j];
           
@@ -167,7 +167,7 @@ CRO_Value CRO_strInsert(CRO_State* s, int argc, char** argv){
       characterAt = (char*)malloc(2 * sizeof(char));
       
       
-      characterAt[0] = str.stringValue[index];
+      characterAt[0] = str.value.string[index];
       characterAt[1] = 0;
       #error This is not yet implemented, it will error out
     #endif
@@ -198,7 +198,7 @@ CRO_Value CRO_charAt(CRO_State* s, int argc, char** argv){
       /* Error */
     }
     
-    index = (int)pos.numberValue;
+    index = (int)pos.value.number;
     
     #ifdef CROWLANG_PEDANTIC_UTF8
       /* Go through the string and make sure to account for UTF8 characters */
@@ -206,7 +206,7 @@ CRO_Value CRO_charAt(CRO_State* s, int argc, char** argv){
         int i, j, size;
         unsigned char* string;
         
-        string = (unsigned char*)str.stringValue;
+        string = (unsigned char*)str.value.string;
         
         i = 0;
         j = 0;
@@ -247,7 +247,7 @@ CRO_Value CRO_charAt(CRO_State* s, int argc, char** argv){
         /* WHY WHY WHY WHY WHY WHY DOES UTF8 EXIST */
         characterAt = (char*)malloc((size + 1) * sizeof(char));
         characterAt = memset(characterAt, 0, (size + 1));
-        characterAt = memcpy(characterAt, &str.stringValue[j], size);
+        characterAt = memcpy(characterAt, &str.value.string[j], size);
       }
     #else
       /* Since we don't have a char type, and it would be a right pain to support
@@ -257,7 +257,7 @@ CRO_Value CRO_charAt(CRO_State* s, int argc, char** argv){
       characterAt = (char*)malloc(2 * sizeof(char));
       
       
-      characterAt[0] = str.stringValue[index];
+      characterAt[0] = str.value.string[index];
       characterAt[1] = 0;
     #endif
     
@@ -318,9 +318,9 @@ CRO_Value CRO_substr(CRO_State* s, int argc, char** argv){
     nsSize = CRO_BUFFER_SIZE;
     newString = (char*)malloc(nsSize * sizeof(char));
     
-    string = (unsigned char*)str.stringValue;
-    startIndex = start.numberValue;
-    endIndex = end.numberValue;
+    string = (unsigned char*)str.value.string;
+    startIndex = start.value.number;
+    endIndex = end.value.number;
     
     i = 0;
     j = 0;
@@ -398,8 +398,8 @@ CRO_Value CRO_split(CRO_State* s, int argc, char** argv){
         int stringLen, delimLen, arrayPtr, sbPtr, arraySize, stringSize, ptr;
         
         /* Set up our values */
-        stringLen = strlen(string.stringValue);
-        delimLen = strlen(delim.stringValue);
+        stringLen = strlen(string.value.string);
+        delimLen = strlen(delim.value.string);
         
         arrayPtr = 0;
         sbPtr = 0;
@@ -412,12 +412,12 @@ CRO_Value CRO_split(CRO_State* s, int argc, char** argv){
         stringBuffer = (char*)malloc(stringSize * sizeof(char));
         
         ret.type = CRO_Array;
-        ret.arrayValue = array;
+        ret.value.array = array;
         
         /* Iterate over the string */
         for(ptr = 0; ptr < stringLen; ptr++){
           /* Have we found the deliminator? */
-          if(strncmp(&string.stringValue[ptr], delim.stringValue, delimLen) == 0){
+          if(strncmp(&string.value.string[ptr], delim.value.string, delimLen) == 0){
             CRO_Value addString;
             
             /* If the delim length is 0, we are matching EVERY char, so we need
@@ -425,7 +425,7 @@ CRO_Value CRO_split(CRO_State* s, int argc, char** argv){
              * blank strings, however blank strings ARE allowed in the results,
              * so this is a specific event that needs to be accounted for */
             if(delimLen == 0){
-              stringBuffer[sbPtr++] = string.stringValue[ptr];
+              stringBuffer[sbPtr++] = string.value.string[ptr];
             }
             /* If the delim length isnt 0, we need to add that to ptr so we pass
              * over the entire match */
@@ -453,7 +453,7 @@ CRO_Value CRO_split(CRO_State* s, int argc, char** argv){
           }
           /* If we dont match the delim, we just are adding to the buffer */
           else{
-            stringBuffer[sbPtr++] = string.stringValue[ptr];
+            stringBuffer[sbPtr++] = string.value.string[ptr];
             if(sbPtr >= stringSize){
               stringSize *= 2;
               stringBuffer = (char*)realloc(stringBuffer, stringSize * sizeof(char));
@@ -524,9 +524,9 @@ CRO_Value CRO_startsWith(CRO_State* s, int argc, char** argv){
       if(start.type == CRO_String){
         int len;
         
-        len = strlen(start.stringValue);
+        len = strlen(start.value.string);
         
-        if(strncmp(str.stringValue, start.stringValue, len) == 0){
+        if(strncmp(str.value.string, start.value.string, len) == 0){
           CRO_toBoolean(ret, 1);
         }
         else{

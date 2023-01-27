@@ -78,6 +78,7 @@ extern CRO_TypeDescriptor CRO_Undefined;
 extern CRO_TypeDescriptor CRO_Number;
 extern CRO_TypeDescriptor CRO_Bool;
 extern CRO_TypeDescriptor CRO_Function;
+extern CRO_TypeDescriptor CRO_LocalFunction;
 extern CRO_TypeDescriptor CRO_Array;
 extern CRO_TypeDescriptor CRO_String;
 extern CRO_TypeDescriptor CRO_Struct;
@@ -135,11 +136,18 @@ extern CRO_TypeDescriptor CRO_FileDescriptor;
 #define CRO_asSkip() {CRO_Skip, 0, NULL, NULL, 0}
 */
 
-#define CRO_toNumber(v, x) v.type = CRO_Number; v.numberValue = x; v.stringValue = NULL; v.functionValue = NULL; v.allotok = 0; v.constant = 0;
-#define CRO_toNone(v) v.type = CRO_Undefined; v.numberValue = 0; v.stringValue = NULL; v.functionValue = NULL; v.allotok = 0; v.constant = 0;
-#define CRO_toSkip(v) v.type = CRO_Skip; v.numberValue = 0; v.stringValue = NULL; v.functionValue = NULL; v.allotok = 0; v.constant = 0;
-#define CRO_toBoolean(v, x) v.type = CRO_Bool; v.numberValue = 0; v.stringValue = NULL; v.functionValue = NULL; v.allotok = 0; v.integerValue = x; v.constant = 0;
-#define CRO_toString(s, v, x) v.type = CRO_String; v.numberValue = 0; v.stringValue = x; v.functionValue = NULL; v.allotok = CRO_malloc(s, x); v.integerValue = 0; v.constant = 0;
+/*
+#define CRO_toNumber(v, x) v.type = CRO_Number; v.value.number = x; v.value.string = NULL; v.value.function = NULL; v.allotok = 0; v.constant = 0;
+#define CRO_toNone(v) v.type = CRO_Undefined; v.value.number = 0; v.value.string = NULL; v.value.function = NULL; v.allotok = 0; v.constant = 0;
+#define CRO_toSkip(v) v.type = CRO_Skip; v.value.number = 0; v.value.string = NULL; v.value.function = NULL; v.allotok = 0; v.constant = 0;
+#define CRO_toBoolean(v, x) v.type = CRO_Bool; v.value.number = 0; v.value.string = NULL; v.value.function = NULL; v.allotok = 0; v.value.integer = x; v.constant = 0;
+#define CRO_toString(s, v, x) v.type = CRO_String; v.value.number = 0; v.value.string = x; v.value.function = NULL; v.allotok = CRO_malloc(s, x); v.value.integer = 0; v.constant = 0;
+*/
+
+#define CRO_toNumber(v, x) v.type = CRO_Number; v.value.number = x; v.allotok = 0; v.constant = 0;
+#define CRO_toNone(v) v.type = CRO_Undefined; v.allotok = 0; v.constant = 0;
+#define CRO_toBoolean(v, x) v.type = CRO_Bool; v.allotok = 0; v.value.integer = x; v.constant = 0;
+#define CRO_toString(s, v, x) v.type = CRO_String; v.value.string = x; v.allotok = CRO_malloc(s, x); v.constant = 0;
 
 /*#define CRO_error(x) CRO_setColor(RED);printf("ERROR: "); x; CRO_setColor(RESET); return CRO_toNone();*/
 
@@ -156,19 +164,33 @@ extern CRO_TypeDescriptor CRO_FileDescriptor;
 #define CC_STRING       4
 #define CC_EXEC         5
 
+#define CRO_USE_UNIONS 1
+
+#ifdef CRO_USE_UNIONS
+typedef union{
+  double number;
+  int integer;
+  colchar_t* string;
+  struct CRO_Value* array;
+  struct CRO_Value (*function)(CRO_State* s, int argc, char** argv);
+} CRO_InnerValue;
+#else
+typedef struct{
+  double number;
+  int integer;
+  colchar_t* string;
+  struct CRO_Value* array;
+  struct CRO_Value (*function)(CRO_State* s, int argc, char** argv);
+} CRO_InnerValue;
+#endif
+
 /* TODO: Maybe redefine value to be held by a void* pointer and use type to determine which type void* should be*/
 typedef struct CRO_Value {
   CRO_TypeDescriptor type;
   char constant;
   
-  double numberValue;
-  int integerValue;
-
-  colchar_t* stringValue;
-
-  struct CRO_Value (*functionValue)(CRO_State* s, int argc, char** argv);
-
-  struct CRO_Value* arrayValue;
+  CRO_InnerValue value;
+  
   int arraySize;
   
   #ifdef CROWLANG_GREEDY_MEMORY_ALLOCATION

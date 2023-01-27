@@ -92,7 +92,7 @@ int main(int argc, char* argv[]){
     CRO_freeState(s);
     
     if(v.type == CRO_Number){
-      return (int)v.numberValue;
+      return (int)v.value.number;
     }
     else{
       return 0;
@@ -319,7 +319,7 @@ int main(int argc, char* argv[]){
     CRO_freeState(s);
     
     if(v.type == CRO_Number){
-      return (int)v.numberValue;
+      return (int)v.value.number;
     }
     else{
       return 0;

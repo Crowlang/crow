@@ -28,9 +28,9 @@ CRO_Value CRO_sh(CRO_State* s, int argc, char** argv){
     /* On windows for some reason, popen is implemented as _popoen, however I'm
      * not sure if we really want to use it*/
 #ifdef _WIN32
-    comm = _popen(name.stringValue, "r");
+    comm = _popen(name.value.string, "r");
 #else
-    comm = popen(name.stringValue, "r");
+    comm = popen(name.value.string, "r");
 #endif
     outSize = CRO_BUFFER_SIZE;
     outPtr = 0;
@@ -71,7 +71,7 @@ CRO_Value CRO_system(CRO_State* s, int argc, char** argv){
     return v;
   }
 
-  ret = system(name.stringValue);
+  ret = system(name.value.string);
 
   CRO_toNumber(v, (double)ret);
 
@@ -113,7 +113,7 @@ CRO_Value CRO_evalCommand(CRO_State* s, int argc, char** argv){
     e = CRO_innerEval(s, argv[1]);
 
     if(e.type == CRO_String){
-      ret = CRO_eval(s, e.stringValue);
+      ret = CRO_eval(s, e.value.string);
     }
     else{
       char* err;

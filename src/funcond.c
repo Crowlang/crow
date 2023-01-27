@@ -104,9 +104,9 @@ CRO_Value CRO_func(CRO_State* s, int argc, char** argv){
   
   allotok = CRO_malloc(s, body);
 
-  v.type = CRO_Function;
-  v.functionValue = NULL;
-  v.stringValue = body;
+  v.type = CRO_LocalFunction;
+  v.value.function = NULL;
+  v.value.string = body;
   v.allotok = allotok;
   v.constant = 0;
 
@@ -150,9 +150,9 @@ CRO_Value CRO_subroutine(CRO_State* s, int argc, char** argv){
   
   allotok = CRO_malloc(s, body);
 
-  v.type = CRO_Function;
-  v.functionValue = NULL;
-  v.stringValue = body;
+  v.type = CRO_LocalFunction;
+  v.value.function = NULL;
+  v.value.string = body;
   v.allotok = allotok;
   v.constant = 0;
 
@@ -237,7 +237,7 @@ CRO_Value CRO_andand(CRO_State* s, int argc, char** argv){
         
         return ret;
       }
-      else if(!v.integerValue){
+      else if(!v.value.integer){
         CRO_toBoolean(ret, 0);
         return ret;
       }
@@ -275,7 +275,7 @@ CRO_Value CRO_oror(CRO_State* s, int argc, char** argv){
         
         return ret;
       }
-      else if(v.integerValue){
+      else if(v.value.integer){
         CRO_toBoolean(ret, 1);
         return ret;
       }
@@ -306,7 +306,7 @@ CRO_Value CRO_equals(CRO_State* s, int argc, char** argv){
 
   if(a.type == b.type){
     if(a.type == CRO_Number){
-      if(a.numberValue == b.numberValue){
+      if(a.value.number == b.value.number){
         CRO_toBoolean(ret, 1);
       }
       else{
@@ -314,7 +314,7 @@ CRO_Value CRO_equals(CRO_State* s, int argc, char** argv){
       }
     }
     else if(a.type == CRO_String){
-      if(strcmp(a.stringValue, b.stringValue) == 0){
+      if(strcmp(a.value.string, b.value.string) == 0){
         CRO_toBoolean(ret, 1);
       }
       else{
@@ -338,7 +338,7 @@ CRO_Value CRO_notEquals(CRO_State* s, int argc, char** argv){
   CRO_Value r;
 
   r = CRO_equals(s, argc, argv);
-  r.integerValue = !r.integerValue;
+  r.value.integer = !r.value.integer;
 
   return r;
 }
@@ -353,7 +353,7 @@ CRO_Value CRO_greaterThan(CRO_State* s, int argc, char** argv){
 
   if(a.type == b.type){
     if(a.type == CRO_Number){
-      if(a.numberValue > b.numberValue){
+      if(a.value.number > b.value.number){
         CRO_toBoolean(ret, 1);
       }
       else{
@@ -383,7 +383,7 @@ CRO_Value CRO_lessThan(CRO_State* s, int argc, char** argv){
 
   if(a.type == b.type){
     if(a.type == CRO_Number){
-      if(a.numberValue < b.numberValue){
+      if(a.value.number < b.value.number){
         CRO_toBoolean(ret, 1);
       }
       else{
@@ -447,7 +447,7 @@ CRO_Value CRO_if(CRO_State* s, int argc, char** argv){
     else{
       v = CRO_innerEval(s, argv[x]);
       if(v.type == CRO_Bool){
-        if(v.integerValue){
+        if(v.value.integer){
           v = CRO_innerEval(s, argv[x + 1]);
           return v;
         }
@@ -466,7 +466,7 @@ CRO_Value CRO_not(CRO_State* s, int argc, char** argv){
   if(argc == 1){
     CRO_Value bolexpr = CRO_innerEval(s, argv[1]);
     if(bolexpr.type == CRO_Bool){
-      bolexpr.integerValue = !bolexpr.integerValue;
+      bolexpr.value.integer = !bolexpr.value.integer;
       return bolexpr;
     }
     else{
@@ -533,7 +533,7 @@ CRO_Value CRO_each(CRO_State* s, int argc, char** argv){
       
       for(index = 0; index < array.arraySize; index++){
         /* Get the value of the item in the array and set it to the var */
-        itemV = array.arrayValue[index];
+        itemV = array.value.array[index];
         s->variables[itemPtr].value = itemV;
         
         /* Now execute it with the variable in place */
@@ -635,7 +635,7 @@ CRO_Value CRO_eachWithIterator(CRO_State* s, int argc, char** argv){
         CRO_toNumber(counterV, index);
         
         /* Get the value of the item in the array and set it to the var */
-        itemV = array.arrayValue[index];
+        itemV = array.value.array[index];
         s->variables[itemPtr].value = itemV;
         s->variables[counterPtr].value = counterV;
         /* Now execute it with the variable in place */
@@ -684,7 +684,7 @@ CRO_Value CRO_while(CRO_State* s, int argc, char** argv){
   if(argc == 2){
     cond = CRO_innerEval(s, argv[1]);
     
-    while(cond.type == CRO_Bool && cond.integerValue){
+    while(cond.type == CRO_Bool && cond.value.integer){
       ret = CRO_innerEval(s, argv[2]);
       
       if(s->exitCode >= s->exitContext){
@@ -737,7 +737,7 @@ CRO_Value CRO_doWhile(CRO_State* s, int argc, char** argv){
       CRO_callGC(s);
       
       cond = CRO_innerEval(s, argv[2]);
-    } while(cond.type == CRO_Bool && cond.integerValue);
+    } while(cond.type == CRO_Bool && cond.value.integer);
   }
   else{
     char* err;

@@ -36,12 +36,13 @@ void CRO_printError(){
 }
 
 void (*CRO_printValue[64])(CRO_Value);
-unsigned int PVptr = 1;
+unsigned int PVptr = 2;
 
 CRO_TypeDescriptor CRO_Undefined = 0;
 CRO_TypeDescriptor CRO_Number = 0;
 CRO_TypeDescriptor CRO_Bool = 0;
 CRO_TypeDescriptor CRO_Function = 0;
+CRO_TypeDescriptor CRO_LocalFunction = 0;
 CRO_TypeDescriptor CRO_Array = 0;
 CRO_TypeDescriptor CRO_String = 0;
 CRO_TypeDescriptor CRO_Struct = 0;
@@ -62,15 +63,15 @@ void CRO_printStd(CRO_Value v){
   }
   else if(v.type == CRO_Number){
     CRO_setColor(GREEN);
-    printf("%.15g\n", v.numberValue);
+    printf("%.15g\n", v.value.number);
   }
-  else if(v.type == CRO_Function){
+  else if(v.type == CRO_Function || v.type == CRO_LocalFunction){
     CRO_setColor(CYAN);
     printf("Function\n");
   }
   else if(v.type == CRO_String){
     CRO_setColor(GREEN);
-    printf("\"%s\"\n", v.stringValue);
+    printf("\"%s\"\n", v.value.string);
   }
   else if(v.type == CRO_Array){
     CRO_setColor(GREEN);
@@ -86,7 +87,7 @@ void CRO_printStd(CRO_Value v){
   }
   else if(v.type == CRO_Bool){
     CRO_setColor(GREEN);
-    if(v.integerValue == 1){
+    if(v.value.integer == 1){
       printf("true\n");
     }
     else{
@@ -155,6 +156,7 @@ CRO_State* CRO_createState(void){
     CRO_Number = CRO_exposeType(CRO_printStd);
     CRO_Bool = CRO_exposeType(CRO_printStd);
     CRO_Function = CRO_exposeType(CRO_printStd);
+    CRO_LocalFunction = CRO_exposeType(CRO_printStd);
     CRO_Array = CRO_exposeType(CRO_printStd);
     CRO_String = CRO_exposeType(CRO_printStd);
     CRO_Struct = CRO_exposeType(CRO_printStd);
@@ -314,8 +316,8 @@ void CRO_exposeArguements(CRO_State* s, int argc, char** argv, char treatAsStrin
   
   /* All values of argv need to be processes into an array called ARGS */
   argarrval.type = CRO_Array;
-  argarrval.arrayValue = (CRO_Value*)malloc((argc + 1) * sizeof(CRO_Value));
-  argarrval.allotok = CRO_malloc(s, (void*)argarrval.arrayValue);
+  argarrval.value.array = (CRO_Value*)malloc((argc + 1) * sizeof(CRO_Value));
+  argarrval.allotok = CRO_malloc(s, (void*)argarrval.value.array);
 
   /* If we are treating all the args as a string, we need to make them into CRO strings*/
   if(treatAsString){
@@ -325,15 +327,15 @@ void CRO_exposeArguements(CRO_State* s, int argc, char** argv, char treatAsStrin
       /* We manually create the strings because we don't want the GC to intervene*/
       str.type = CRO_String;
       str.constant = 1;
-      str.stringValue = argv[x];
+      str.value.string = argv[x];
       
-      argarrval.arrayValue[x] = str;
+      argarrval.value.array[x] = str;
     }
   }
   else{
     for(x = 0; x < argc; x++){
       /* Otherwise we just evaluate the arguements */
-      argarrval.arrayValue[x] = CRO_innerEval(s, argv[x]);
+      argarrval.value.array[x] = CRO_innerEval(s, argv[x]);
     }
   }
 
@@ -399,10 +401,7 @@ void CRO_exposeFunction(CRO_State* s, const char* name, CRO_Value (*func)(CRO_St
   
   /* Create our function value */
   vn.type = CRO_Function;
-  vn.functionValue = func;
-  vn.numberValue = 0;
-  vn.stringValue = NULL;
-  vn.allotok = 0;
+  vn.value.function = func;
   vn.constant = 1;
 
   /* Create the variable to hold it */
@@ -610,7 +609,7 @@ int CRO_realloc(CRO_State* s, void* memory, int tok, size_t newSize){
   for(vptr = 0; vptr < s->vptr; vptr++){
     if(tok == s->variables[vptr].value.allotok){
       if(s->variables[vptr].value.type == CRO_Array){
-        s->variables[vptr].value.arrayValue = newMem;
+        s->variables[vptr].value.value.array = newMem;
       }
     }
     else if(s->variables[vptr].value.type == CRO_Array || s->variables[vptr].value.type == CRO_Struct){
@@ -618,9 +617,9 @@ int CRO_realloc(CRO_State* s, void* memory, int tok, size_t newSize){
       int vaptr;
 
       for(vaptr = 0; vaptr < arr.arraySize; vaptr++){
-        if(tok == arr.arrayValue[vaptr].allotok){
+        if(tok == arr.value.array[vaptr].allotok){
           if(s->variables[vptr].value.type == CRO_Array){
-            s->variables[vptr].value.arrayValue = newMem;
+            s->variables[vptr].value.value.array = newMem;
           }
         }
       }
@@ -642,11 +641,11 @@ static int CRO_GC_Inner(CRO_State* s, CRO_Value arr, allotok_t atok){
   int vaptr;
 
   for(vaptr = 0; vaptr < arr.arraySize; vaptr++){
-    if(arr.arrayValue[vaptr].type == CRO_Array || arr.arrayValue[vaptr].type == CRO_Struct){
-        return CRO_GC_Inner(s, arr.arrayValue[vaptr], atok);
+    if(arr.value.array[vaptr].type == CRO_Array || arr.value.array[vaptr].type == CRO_Struct){
+        return CRO_GC_Inner(s, arr.value.array[vaptr], atok);
     }
     
-    if(atok == arr.arrayValue[vaptr].allotok){
+    if(atok == arr.value.array[vaptr].allotok){
       return 1;
     }
   }
@@ -721,7 +720,7 @@ void CRO_GC(CRO_State* s){
       found = 0;
       
       for(vptr = 0; vptr < s->vptr; vptr++){
-        if(s->variables[vptr].value.type == CRO_FileDescriptor && aptr == s->variables[vptr].value.integerValue){
+        if(s->variables[vptr].value.type == CRO_FileDescriptor && aptr == s->variables[vptr].value.value.integer){
           
           found = 1;
           break;
@@ -731,7 +730,7 @@ void CRO_GC(CRO_State* s){
           int vaptr;
 
           for(vaptr = 0; vaptr < arr.arraySize; vaptr++){
-            if(s->variables[vptr].value.type == CRO_FileDescriptor && aptr == s->variables[vptr].value.integerValue){
+            if(s->variables[vptr].value.type == CRO_FileDescriptor && aptr == s->variables[vptr].value.value.integer){
               found = 1;
               break;
             }
@@ -762,10 +761,9 @@ CRO_Value CRO_callFunction(CRO_State* s, CRO_Value func, int argc, char** argv, 
   s->exitContext = CRO_ReturnCode;
   
   /* If the function value is null, it means we have a local defined function, in which the actual 
-   * function body is located in the stringValue var */
+   * function body is located in the value.string var */
 
-  /* TODO: Maybe make local function have a different type */
-  if(func.functionValue == NULL){
+  if(func.type == CRO_LocalFunction){
     CRO_Variable argarr;
     CRO_Value argarrval;
     CRO_Value strname;
@@ -775,13 +773,13 @@ CRO_Value CRO_callFunction(CRO_State* s, CRO_Value func, int argc, char** argv, 
     s->block += 1;
 
     strname.type = CRO_String;
-    strname.stringValue = CRO_cloneStr(argv[0]);
+    strname.value.string = CRO_cloneStr(argv[0]);
 
-    strname.allotok = CRO_malloc(s, (void*)strname.stringValue);
+    strname.allotok = CRO_malloc(s, (void*)strname.value.string);
 
     CRO_exposeArguements(s, argc, &argv[1], 0);
 
-    funcbody = func.stringValue;
+    funcbody = func.value.string;
     varname = (char*)malloc(CRO_BUFFER_SIZE * sizeof(char));
     varnamesize = CRO_BUFFER_SIZE;
     varnameptr = 0;
@@ -877,7 +875,7 @@ CRO_Value CRO_callFunction(CRO_State* s, CRO_Value func, int argc, char** argv, 
     s->functionBlock = lastblock;
   }
   else{
-    v = func.functionValue(s, argc, argv);
+    v = func.value.function(s, argc, argv);
   }
   
   if(s->exitCode == s->exitContext){
@@ -930,7 +928,7 @@ CRO_Value CRO_innerEval(CRO_State* s, char* src){
     /* TODO: While at the time this seemed like a good approach, maybe try to get the CRO_Value for the function by
      * evaluating fname */
     
-    if(func.type == CRO_Function){
+    if(func.type == CRO_Function || func.type == CRO_LocalFunction){
       v = CRO_callFunction(s, func, argc, argv, 0, func);
 
       for(x = 0; x <= argc; x++){
@@ -946,9 +944,9 @@ CRO_Value CRO_innerEval(CRO_State* s, char* src){
       CRO_Value caller;
       
      for(x = 0; x < func.arraySize; x+= 2){
-        if(strcmp(argv[1], func.arrayValue[x].stringValue) == 0){
+        if(strcmp(argv[1], func.value.array[x].value.string) == 0){
           found = 1;
-          caller = func.arrayValue[x + 1];
+          caller = func.value.array[x + 1];
           break;
         }
       }
@@ -1038,7 +1036,7 @@ CRO_Value CRO_innerEval(CRO_State* s, char* src){
 
     tok = CRO_malloc(s, (void*)str);
     v.type = CRO_String;
-    v.stringValue = str;
+    v.value.string = str;
     
     #ifdef CROWLANG_GREEDY_MEMORY_ALLOCATION
     v.arrayCapacity = strsize;

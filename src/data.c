@@ -121,7 +121,7 @@ CRO_Value CRO_array(CRO_State* s, int argc, char** argv){
   tok = CRO_malloc(s, (void*)array);
 
   v.type = CRO_Array;
-  v.arrayValue = array;
+  v.value.array = array;
   v.arraySize = argc;
   v.allotok = tok;
   v.constant = 0;
@@ -143,7 +143,7 @@ CRO_Value CRO_length(CRO_State* s, int argc, char** argv){
         int i, size;
         unsigned char* str;
         
-        str = (unsigned char*)v.stringValue;
+        str = (unsigned char*)v.value.string;
         i = 0;
         size = 0;
         
@@ -172,7 +172,7 @@ CRO_Value CRO_length(CRO_State* s, int argc, char** argv){
       #else
         /* This is ALL we _should_ need, but NO, can't be bothered to make
          * support for UTF8 without external libraries */
-        CRO_toNumber(ret, strlen(v.stringValue));
+        CRO_toNumber(ret, strlen(v.value.string));
       #endif
     }
     else if(v.type == CRO_Array){
@@ -206,7 +206,7 @@ CRO_Value CRO_makeArray(CRO_State* s, int argc, char** argv){
     if(sz.type != CRO_Number){
       printf("Error");
     }
-    size = (int)sz.numberValue;
+    size = (int)sz.value.number;
   }
   #ifdef CROWLANG_GREEDY_MEMORY_ALLOCATION
   {
@@ -224,7 +224,7 @@ CRO_Value CRO_makeArray(CRO_State* s, int argc, char** argv){
   tok = CRO_malloc(s, (void*)array);
   
   v.type = CRO_Array;
-  v.arrayValue = array;
+  v.value.array = array;
   v.arraySize = size;
   v.allotok = tok;
   v.constant = 0;
@@ -251,7 +251,7 @@ CRO_Value CRO_resizeArray(CRO_State* s, int argc, char** argv){
       /* Error */
     }
     
-    sz = (int)size.numberValue;
+    sz = (int)size.value.number;
     newArray = (CRO_Value*)calloc(sz, sizeof(CRO_Value));
     
     if(sz > array.arraySize){
@@ -261,12 +261,12 @@ CRO_Value CRO_resizeArray(CRO_State* s, int argc, char** argv){
       cpySize = sz * sizeof(CRO_Value);
     }
     
-    newArray = memcpy(newArray, array.arrayValue, cpySize);
+    newArray = memcpy(newArray, array.value.array, cpySize);
     
     tok = CRO_malloc(s, (void*)newArray);
 
     v.type = CRO_Array;
-    v.arrayValue = newArray;
+    v.value.array = newArray;
     v.arraySize = sz;
     v.allotok = tok;
     v.constant = 0;
@@ -305,7 +305,7 @@ CRO_Value CRO_arraySet(CRO_State* s, int argc, char** argv){
     printf("Arg type Error\n");
   }
 
-  index = (int)arg.numberValue;
+  index = (int)arg.value.number;
   
   /* TODO: Expand the array to fit the new size */
   if(index >= arr.arraySize){
@@ -313,8 +313,8 @@ CRO_Value CRO_arraySet(CRO_State* s, int argc, char** argv){
   }
 
   /* Make sure we are not trying to overwrite a constant value */
-  if(!(arr.arrayValue[index].constant)){
-    arr.arrayValue[index] = val;
+  if(!(arr.value.array[index].constant)){
+    arr.value.array[index] = val;
   }
   else{
     printf("Error\n");
@@ -342,14 +342,14 @@ CRO_Value CRO_arrayGet(CRO_State* s, int argc, char** argv){
     printf("Error\n");
   }
 
-  index = (int)arg.numberValue;
+  index = (int)arg.value.number;
 
   if(index > arr.arraySize){
     CRO_toNone(ret);
     return ret;
   }
 
-  ret = arr.arrayValue[index];
+  ret = arr.value.array[index];
   return ret;
 }
 
@@ -364,7 +364,7 @@ CRO_Value CRO_sample(CRO_State* s, int argc, char** argv){
       
       /* TODO: Make this work for indexes larger than RANDMAX */
       index = rand() % array.arraySize;
-      return array.arrayValue[index];
+      return array.value.array[index];
     }
     else{
       CRO_Value ret;
@@ -412,7 +412,7 @@ CRO_Value CRO_makeStruct(CRO_State* s, int argc, char** argv){
   v.allotok = CRO_malloc(s, str);
 
   v.type = CRO_Struct;
-  v.arrayValue = str;
+  v.value.array = str;
   v.arraySize = (argc) * 2;
   v.constant = 0;
 
@@ -436,8 +436,8 @@ CRO_Value CRO_setStruct(CRO_State* s, int argc, char** argv){
 
   for(x = 0; x < str.arraySize; x+= 2){
     
-    if(strcmp(name.stringValue, str.arrayValue[x].stringValue) == 0){
-      str.arrayValue[x + 1] = v;
+    if(strcmp(name.value.string, str.value.array[x].value.string) == 0){
+      str.value.array[x + 1] = v;
       return v;
     }
   }
@@ -460,8 +460,8 @@ CRO_Value CRO_getStruct(CRO_State* s, int argc, char** argv){
   name = CRO_innerEval(s, argv[2]);
 
   for(x = 0; x < str.arraySize; x+= 2){
-    if(strcmp(name.stringValue, str.arrayValue[x].stringValue) == 0){
-      return str.arrayValue[x + 1];
+    if(strcmp(name.value.string, str.value.array[x].value.string) == 0){
+      return str.value.array[x + 1];
     }
   }
   CRO_toNone(v);
@@ -482,17 +482,17 @@ CRO_Value CRO_number(CRO_State* s, int argc, char** argv){
       
       valuePtr = NULL;
       
-      out = strtod(value.stringValue, &valuePtr);
+      out = strtod(value.value.string, &valuePtr);
       CRO_toNumber(ret, out);
       
     }
     else if(value.type == CRO_Bool){
-      CRO_toNumber(ret, value.integerValue);
+      CRO_toNumber(ret, value.value.integer);
     }
     else if(value.type == CRO_Number){
       /* Even though we could just return the number, we do this here to remove const
        qualifiers which may or may not exist on that value */
-      CRO_toNumber(ret, value.numberValue);
+      CRO_toNumber(ret, value.value.number);
     }
     else{
       char* err;
@@ -520,7 +520,7 @@ CRO_Value CRO_hash(CRO_State* s, int argc, char** argv){
     arg = CRO_innerEval(s, argv[1]);
     
     if(arg.type == CRO_String){
-      CRO_toNumber(ret, CRO_genHash(arg.stringValue));
+      CRO_toNumber(ret, CRO_genHash(arg.value.string));
       return ret;
     }
     else{

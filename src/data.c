@@ -91,14 +91,14 @@ CRO_Value set(CRO_State* s, int argc, char** argv){
   return vn;
 }
 
-CRO_Value CRO_const(CRO_State *s, int argc, char** argv){
+CRO_Value CRO_const(CRO_State *s, int argc, CRO_Value* argv){
   CRO_Value v;
 
   if(argc != 1){
     printf("Error\n");
   }
 
-  v = CRO_innerEval(s, argv[1]);
+  v = argv[1];
 
   v.constant = 1;
 
@@ -107,15 +107,16 @@ CRO_Value CRO_const(CRO_State *s, int argc, char** argv){
 
 /* Arrays */
 
-CRO_Value CRO_array(CRO_State* s, int argc, char** argv){
+CRO_Value CRO_array(CRO_State* s, int argc, CRO_Value* argv){
   CRO_Value v;
   CRO_Value* array;
-  int x, tok;
+  int x;
+  allotok_t tok;
 
   array = (CRO_Value*)malloc(argc * sizeof(CRO_Value));
 
   for(x = 0; x < argc; x++){
-    array[x] = CRO_innerEval(s, argv[x + 1]);
+    array[x] = argv[x + 1];
   }
 
   tok = CRO_malloc(s, (void*)array);
@@ -129,11 +130,11 @@ CRO_Value CRO_array(CRO_State* s, int argc, char** argv){
   return v;
 }
 
-CRO_Value CRO_length(CRO_State* s, int argc, char** argv){
+CRO_Value CRO_length(CRO_State* s, int argc, CRO_Value* argv){
   CRO_Value v, ret;
   
   if(argc == 1){
-    v = CRO_innerEval(s, argv[1]);
+    v = argv[1];
     if(v.type == CRO_String){
       
       /* Since UTF8 isnt supported in strlen, we have our own strlen
@@ -189,7 +190,7 @@ CRO_Value CRO_length(CRO_State* s, int argc, char** argv){
   return ret;
 }
 
-CRO_Value CRO_makeArray(CRO_State* s, int argc, char** argv){
+CRO_Value CRO_makeArray(CRO_State* s, int argc, CRO_Value* argv){
   CRO_Value v;
   CRO_Value* array;
   int size;
@@ -201,7 +202,7 @@ CRO_Value CRO_makeArray(CRO_State* s, int argc, char** argv){
   else{
     CRO_Value sz;
 
-    sz = CRO_innerEval(s, argv[1]);
+    sz = argv[1];
 
     if(sz.type != CRO_Number){
       printf("Error");
@@ -232,7 +233,7 @@ CRO_Value CRO_makeArray(CRO_State* s, int argc, char** argv){
   return v;
 }
 
-CRO_Value CRO_resizeArray(CRO_State* s, int argc, char** argv){
+CRO_Value CRO_resizeArray(CRO_State* s, int argc, CRO_Value* argv){
   CRO_Value size, array, v;
   CRO_Value* newArray;
   int sz;
@@ -241,8 +242,8 @@ CRO_Value CRO_resizeArray(CRO_State* s, int argc, char** argv){
   if(argc == 2){
     int cpySize;
     
-    array = CRO_innerEval(s, argv[1]);
-    size = CRO_innerEval(s, argv[2]);
+    array = argv[1];
+    size = argv[2];
     
     if(array.type != CRO_Array){
       /* Error */
@@ -277,7 +278,7 @@ CRO_Value CRO_resizeArray(CRO_State* s, int argc, char** argv){
     char* err;
     err = malloc(128 * sizeof(char));
     
-    sprintf(err, "[%s] Expected 3 arguements. (%d given)", argv[0], argc);
+    sprintf(err, "[%s] Expected 3 arguements. (%d given)", argv[0].value.string, argc);
     v = CRO_error(s, err);
     return v;
     
@@ -285,7 +286,7 @@ CRO_Value CRO_resizeArray(CRO_State* s, int argc, char** argv){
   
 }
 
-CRO_Value CRO_arraySet(CRO_State* s, int argc, char** argv){
+CRO_Value CRO_arraySet(CRO_State* s, int argc, CRO_Value* argv){
   CRO_Value arr, arg, val;
   int index;
 
@@ -293,9 +294,9 @@ CRO_Value CRO_arraySet(CRO_State* s, int argc, char** argv){
     printf("Arguement Error\n");
   }
 
-  arr = CRO_innerEval(s, argv[1]);
-  arg = CRO_innerEval(s, argv[2]);
-  val = CRO_innerEval(s, argv[3]);
+  arr = argv[1];
+  arg = argv[2];
+  val = argv[3];
 
   if(arr.type != CRO_Array){
     printf("Array type Error\n");
@@ -323,7 +324,7 @@ CRO_Value CRO_arraySet(CRO_State* s, int argc, char** argv){
 
 }
 
-CRO_Value CRO_arrayGet(CRO_State* s, int argc, char** argv){
+CRO_Value CRO_arrayGet(CRO_State* s, int argc, CRO_Value* argv){
   CRO_Value arr, arg, ret;
   int index;
 
@@ -331,8 +332,8 @@ CRO_Value CRO_arrayGet(CRO_State* s, int argc, char** argv){
     printf("Error\n");
   }
 
-  arr = CRO_innerEval(s, argv[1]);
-  arg = CRO_innerEval(s, argv[2]);
+  arr = argv[1];
+  arg = argv[2];
 
   if(arr.type != CRO_Array){
     printf("Error\n");
@@ -353,11 +354,11 @@ CRO_Value CRO_arrayGet(CRO_State* s, int argc, char** argv){
   return ret;
 }
 
-CRO_Value CRO_sample(CRO_State* s, int argc, char** argv){
+CRO_Value CRO_sample(CRO_State* s, int argc, CRO_Value* argv){
   
   if(argc == 1){
     CRO_Value array;
-    array = CRO_innerEval(s, argv[1]);
+    array = argv[1];
     
     if(array.type == CRO_Array){
       int index;
@@ -371,7 +372,7 @@ CRO_Value CRO_sample(CRO_State* s, int argc, char** argv){
       char* err;
       err = malloc(128 * sizeof(char));
       
-      sprintf(err, "[%s] %s is not an Array", argv[0], argv[1]);
+      sprintf(err, "[%s] Argument 1 is not an Array", argv[0].value.string);
       ret = CRO_error(s, err);
       return ret;
     }
@@ -381,7 +382,7 @@ CRO_Value CRO_sample(CRO_State* s, int argc, char** argv){
     char* err;
     err = malloc(128 * sizeof(char));
     
-    sprintf(err, "[%s] Expected 1 arguement. (%d given)", argv[0], argc);
+    sprintf(err, "[%s] Expected 1 arguement. (%d given)", argv[0].value.string, argc);
     ret = CRO_error(s, err);
     return ret;
   }
@@ -389,7 +390,7 @@ CRO_Value CRO_sample(CRO_State* s, int argc, char** argv){
 
 /* Structures */
 
-CRO_Value CRO_makeStruct(CRO_State* s, int argc, char** argv){
+CRO_Value CRO_makeStruct(CRO_State* s, int argc, CRO_Value* argv){
   CRO_Value v;
   CRO_Value* str;
   int x;
@@ -405,7 +406,7 @@ CRO_Value CRO_makeStruct(CRO_State* s, int argc, char** argv){
   memset(str, 0, (((argc + 1) * 2) * sizeof(CRO_Value)));
 
   for(x = 0; x < argc; x++){
-    str[x * 2] = CRO_innerEval(s, argv[x + 1]);
+    str[x * 2] = argv[x + 1];
     str[x * 2].constant = 1;
   }
 
@@ -420,7 +421,7 @@ CRO_Value CRO_makeStruct(CRO_State* s, int argc, char** argv){
   
 }
 
-CRO_Value CRO_setStruct(CRO_State* s, int argc, char** argv){
+CRO_Value CRO_setStruct(CRO_State* s, int argc, CRO_Value* argv){
   CRO_Value str;
   CRO_Value name;
   CRO_Value v;
@@ -430,9 +431,9 @@ CRO_Value CRO_setStruct(CRO_State* s, int argc, char** argv){
     printf("Error\n");
   }
 
-  str = CRO_innerEval(s, argv[1]);
-  name = CRO_innerEval(s, argv[2]);
-  v = CRO_innerEval(s, argv[3]);
+  str = argv[1];
+  name = argv[2];
+  v = argv[3];
 
   for(x = 0; x < str.arraySize; x+= 2){
     
@@ -442,11 +443,11 @@ CRO_Value CRO_setStruct(CRO_State* s, int argc, char** argv){
     }
   }
   CRO_toNone(v);
-  printf("Cound not find value %s in %s\n", argv[2], argv[1]);
+  printf("Cound not find value %s in structure\n", argv[2].value.string);
   return v;
 }
 
-CRO_Value CRO_getStruct(CRO_State* s, int argc, char** argv){
+CRO_Value CRO_getStruct(CRO_State* s, int argc, CRO_Value* argv){
   CRO_Value str;
   CRO_Value name;
   CRO_Value v;
@@ -456,8 +457,8 @@ CRO_Value CRO_getStruct(CRO_State* s, int argc, char** argv){
     printf("Error\n");
   }
 
-  str = CRO_innerEval(s, argv[1]);
-  name = CRO_innerEval(s, argv[2]);
+  str = argv[1];
+  name = argv[2];
 
   for(x = 0; x < str.arraySize; x+= 2){
     if(strcmp(name.value.string, str.value.array[x].value.string) == 0){
@@ -469,12 +470,12 @@ CRO_Value CRO_getStruct(CRO_State* s, int argc, char** argv){
   return v;
 }
 
-CRO_Value CRO_number(CRO_State* s, int argc, char** argv){
+CRO_Value CRO_number(CRO_State* s, int argc, CRO_Value* argv){
   CRO_Value ret;
   
   if(argc == 1){
     CRO_Value value;
-    value = CRO_innerEval(s, argv[1]);
+    value = argv[1];
     
     if(value.type == CRO_String){
       double out;
@@ -498,7 +499,7 @@ CRO_Value CRO_number(CRO_State* s, int argc, char** argv){
       char* err;
       err = malloc(128 * sizeof(char));
       
-      sprintf(err, "(%s): Invalid conversion", argv[0]);
+      sprintf(err, "(%s): Invalid conversion", argv[0].value.string);
       ret = CRO_error(s, err);
     }
   }
@@ -506,18 +507,18 @@ CRO_Value CRO_number(CRO_State* s, int argc, char** argv){
     char* err;
     err = malloc(128 * sizeof(char));
     
-    sprintf(err, "(%s): Expected 1 arguement (%d given)", argv[0], argc);
+    sprintf(err, "(%s): Expected 1 arguement (%d given)", argv[0].value.string, argc);
     ret = CRO_error(s, err);
   }
   return ret;
 }
 
-CRO_Value CRO_hash(CRO_State* s, int argc, char** argv){
+CRO_Value CRO_hash(CRO_State* s, int argc, CRO_Value* argv){
   CRO_Value ret;
   
   if(argc == 1){
     CRO_Value arg;
-    arg = CRO_innerEval(s, argv[1]);
+    arg = argv[1];
     
     if(arg.type == CRO_String){
       CRO_toNumber(ret, CRO_genHash(arg.value.string));
@@ -527,7 +528,7 @@ CRO_Value CRO_hash(CRO_State* s, int argc, char** argv){
       char* err;
       err = malloc(128 * sizeof(char));
       
-      sprintf(err, "(%s): %s is not a string", argv[0], argv[1]);
+      sprintf(err, "(%s): Argument 1 is not a string", argv[0].value.string);
       ret = CRO_error(s, err);
     }
   }
@@ -535,7 +536,7 @@ CRO_Value CRO_hash(CRO_State* s, int argc, char** argv){
     char* err;
     err = malloc(128 * sizeof(char));
     
-    sprintf(err, "(%s): Expected 1 arguement (%d given)", argv[0], argc);
+    sprintf(err, "(%s): Expected 1 arguement (%d given)", argv[0].value.string, argc);
     ret = CRO_error(s, err);
   }
   return ret;

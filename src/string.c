@@ -6,7 +6,7 @@
 #include <crow/core.h>
 #include <crow/string.h>
 
-CRO_Value CRO_string(CRO_State* s, int argc, char** argv){
+CRO_Value CRO_string(CRO_State* s, int argc, CRO_Value* argv){
   CRO_Value v;
   int x;
   char* stringValue;
@@ -24,7 +24,7 @@ CRO_Value CRO_string(CRO_State* s, int argc, char** argv){
     int y;
     char* innerBuffer;
     
-    v = CRO_innerEval(s, argv[x]);
+    v = argv[x];
     
       
       
@@ -80,7 +80,7 @@ CRO_Value CRO_string(CRO_State* s, int argc, char** argv){
 }
 
 /* TODO: Implement str-insert */
-CRO_Value CRO_strInsert(CRO_State* s, int argc, char** argv){
+CRO_Value CRO_strInsert(CRO_State* s, int argc, CRO_Value* argv){
   CRO_Value ret;
   
   if(argc == 3){
@@ -88,9 +88,9 @@ CRO_Value CRO_strInsert(CRO_State* s, int argc, char** argv){
     char* newString;
     int nsSize, nsPtr;
     
-    str = CRO_innerEval(s, argv[1]);
-    insert = CRO_innerEval(s, argv[2]);
-    index = CRO_innerEval(s, argv[3]);
+    str = argv[1];
+    insert = argv[2];
+    index = argv[3];
     
     nsSize = CRO_BUFFER_SIZE;
     nsPtr = 0;
@@ -182,14 +182,14 @@ CRO_Value CRO_strInsert(CRO_State* s, int argc, char** argv){
   return ret;
 }
 
-CRO_Value CRO_charAt(CRO_State* s, int argc, char** argv){
+CRO_Value CRO_charAt(CRO_State* s, int argc, CRO_Value* argv){
   CRO_Value v, str, pos;
   if(argc == 2){
     int index;
     char* characterAt;
     
-    str = CRO_innerEval(s, argv[1]);
-    pos = CRO_innerEval(s, argv[2]);
+    str = argv[1];
+    pos = argv[2];
     
     if(str.type != CRO_String){
       /* Error */
@@ -273,7 +273,7 @@ CRO_Value CRO_charAt(CRO_State* s, int argc, char** argv){
   return v;
 }
 
-CRO_Value CRO_substr(CRO_State* s, int argc, char** argv){
+CRO_Value CRO_substr(CRO_State* s, int argc, CRO_Value* argv){
   CRO_Value ret;
   
   if(argc == 3){
@@ -282,15 +282,15 @@ CRO_Value CRO_substr(CRO_State* s, int argc, char** argv){
     char* newString;
     unsigned char* string;
     
-    str = CRO_innerEval(s, argv[1]);
-    start = CRO_innerEval(s, argv[2]);
-    end = CRO_innerEval(s, argv[3]);
+    str = argv[1];
+    start = argv[2];
+    end = argv[3];
     
     if(str.type != CRO_String){
       char* err;
       err = malloc(128 * sizeof(char));
       
-      sprintf(err, "[%s] %s is not a string", argv[0], argv[1]);
+      sprintf(err, "[%s] Argument 1 is not a string", argv[0].value.string);
       ret = CRO_error(s, err);
 
       return ret;
@@ -299,7 +299,7 @@ CRO_Value CRO_substr(CRO_State* s, int argc, char** argv){
       char* err;
       err = malloc(128 * sizeof(char));
       
-      sprintf(err, "[%s] %s is not a number", argv[0], argv[2]);
+      sprintf(err, "[%s] Argument 2 is not a number", argv[0].value.string);
       ret = CRO_error(s, err);
       
       return ret;
@@ -308,7 +308,7 @@ CRO_Value CRO_substr(CRO_State* s, int argc, char** argv){
       char* err;
       err = malloc(128 * sizeof(char));
       
-      sprintf(err, "[%s] %s is not a number", argv[0], argv[3]);
+      sprintf(err, "[%s] Argument 3 is not a number", argv[0].value.string);
       ret = CRO_error(s, err);
       
       return ret;
@@ -374,22 +374,22 @@ CRO_Value CRO_substr(CRO_State* s, int argc, char** argv){
     char* err;
     err = malloc(128 * sizeof(char));
     
-    sprintf(err, "[%s] Expected 3 arguements, %d given", argv[0], argc);
+    sprintf(err, "[%s] Expected 3 arguements, %d given", argv[0].value.string, argc);
     ret = CRO_error(s, err);
     
     return ret;
   }
 }
 
-CRO_Value CRO_split(CRO_State* s, int argc, char** argv){
+CRO_Value CRO_split(CRO_State* s, int argc, CRO_Value* argv){
   CRO_Value ret;
   
   if(argc == 2){
     CRO_Value string;
     CRO_Value delim;
     
-    string = CRO_innerEval(s, argv[1]);
-    delim = CRO_innerEval(s, argv[2]);
+    string = argv[1];
+    delim = argv[2];
     
     if(string.type == CRO_String){
       if(delim.type == CRO_String){
@@ -485,7 +485,7 @@ CRO_Value CRO_split(CRO_State* s, int argc, char** argv){
         char* err;
         err = malloc(128 * sizeof(char));
         
-        sprintf(err, "[%s] %s is not a string", argv[0], argv[2]);
+        sprintf(err, "[%s] Argument 2 is not a string", argv[0].value.string);
         ret = CRO_error(s, err);
         
         return ret;
@@ -495,7 +495,7 @@ CRO_Value CRO_split(CRO_State* s, int argc, char** argv){
       char* err;
       err = malloc(128 * sizeof(char));
       
-      sprintf(err, "[%s] %s is not a string", argv[0], argv[1]);
+      sprintf(err, "[%s] Argument 1 is not a string", argv[0].value.string);
       ret = CRO_error(s, err);
       
       return ret;
@@ -505,20 +505,20 @@ CRO_Value CRO_split(CRO_State* s, int argc, char** argv){
     char* err;
     err = malloc(128 * sizeof(char));
     
-    sprintf(err, "[%s] Expected 2 arguements. (%d given)", argv[0], argc);
+    sprintf(err, "[%s] Expected 2 arguements. (%d given)", argv[0].value.string, argc);
     ret = CRO_error(s, err);
     
     return ret;
   }
 }
 
-CRO_Value CRO_startsWith(CRO_State* s, int argc, char** argv){
+CRO_Value CRO_startsWith(CRO_State* s, int argc, CRO_Value* argv){
   CRO_Value ret;
   
   if(argc == 2){
     CRO_Value str, start;
-    str = CRO_innerEval(s, argv[1]);
-    start = CRO_innerEval(s, argv[2]);
+    str = argv[1];
+    start = argv[2];
     
     if(str.type == CRO_String){
       if(start.type == CRO_String){
@@ -538,7 +538,7 @@ CRO_Value CRO_startsWith(CRO_State* s, int argc, char** argv){
         char* err;
         err = malloc(128 * sizeof(char));
       
-        sprintf(err, "[%s] %s is not a String", argv[0], argv[2]);
+        sprintf(err, "[%s] Argument 2 is not a String", argv[0].value.string);
         ret = CRO_error(s, err);
         
         return ret;
@@ -548,7 +548,7 @@ CRO_Value CRO_startsWith(CRO_State* s, int argc, char** argv){
       char* err;
       err = malloc(128 * sizeof(char));
       
-      sprintf(err, "[%s] %s is not a String", argv[0], argv[1]);
+      sprintf(err, "[%s] Argument 1 is not a String", argv[0].value.string);
       ret = CRO_error(s, err);
       
       return ret;
@@ -558,7 +558,7 @@ CRO_Value CRO_startsWith(CRO_State* s, int argc, char** argv){
     char* err;
     err = malloc(128 * sizeof(char));
     
-    sprintf(err, "[%s] Expected 2 arguements. (%d given)", argv[0], argc);
+    sprintf(err, "[%s] Expected 2 arguements. (%d given)", argv[0].value.string, argc);
     ret = CRO_error(s, err);
     
     return ret;

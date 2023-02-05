@@ -7,14 +7,14 @@
 #include <crow/core.h>
 #include <crow/system.h>
 
-CRO_Value CRO_sh(CRO_State* s, int argc, char** argv){
+CRO_Value CRO_sh(CRO_State* s, int argc, CRO_Value* argv){
   CRO_Value v, name;
-  name = CRO_innerEval(s, argv[1]);
+  name = argv[1];
 
   if(name.type != CRO_String){
     char* msg;
     msg = (char*)malloc(512 * sizeof(char));
-    sprintf(msg, "Arguement '%s' is not a string", argv[1]);
+    sprintf(msg, "Arguement 1 is not a string");
 
     v = CRO_error(s, msg);
 
@@ -56,15 +56,15 @@ CRO_Value CRO_sh(CRO_State* s, int argc, char** argv){
   return v;
 }
 
-CRO_Value CRO_system(CRO_State* s, int argc, char** argv){
+CRO_Value CRO_system(CRO_State* s, int argc, CRO_Value* argv){
   int ret;
   CRO_Value v, name;
-  name = CRO_innerEval(s, argv[1]);
+  name = argv[1];
 
   if(name.type != CRO_String){
     char* msg;
     msg = (char*)malloc(512 * sizeof(char));
-    sprintf(msg, "Arguement '%s' is not a string", argv[1]);
+    sprintf(msg, "Argument 1 is not a string");
 
     v = CRO_error(s, msg);
 
@@ -78,7 +78,7 @@ CRO_Value CRO_system(CRO_State* s, int argc, char** argv){
   return v;
 }
 
-CRO_Value CRO_time(CRO_State* s, int argc, char** argv){
+CRO_Value CRO_time(CRO_State* s, int argc, CRO_Value* argv){
   CRO_Value ret;
   /* Do we have a formatter string? */
   if(argc == 0){
@@ -98,19 +98,19 @@ CRO_Value CRO_time(CRO_State* s, int argc, char** argv){
     char* err;
     err = malloc(128 * sizeof(char));
     
-    sprintf(err, "(%s): Expected 1 or 2 arguements. (%d given)", argv[0], argc);
+    sprintf(err, "(%s): Expected 1 or 2 arguements. (%d given)", argv[0].value.string, argc);
     ret = CRO_error(s, err);
   }
   
   return ret;  
 }
 
-CRO_Value CRO_evalCommand(CRO_State* s, int argc, char** argv){
+CRO_Value CRO_evalCommand(CRO_State* s, int argc, CRO_Value* argv){
   CRO_Value ret;
 
   if(argc == 1){
     CRO_Value e;
-    e = CRO_innerEval(s, argv[1]);
+    e = argv[1];
 
     if(e.type == CRO_String){
       ret = CRO_eval(s, e.value.string);
@@ -119,7 +119,7 @@ CRO_Value CRO_evalCommand(CRO_State* s, int argc, char** argv){
       char* err;
       err = malloc(128 * sizeof(char));
 
-      sprintf(err, "(%s): %s is not a String", argv[0], argv[1]);
+      sprintf(err, "(%s): Argument 1 is not a String", argv[0].value.string);
       ret = CRO_error(s, err);
 
     }
@@ -128,7 +128,7 @@ CRO_Value CRO_evalCommand(CRO_State* s, int argc, char** argv){
     char* err;
     err = malloc(128 * sizeof(char));
 
-    sprintf(err, "(%s): Expected 1 arguement. (%d given)", argv[0], argc);
+    sprintf(err, "(%s): Expected 1 argument. (%d given)", argv[0].value.string, argc);
     ret = CRO_error(s, err);
   }
 

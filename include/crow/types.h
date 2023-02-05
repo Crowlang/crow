@@ -79,6 +79,7 @@ extern CRO_TypeDescriptor CRO_Number;
 extern CRO_TypeDescriptor CRO_Bool;
 extern CRO_TypeDescriptor CRO_Function;
 extern CRO_TypeDescriptor CRO_LocalFunction;
+extern CRO_TypeDescriptor CRO_PrimitiveFunction;
 extern CRO_TypeDescriptor CRO_Array;
 extern CRO_TypeDescriptor CRO_String;
 extern CRO_TypeDescriptor CRO_Struct;
@@ -172,7 +173,8 @@ typedef union{
   int integer;
   colchar_t* string;
   struct CRO_Value* array;
-  struct CRO_Value (*function)(CRO_State* s, int argc, char** argv);
+  struct CRO_Value (*function)(CRO_State* s, int argc, struct CRO_Value* argv);
+  struct CRO_Value (*primitiveFunction)(CRO_State* s, int argc, char** argv);
 } CRO_InnerValue;
 #else
 typedef struct{
@@ -180,7 +182,8 @@ typedef struct{
   int integer;
   colchar_t* string;
   struct CRO_Value* array;
-  struct CRO_Value (*function)(CRO_State* s, int argc, char** argv);
+  struct CRO_Value (*function)(CRO_State* s, int argc, struct CRO_Value* argv);
+  struct CRO_Value (*primitiveFunction)(CRO_State* s, int argc, char** argv);
 } CRO_InnerValue;
 #endif
 

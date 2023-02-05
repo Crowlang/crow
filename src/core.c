@@ -44,6 +44,7 @@ CRO_TypeDescriptor CRO_Number = 0;
 CRO_TypeDescriptor CRO_Bool = 0;
 CRO_TypeDescriptor CRO_Function = 0;
 CRO_TypeDescriptor CRO_LocalFunction = 0;
+CRO_TypeDescriptor CRO_PrimitiveFunction = 0;
 CRO_TypeDescriptor CRO_Array = 0;
 CRO_TypeDescriptor CRO_String = 0;
 CRO_TypeDescriptor CRO_Struct = 0;
@@ -65,44 +66,45 @@ CRO_TypeDescriptor CRO_exposeGCType(void (*print)(CRO_Value), void (*free)(CRO_V
   return PVptr - 1;
 }
 
+/* TODO: Replace with a standard toString function */
 void CRO_printStd(CRO_Value v){
-  if(v.type == CRO_Undefined){
-    CRO_setColor(YELLOW);
-    printf("Undefined\n");
-  }
-  else if(v.type == CRO_Number){
-    CRO_setColor(GREEN);
-    printf("%.15g\n", v.value.number);
-  }
-  else if(v.type == CRO_Function || v.type == CRO_LocalFunction){
-    CRO_setColor(CYAN);
-    printf("Function\n");
-  }
-  else if(v.type == CRO_String){
-    CRO_setColor(MAGENTA);
-    printf("\"%s\"\n", v.value.string);
-  }
-  else if(v.type == CRO_Array){
-    CRO_setColor(MAGENTA);
-    printf("Array []\n");
-  }
-  else if(v.type == CRO_Struct){
-    CRO_setColor(MAGENTA);
-    printf("Struct {}\n");
-  }
-  else if(v.type == CRO_FileDescriptor){
-    CRO_setColor(CYAN);
-    printf("File\n");
-  }
-  else if(v.type == CRO_Bool){
-    CRO_setColor(GREEN);
-    if(v.value.integer == 1){
-      printf("true\n");
+    if(v.type == CRO_Undefined){
+      CRO_setColor(YELLOW);
+      printf("Undefined\n");
     }
-    else{
-      printf("false\n");
+    else if(v.type == CRO_Number){
+      CRO_setColor(GREEN);
+      printf("%.15g\n", v.value.number);
     }
-  }
+    else if(v.type == CRO_Function || v.type == CRO_LocalFunction || v.type == CRO_PrimitiveFunction){
+      CRO_setColor(CYAN);
+      printf("Function\n");
+    }
+    else if(v.type == CRO_String){
+      CRO_setColor(MAGENTA);
+      printf("\"%s\"\n", v.value.string);
+    }
+    else if(v.type == CRO_Array){
+      CRO_setColor(MAGENTA);
+      printf("Array []\n");
+    }
+    else if(v.type == CRO_Struct){
+      CRO_setColor(MAGENTA);
+      printf("Struct {}\n");
+    }
+    else if(v.type == CRO_FileDescriptor){
+      CRO_setColor(CYAN);
+      printf("File\n");
+    }
+    else if(v.type == CRO_Bool){
+      CRO_setColor(GREEN);
+      if(v.value.integer == 1){
+        printf("true\n");
+      }
+      else{
+        printf("false\n");
+      }
+    }
 
   CRO_setColor(RESET);
 }
@@ -166,6 +168,7 @@ CRO_State* CRO_createState(void){
     CRO_Bool = CRO_exposeType(CRO_printStd);
     CRO_Function = CRO_exposeType(CRO_printStd);
     CRO_LocalFunction = CRO_exposeType(CRO_printStd);
+    CRO_PrimitiveFunction = CRO_exposeType(CRO_printStd);
     CRO_Array = CRO_exposeType(CRO_printStd);
     CRO_String = CRO_exposeType(CRO_printStd);
     CRO_Struct = CRO_exposeType(CRO_printStd);
@@ -214,8 +217,8 @@ CRO_State* CRO_createState(void){
 
 void CRO_exposeStandardFunctions(CRO_State* s){
   /* data.h */
-  CRO_exposeFunction(s, "defvar", defVar);
-  CRO_exposeFunction(s, "set", set);
+  CRO_exposePrimitiveFunction(s, "defvar", defVar);
+  CRO_exposePrimitiveFunction(s, "set", set);
   CRO_exposeFunction(s, "const", CRO_const);
   CRO_exposeFunction(s, "array", CRO_array);
   CRO_exposeFunction(s, "length", CRO_length);
@@ -272,12 +275,12 @@ void CRO_exposeStandardFunctions(CRO_State* s){
   CRO_exposeFunction(s, "dir", CRO_dir);
 
   /* funcond.h */
-  CRO_exposeFunction(s, "defun", CRO_defun);
-  CRO_exposeFunction(s, "func", CRO_func);
-  CRO_exposeFunction(s, "=>", CRO_func);
-  CRO_exposeFunction(s, "->", CRO_subroutine);
-  CRO_exposeFunction(s, "block", CRO_block);
-  CRO_exposeFunction(s, "{", CRO_block);
+  CRO_exposePrimitiveFunction(s, "defun", CRO_defun);
+  CRO_exposePrimitiveFunction(s, "func", CRO_func);
+  CRO_exposePrimitiveFunction(s, "=>", CRO_func);
+  CRO_exposePrimitiveFunction(s, "->", CRO_subroutine);
+  /*CRO_exposeFunction(s, "block", CRO_block);
+  CRO_exposeFunction(s, "{", CRO_block);*/
   CRO_exposeFunction(s, "&&", CRO_andand);
   CRO_exposeFunction(s, "all-true", CRO_andand);
   CRO_exposeFunction(s, "||", CRO_oror);
@@ -286,15 +289,15 @@ void CRO_exposeStandardFunctions(CRO_State* s){
   CRO_exposeFunction(s, "!=", CRO_notEquals);
   CRO_exposeFunction(s, ">", CRO_greaterThan);
   CRO_exposeFunction(s, "<", CRO_lessThan);
-  CRO_exposeFunction(s, "defined", CRO_defined);
-  CRO_exposeFunction(s, "if", CRO_if);
+  CRO_exposePrimitiveFunction(s, "defined", CRO_defined);
+  CRO_exposePrimitiveFunction(s, "if", CRO_if);
   CRO_exposeFunction(s, "!", CRO_not);
   CRO_exposeFunction(s, "not", CRO_not);
   CRO_exposeFunction(s, "each", CRO_each);
   CRO_exposeFunction(s, "each-with-iterator", CRO_eachWithIterator);
-  CRO_exposeFunction(s, "while", CRO_while);
-  CRO_exposeFunction(s, "do-while", CRO_doWhile);
-  CRO_exposeFunction(s, "loop", CRO_loop);
+  CRO_exposePrimitiveFunction(s, "while", CRO_while);
+  CRO_exposePrimitiveFunction(s, "do-while", CRO_doWhile);
+  CRO_exposePrimitiveFunction(s, "loop", CRO_loop);
   CRO_exposeFunction(s, "break", CRO_break);
   CRO_exposeFunction(s, "return", CRO_return);
   CRO_exposeFunction(s, "exit", CRO_exit);
@@ -316,55 +319,6 @@ void CRO_exposeStandardFunctions(CRO_State* s){
   
   /* Expose standard variables */
   CRO_eval(s, "(defvar PI (const 3.141592653589793))");
-}
-
-void CRO_exposeArguements(CRO_State* s, int argc, char** argv, char treatAsString){
-  CRO_Variable argarr;
-  CRO_Value argarrval;
-  int x;
-  
-  /* All values of argv need to be processes into an array called ARGS */
-  argarrval.type = CRO_Array;
-  argarrval.value.array = (CRO_Value*)malloc((argc + 1) * sizeof(CRO_Value));
-  argarrval.allotok = CRO_malloc(s, (void*)argarrval.value.array);
-
-  /* If we are treating all the args as a string, we need to make them into CRO strings*/
-  if(treatAsString){
-    for(x = 0; x < argc; x++){
-      CRO_Value str;
-      
-      /* We manually create the strings because we don't want the GC to intervene*/
-      str.type = CRO_String;
-      str.constant = 1;
-      str.value.string = argv[x];
-      
-      argarrval.value.array[x] = str;
-    }
-  }
-  else{
-    for(x = 0; x < argc; x++){
-      /* Otherwise we just evaluate the arguements */
-      argarrval.value.array[x] = CRO_innerEval(s, argv[x]);
-    }
-  }
-
-  argarrval.arraySize = argc;
-  
-  /* Now expose it all to the state*/
-  argarr.hash = CRO_genHash("ARGS");
-  argarr.block = s->block;
-  argarr.value = argarrval;
-
-  s->variables[s->vptr] = argarr;
-
-  s->vptr++;
-  if(s->vptr >= s->vsize){
-    s->vsize *= 2;
-    s->variables = (CRO_Variable*)realloc(s->variables, s->vsize * sizeof(CRO_Variable));
-    #ifdef CROWLANG_ALLOC_DEBUG
-    printf("[Alloc Debug]\t Variables size increased to %d\n", s->vsize);
-    #endif
-  }
 }
 
 void CRO_freeState(CRO_State* s){
@@ -404,13 +358,40 @@ hash_t CRO_genHash(const char* name){
   return h;
 }
 
-void CRO_exposeFunction(CRO_State* s, const char* name, CRO_Value (*func)(CRO_State* s, int argc, char** argv)){
+void CRO_exposeFunction(CRO_State* s, const char* name, CRO_Value (*func)(CRO_State* s, int argc, CRO_Value* argv)){
   CRO_Value vn;
   CRO_Variable var;
   
   /* Create our function value */
   vn.type = CRO_Function;
   vn.value.function = func;
+  vn.constant = 1;
+
+  /* Create the variable to hold it */
+  var.block = 0;
+  var.hash = CRO_genHash(name);
+  var.value = vn;
+  
+  /* Finally add it to the variables */
+  s->variables[s->vptr] = var;
+  
+  s->vptr++;
+  if(s->vptr >= s->vsize){
+    s->vsize *= 2;
+    s->variables = (CRO_Variable*)realloc(s->variables, s->vsize * sizeof(CRO_Variable));
+    #ifdef CROWLANG_ALLOC_DEBUG
+    printf("[Alloc Debug]\t Variables size increased to %d\n", s->vsize);
+    #endif
+  }
+}
+
+void CRO_exposePrimitiveFunction(CRO_State* s, const char* name, CRO_Value (*func)(CRO_State* s, int argc, char** argv)){
+  CRO_Value vn;
+  CRO_Variable var;
+  
+  /* Create our function value */
+  vn.type = CRO_PrimitiveFunction;
+  vn.value.primitiveFunction = func;
   vn.constant = 1;
 
   /* Create the variable to hold it */
@@ -760,7 +741,7 @@ void CRO_GC(CRO_State* s){
 
 CRO_Value CRO_innerEval(CRO_State* s, char* src);
 
-CRO_Value CRO_callFunction(CRO_State* s, CRO_Value func, int argc, char** argv, int isStruct, CRO_Value str){
+CRO_Value CRO_callFunction(CRO_State* s, CRO_Value func, int argc, CRO_Value* argv, int isStruct, CRO_Value str, char subroutineCall){
   CRO_Value v;
   int x;
   
@@ -779,14 +760,8 @@ CRO_Value CRO_callFunction(CRO_State* s, CRO_Value func, int argc, char** argv, 
     char* funcbody, *varname;
     int varnameptr, varcount, varnamesize, lastblock;
     
+    /* TODO: Restrict access to local variables from the current scope (but not for subroutines) */
     s->block += 1;
-
-    strname.type = CRO_String;
-    strname.value.string = CRO_cloneStr(argv[0]);
-
-    strname.allotok = CRO_malloc(s, (void*)strname.value.string);
-
-    CRO_exposeArguements(s, argc, &argv[1], 0);
 
     funcbody = func.value.string;
     varname = (char*)malloc(CRO_BUFFER_SIZE * sizeof(char));
@@ -794,6 +769,10 @@ CRO_Value CRO_callFunction(CRO_State* s, CRO_Value func, int argc, char** argv, 
     varnameptr = 0;
     varcount = 1;
 
+    /* At the beginning of every stored function body should be a group of variables
+     * for example, (a b c) (println "Hello " a b c)
+     * These variables are the names of our arguements so we set those here to their
+     * actual variable counterparts */
     /* funcbody[0] should be a '(' */
     for(x = 1; funcbody[x] != 0; x++){
       if(funcbody[x] == ')' || funcbody[x] == ' '){
@@ -805,17 +784,23 @@ CRO_Value CRO_callFunction(CRO_State* s, CRO_Value func, int argc, char** argv, 
           argvv.hash = CRO_genHash(varname);
           argvv.block = s->block;
           
+          /* Set the value to its coresponding ARGV value*/
+          /* If there are more args expected than supplied, make them undefined */
           if(varcount <= argc){
-            
-            argval = CRO_innerEval(s, argv[varcount]);
+            argvv.value = argv[varcount];
           }
           else{
-            CRO_toNone(argval);
+            CRO_Value undef;
+            CRO_toNone(undef);
+            
+            argvv.value = undef;
           }
-          argvv.value = argval;
+          
           s->variables[s->vptr] = argvv;
           
           s->vptr++;
+          
+          
           if(s->vptr >= s->vsize){
             s->vsize *= 2;
             s->variables = (CRO_Variable*)realloc(s->variables, s->vsize * sizeof(CRO_Variable));
@@ -823,6 +808,7 @@ CRO_Value CRO_callFunction(CRO_State* s, CRO_Value func, int argc, char** argv, 
             printf("[Alloc Debug]\t Variables size increased to %d\n", s->vsize);
             #endif
           }
+          
         }
 
         if(funcbody[x] == ')'){
@@ -864,8 +850,10 @@ CRO_Value CRO_callFunction(CRO_State* s, CRO_Value func, int argc, char** argv, 
       }
     }
     
-    lastblock = s->functionBlock;
-    s->functionBlock = s->block;
+    if(!subroutineCall){
+      lastblock = s->functionBlock;
+      s->functionBlock = s->block;
+    }
     
     v = CRO_eval(s, &funcbody[x]);
     
@@ -881,7 +869,9 @@ CRO_Value CRO_callFunction(CRO_State* s, CRO_Value func, int argc, char** argv, 
     }
     
     s->block -= 1;
-    s->functionBlock = lastblock;
+    
+    if(!subroutineCall)
+      s->functionBlock = lastblock;
   }
   else{
     v = func.value.function(s, argc, argv);
@@ -906,43 +896,88 @@ CRO_Value CRO_innerEval(CRO_State* s, char* src){
     int end = 0;
     int argc;
     int x;
-    char **argv;
-    char* fname;
-
+    char *fname, *methodName;
     CRO_Value func;
+    CRO_Value *argv;
 
     argc = 0;
-    argv = (char**)malloc(64 * sizeof(char*));
+    /* TODO: Catch overflow */
+    argv = (CRO_Value*)malloc(64 * sizeof(CRO_Value));
     
     ptr++;
+    /* Get our function name */
     fname = getWord(src, &ptr, &end);
-    func = CRO_innerEval(s, fname);
-
-    argv[0] = fname;
     
+    /* Evaluate it to get the function we call, it may ALSO be a struct */
+    /* TODO: Check for NEW struct syntax, src[ptr] at this point should be '[' if its a NEW struct*/
+    func = CRO_innerEval(s, fname);
+    
+    /* If we are a struct, make sure to store the method name for later */
+    if(func.type == CRO_Struct){
+      methodName = getWord(src, &ptr, &end);
+    }
+    
+    if(func.type == CRO_PrimitiveFunction){
+      char** argv;
+      
+      argv = (char**)malloc(64 * sizeof(char*));
+      argv[0] = fname;
+      
+      while(!end){
+        /* TODO: Maybe make getWord use a buffer we supply, would cut down on allocations */
+        char* word = getWord(src, &ptr, &end);
+        
+        
+        if(word[0] != 0){
+          argv[1 + argc] =  word;
+          
+          /* Maybe try to optimize this out */
+          if(s->exitCode >= CRO_ErrorCode){
+            CRO_toNone(v);
+            return v;
+          }
+          
+          argc++;
+        }
+      }
+      
+      v = func.value.primitiveFunction(s, argc, argv);
+      
+      for(; argc > 0; argc--){
+        free(argv[argc]);
+      }
+      free(argv);
+      return v;
+    }
+           
+     /* ARGV[0] is the name of the struct, so set it here */
+     CRO_toString(s, argv[0], fname);
+    
+    /* Collect our arguments here */
     while(!end){
+      /* TODO: Maybe make getWord use a buffer we supply, would cut down on allocations */
       char* word = getWord(src, &ptr, &end);
       
       if(word[0] != 0){
-        argv[1 + argc] = word;
+        argv[1 + argc] = CRO_innerEval(s, word);
+        
+        /* Maybe try to optimize this out */
+        if(s->exitCode >= CRO_ErrorCode){
+          CRO_toNone(v);
+          return v;
+        }
+        
         argc++;
       }
-      else{
-        free(word);
-      }
       
+      /* We are safe to free 'word' here since any important value would have
+       * been cloned by the innerEval call above */
+      free(word);
     }
-    argv[1 + argc] = NULL;
-
-    /* TODO: While at the time this seemed like a good approach, maybe try to get the CRO_Value for the function by
-     * evaluating fname */
     
     if(func.type == CRO_Function || func.type == CRO_LocalFunction){
-      v = CRO_callFunction(s, func, argc, argv, 0, func);
+      v = CRO_callFunction(s, func, argc, argv, 0, func, 0);
 
-      for(x = 0; x <= argc; x++){
-        free(argv[x]);
-      }
       free(argv);
 
       return v;
@@ -953,7 +988,8 @@ CRO_Value CRO_innerEval(CRO_State* s, char* src){
       CRO_Value caller;
       
      for(x = 0; x < func.arraySize; x+= 2){
-        if(strcmp(argv[1], func.value.array[x].value.string) == 0){
+        /* Search the structure for a value with the same name as the second arg (the method being called on the object */
+        if(strcmp(methodName, func.value.array[x].value.string) == 0){
           found = 1;
           caller = func.value.array[x + 1];
           break;
@@ -965,22 +1001,17 @@ CRO_Value CRO_innerEval(CRO_State* s, char* src){
         printf("Not found\n");
       }
       else{
-        v = CRO_callFunction(s, caller, argc - 1, &argv[1], 1, func);
+        v = CRO_callFunction(s, caller, argc - 1, &argv[1], 1, func, 0);
         
-        for(x = 0; x <= argc; x++){
-          free(argv[x]);
-        }
         free(argv);
+        free(methodName);
+        free(fname);
         
         return v;
       }
       
     }
     
-    
-    for(x = 0; x <= argc; x++){
-      free(argv[x]);
-    }
     free(argv);
 
     {
@@ -1085,6 +1116,10 @@ CRO_Value CRO_innerEval(CRO_State* s, char* src){
       if(vhash == s->variables[x].hash){
         if(s->variables[x].block >= s->functionBlock || s->variables[x].block == 0){
           return s->variables[x].value;
+        }
+        else{
+          printf("IN WRONG BLOCK\n");
+          printf("We are in block %d (function block %d) while that var is in block %d\n", s->block, s->functionBlock, s->variables[x].block);
         }
       }
     }

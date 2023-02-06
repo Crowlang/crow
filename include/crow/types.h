@@ -47,7 +47,7 @@ typedef struct CRO_State {
   struct CRO_Variable* variables;
   int vptr;
   int vsize;
-  
+
   CRO_Allocation* allocations;
   int allocptr;
   int asize;
@@ -55,7 +55,7 @@ typedef struct CRO_State {
   CRO_FD* fileDescriptors;
   int fdptr;
   int fdsize;
-  
+
   int block;
   int functionBlock;
   char exitCode;
@@ -96,7 +96,7 @@ extern CRO_TypeDescriptor CRO_FileDescriptor;
 #define CRO_Skip 7
 #define CRO_FileDescriptor 8
 */
- 
+
 #define CRO_FLAG_None       0
 #define CRO_FLAG_NoVarError 1
 
@@ -104,6 +104,12 @@ extern CRO_TypeDescriptor CRO_FileDescriptor;
 
 #if defined(__unix) || defined(__MACH__)
 #define _CROWLANG_USE_VT
+#endif
+
+#if defined(_WIN32)
+    #include <windows.h>
+    HANDLE hConsole;
+    WORD saved_attributes;
 #endif
 
 #ifdef _CROWLANG_USE_COLOR
@@ -123,8 +129,30 @@ extern CRO_TypeDescriptor CRO_FileDescriptor;
     #define GREY "90"
 
     #define CRO_setColor(x) printf("\033[%sm", x)
+    #define CRO_initColor() ;;
+  #elif defined(_WIN32)
+    #define RESET saved_attributes
+    #define BLACK "30"
+    #define RED FOREGROUND_RED
+    #define GREEN FOREGROUND_GREEN
+    #define YELLOW FOREGROUND_RED | FOREGROUND_GREEN
+    #define BLUE FOREGROUND_BLUE
+    #define MAGENTA FOREGROUND_RED | FOREGROUND_BLUE
+    #define CYAN FOREGROUND_BLUE | FOREGROUND_GREEN
+    #define WHITE FOREGROUND_BLUE | FOREGROUND_RED | FOREGROUND_GREEN
+
+    #define GREY "90"
+
+    #define CRO_initColor() {\
+        CONSOLE_SCREEN_BUFFER_INFO consoleInfo;\
+        hConsole = GetStdHandle(STD_OUTPUT_HANDLE);\
+        GetConsoleScreenBufferInfo(hConsole, &consoleInfo);\
+        saved_attributes = consoleInfo.wAttributes;\
+    }
+    #define CRO_setColor(x) SetConsoleTextAttribute(hConsole, x)
   #else
     #define CRO_setColor(x) ;;
+    #define CRO_initColor() ;;
   #endif
 
 #else
@@ -190,9 +218,9 @@ typedef struct{
 typedef struct CRO_Value {
   CRO_TypeDescriptor type;
   char constant;
-  
+
   CRO_InnerValue value;
-  
+
   int arraySize;
   #ifdef CROWLANG_GREEDY_MEMORY_ALLOCATION
   int arrayCapacity;
@@ -204,7 +232,7 @@ typedef struct CRO_Value {
 typedef struct CRO_Variable {
   hash_t hash;
   int block;
-  
+
   CRO_Value value;
 } CRO_Variable;
 

@@ -762,6 +762,10 @@ CRO_Value CRO_callFunction(CRO_State* s, CRO_Value func, int argc, CRO_Value* ar
     
     /* TODO: Restrict access to local variables from the current scope (but not for subroutines) */
     s->block += 1;
+    
+#ifdef CROWLANG_VAR_DEBUG
+    printf("Block increased to %d\n", s->block);
+#endif
 
     funcbody = func.value.string;
     varname = (char*)malloc(CRO_BUFFER_SIZE * sizeof(char));
@@ -783,6 +787,10 @@ CRO_Value CRO_callFunction(CRO_State* s, CRO_Value func, int argc, CRO_Value* ar
           varname[varnameptr] = 0;
           argvv.hash = CRO_genHash(varname);
           argvv.block = s->block;
+          
+#ifdef CROWLANG_VAR_DEBUG
+          printf("Defined variable %ld in block %d\n", argvv.hash, s->block);
+#endif
           
           /* Set the value to its coresponding ARGV value*/
           /* If there are more args expected than supplied, make them undefined */
@@ -836,6 +844,10 @@ CRO_Value CRO_callFunction(CRO_State* s, CRO_Value func, int argc, CRO_Value* ar
       CRO_Variable this;
       this.hash = CRO_genHash("this");
       this.block = s->block;
+      
+#ifdef CROWLANG_VAR_DEBUG
+      printf("Defined variable %ld in block %d\n", this.hash, s->block);
+#endif
 
       this.value = str;
 
@@ -859,6 +871,11 @@ CRO_Value CRO_callFunction(CRO_State* s, CRO_Value func, int argc, CRO_Value* ar
     
     for(x = s->vptr - 1; x >= 0; x--){
       if(s->block <= s->variables[x].block){
+
+#ifdef CROWLANG_VAR_DEBUG
+        printf("Remving variable %ld in block %d\n", s->variables[x].hash, s->variables[x].block);
+#endif
+
         s->vptr--;
       }
       else{
@@ -869,6 +886,10 @@ CRO_Value CRO_callFunction(CRO_State* s, CRO_Value func, int argc, CRO_Value* ar
     }
     
     s->block -= 1;
+    
+#ifdef CROWLANG_VAR_DEBUG
+    printf("Block decreased to %d\n", s->block);
+#endif
     
     if(!subroutineCall)
       s->functionBlock = lastblock;
@@ -954,6 +975,7 @@ CRO_Value CRO_innerEval(CRO_State* s, char* src){
      CRO_toString(s, argv[0], fname);
     
     /* Collect our arguments here */
+    s->block++;
     while(!end){
       /* TODO: Maybe make getWord use a buffer we supply, would cut down on allocations */
       char* word = getWord(src, &ptr, &end);
@@ -974,6 +996,7 @@ CRO_Value CRO_innerEval(CRO_State* s, char* src){
        * been cloned by the innerEval call above */
       free(word);
     }
+    s->block--;
     
     if(func.type == CRO_Function || func.type == CRO_LocalFunction){
       v = CRO_callFunction(s, func, argc, argv, 0, func, 0);

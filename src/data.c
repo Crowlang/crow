@@ -41,6 +41,10 @@ CRO_Value defVar(CRO_State* s, int argc, char** argv){
   var.block = s->block;
   var.value = vn;
   
+#ifdef CROWLANG_VAR_DEBUG
+  printf("Defined variable %ld in block %d\n", vhash, s->block);
+#endif
+  
   s->variables[s->vptr] = var;
   
   s->vptr++;

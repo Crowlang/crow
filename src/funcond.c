@@ -163,7 +163,7 @@ CRO_Value CRO_subroutine(CRO_State* s, int argc, char** argv){
 CRO_Value CRO_defun(CRO_State* s, int argc, char** argv){
   CRO_Value ret;
   
-  if(argc == 3){
+  if(argc >= 3){
     hash_t vhash;
     CRO_Variable var;
     int x;
@@ -175,7 +175,7 @@ CRO_Value CRO_defun(CRO_State* s, int argc, char** argv){
     name = argv[1];
     argv[1] = "func";
     
-    ret = CRO_func(s, 2, &argv[1]);
+    ret = CRO_func(s, argc - 1, &argv[1]);
     
     /* Now set it back */
     argv[1] = name;

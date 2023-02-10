@@ -195,9 +195,9 @@ CRO_Value CRO_length(CRO_State* s, int argc, CRO_Value* argv){
 }
 
 CRO_Value CRO_makeArray(CRO_State* s, int argc, CRO_Value* argv){
-  CRO_Value v;
+  CRO_Value v, nil;
   CRO_Value* array;
-  int size;
+  int size, x;
   allotok_t tok;
 
   if(argc < 1){
@@ -225,6 +225,13 @@ CRO_Value CRO_makeArray(CRO_State* s, int argc, CRO_Value* argv){
   #else
   array = (CRO_Value*)calloc(size, sizeof(CRO_Value));
   #endif
+  
+  /* Make sure every element of the array is initiated to undefined */
+  CRO_toNone(nil);
+  
+  for(x = 0; x < size; x++){
+    array[x] = nil;
+  }
 
   tok = CRO_malloc(s, (void*)array);
   

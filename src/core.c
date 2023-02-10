@@ -318,7 +318,8 @@ void CRO_exposeStandardFunctions(CRO_State* s){
   CRO_exposeFunction(s, "starts-with", CRO_startsWith);
   
   /* Expose standard variables */
-  CRO_eval(s, "(defvar PI (const 3.141592653589793))");
+  CRO_eval(s, "(defvar math-PI (const 3.141592653589793))");
+  CRO_eval(s, "(defvar math-π (const 3.141592653589793))");
 }
 
 void CRO_freeState(CRO_State* s){

@@ -117,7 +117,7 @@ CRO_Value CRO_func(CRO_State* s, int argc, char** argv){
 CRO_Value CRO_subroutine(CRO_State* s, int argc, char** argv){
   CRO_Value v;
   char* body;
-  int arglen, x, bsize, bptr, i;
+  int x, bsize, bptr, i;
   allotok_t allotok;
 
   if(argc < 1){
@@ -222,7 +222,6 @@ CRO_Value CRO_andand(CRO_State* s, int argc, CRO_Value* argv){
   CRO_Value ret;
   
   if(argc >= 2){
-    CRO_Value v;
     int i;
     
     for(i = 1; i <= argc; i++){
@@ -258,7 +257,6 @@ CRO_Value CRO_oror(CRO_State* s, int argc, CRO_Value* argv){
   CRO_Value ret;
   
   if(argc >= 2){
-    CRO_Value v;
     int i;
     
     for(i = 1; i <= argc; i++){
@@ -505,10 +503,8 @@ CRO_Value CRO_each(CRO_State* s, int argc, CRO_Value* argv){
     array = argv[1];
     
     if(array.type == CRO_Array){
-      CRO_Variable item;
       CRO_Value itemV, func;
       CRO_Value* argz;
-      int itemPtr;
       long index;
       
       func = argv[2];
@@ -540,6 +536,9 @@ CRO_Value CRO_each(CRO_State* s, int argc, CRO_Value* argv){
       }
       else if(func.type == CRO_PrimitiveFunction){
         char* err;
+        
+        free(argz);
+        
         err = malloc(128 * sizeof(char));
         
         sprintf(err, "(%s): Argument 2 function cannot be used here", argv[0].value.string);
@@ -547,6 +546,9 @@ CRO_Value CRO_each(CRO_State* s, int argc, CRO_Value* argv){
       }
       else{
         char* err;
+        
+        free(argz);
+        
         err = malloc(128 * sizeof(char));
         
         sprintf(err, "(%s): Argument 2 is not a function", argv[0].value.string);
@@ -590,7 +592,6 @@ CRO_Value CRO_eachWithIterator(CRO_State* s, int argc, CRO_Value* argv){
     
     if(array.type == CRO_Array){
       CRO_Value func, item, counter, *callArgs;
-      int itemPtr, counterPtr;
       int index;
       
       callArgs = (CRO_Value*)malloc(3 * sizeof(CRO_Value));

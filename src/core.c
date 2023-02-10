@@ -119,7 +119,7 @@ CRO_State* CRO_createState(void){
 
   /* Make sure state is allocated */
   if(s == NULL){
-    CRO_error(s, "Failed to allocate space for state");
+    printf("Failed to allocate memory for state!\n");
     exit(1);
   }
 
@@ -210,7 +210,7 @@ CRO_State* CRO_createState(void){
   s->gctime = 0;
   
   /* Always seed the randomizer */
-  srand(time(NULL));
+  srand((unsigned int)time(NULL));
   
   return s;
 }
@@ -349,7 +349,7 @@ hash_t CRO_genHash(const char* name){
   hash_t h;
   int i, len;
   
-  len = strlen(name);
+  len = (int)strlen(name);
   h = 0;
   
   for(i = 0; i < len; i++){
@@ -620,7 +620,7 @@ int CRO_realloc(CRO_State* s, void* memory, int tok, size_t newSize){
 }*/
 
 char* CRO_cloneStr(const char* str){
-  int len = strlen(str);
+  size_t len = strlen(str);
   char* ret = malloc((len + 1) * sizeof(char));
 
   memcpy(ret, str, len);
@@ -754,9 +754,6 @@ CRO_Value CRO_callFunction(CRO_State* s, CRO_Value func, int argc, CRO_Value* ar
    * function body is located in the value.string var */
 
   if(func.type == CRO_LocalFunction){
-    CRO_Variable argarr;
-    CRO_Value argarrval;
-    CRO_Value strname;
     char* funcbody, *varname;
     int varnameptr, varcount, varnamesize, lastblock;
     
@@ -782,7 +779,6 @@ CRO_Value CRO_callFunction(CRO_State* s, CRO_Value func, int argc, CRO_Value* ar
       if(funcbody[x] == ')' || funcbody[x] == ' '){
         if(varnameptr > 0){
           CRO_Variable argvv;
-          CRO_Value argval;
 
           varname[varnameptr] = 0;
           argvv.hash = CRO_genHash(varname);
@@ -916,7 +912,6 @@ CRO_Value CRO_innerEval(CRO_State* s, char* src){
   else if(src[ptr] == '('){
     int end = 0;
     int argc;
-    int x;
     char *fname, *methodName;
     CRO_Value func;
     CRO_Value *argv;
@@ -1115,7 +1110,8 @@ CRO_Value CRO_innerEval(CRO_State* s, char* src){
     int x;
     
     if(CRO_isNumber(src)){
-      double out;
+      double out = 0.0;
+      out = 5.5;
       sscanf(src, "%lf", &out);
       CRO_toNumber(v, out);
       return v;

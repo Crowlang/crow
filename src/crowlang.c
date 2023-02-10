@@ -30,14 +30,6 @@
   return CRO_toNone();
 */
 
-static CRO_Value hello(CRO_State* s, int argc, char** argv){
-  CRO_Value v;
-  printf("Hello %s\n", argv[1]);
-
-  CRO_toNumber(v, 0);
-  return v;
-}
-
 /* We have to put all of these so we can free them from the handler.  Please
  * tell me if there is a more elegant way to do this */
 static CRO_State *s;

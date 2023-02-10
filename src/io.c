@@ -106,7 +106,6 @@ CRO_Value CRO_open(CRO_State* s, int argc, CRO_Value* argv){
   int fdptr;
   char* modeStr;
 
-  fdptr = 0;
   file = argv[1];
   ret.constant = 0;
 

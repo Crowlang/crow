@@ -208,9 +208,7 @@ CRO_Value CRO_charAt(CRO_State* s, int argc, CRO_Value* argv){
         
         string = (unsigned char*)str.value.string;
         
-        i = 0;
         j = 0;
-        size = 0;
         
         for(i = 0;string[j] != 0 && i != index; i++){
           if(string[j] >= 240){
@@ -322,7 +320,6 @@ CRO_Value CRO_substr(CRO_State* s, int argc, CRO_Value* argv){
     startIndex = start.value.number;
     endIndex = end.value.number;
     
-    i = 0;
     j = 0;
     
     for(i = 0; string[j] != 0 && i != startIndex; i++){
@@ -395,7 +392,8 @@ CRO_Value CRO_split(CRO_State* s, int argc, CRO_Value* argv){
       if(delim.type == CRO_String){
         CRO_Value* array;
         char* stringBuffer;
-        int stringLen, delimLen, arrayPtr, sbPtr, arraySize, stringSize, ptr;
+        size_t stringLen, delimLen, ptr;
+        int arrayPtr, sbPtr, arraySize, stringSize;
         
         /* Set up our values */
         stringLen = strlen(string.value.string);
@@ -403,7 +401,6 @@ CRO_Value CRO_split(CRO_State* s, int argc, CRO_Value* argv){
         
         arrayPtr = 0;
         sbPtr = 0;
-        ptr = 0;
         
         arraySize = CRO_BUFFER_SIZE;
         stringSize = CRO_BUFFER_SIZE;
@@ -522,7 +519,7 @@ CRO_Value CRO_startsWith(CRO_State* s, int argc, CRO_Value* argv){
     
     if(str.type == CRO_String){
       if(start.type == CRO_String){
-        int len;
+        size_t len;
         
         len = strlen(start.value.string);
         

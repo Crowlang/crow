@@ -156,6 +156,7 @@ extern CRO_TypeDescriptor CRO_FileDescriptor;
   #endif
 
 #else
+#define CRO_initColor();;
   #define CRO_setColor(x) ;;
 #endif
 
@@ -195,14 +196,17 @@ extern CRO_TypeDescriptor CRO_FileDescriptor;
 
 #define CRO_USE_UNIONS 1
 
+typedef struct CRO_Value (CRO_C_Function)(CRO_State* s, int argc, struct CRO_Value* argv);
+typedef struct CRO_Value (CRO_C_PrimitiveFunction)(CRO_State* s, int argc, char** argv);
+
 #ifdef CRO_USE_UNIONS
 typedef union{
   double number;
   int integer;
   colchar_t* string;
   struct CRO_Value* array;
-  struct CRO_Value (*function)(CRO_State* s, int argc, struct CRO_Value* argv);
-  struct CRO_Value (*primitiveFunction)(CRO_State* s, int argc, char** argv);
+  CRO_C_Function* function;
+  CRO_C_PrimitiveFunction* primitiveFunction;
 } CRO_InnerValue;
 #else
 typedef struct{
@@ -210,8 +214,8 @@ typedef struct{
   int integer;
   colchar_t* string;
   struct CRO_Value* array;
-  struct CRO_Value (*function)(CRO_State* s, int argc, struct CRO_Value* argv);
-  struct CRO_Value (*primitiveFunction)(CRO_State* s, int argc, char** argv);
+  CRO_C_Function* function;
+  CRO_C_PrimitiveFunction* primitiveFunction;
 } CRO_InnerValue;
 #endif
 

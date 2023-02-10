@@ -630,14 +630,14 @@ char* CRO_cloneStr(const char* str){
 
 static int CRO_GC_Inner(CRO_State* s, CRO_Value arr, allotok_t atok){
   int vaptr;
-
   for(vaptr = 0; vaptr < arr.arraySize; vaptr++){
-    if(arr.value.array[vaptr].type == CRO_Array || arr.value.array[vaptr].type == CRO_Struct){
-        return CRO_GC_Inner(s, arr.value.array[vaptr], atok);
-    }
     
     if(atok == arr.value.array[vaptr].allotok){
       return 1;
+    }
+    
+    if(arr.value.array[vaptr].type == CRO_Array || arr.value.array[vaptr].type == CRO_Struct){
+        return CRO_GC_Inner(s, arr.value.array[vaptr], atok);
     }
   }
   return 0;
@@ -666,7 +666,6 @@ void CRO_GC(CRO_State* s){
           break;
         }
         else if(s->variables[vptr].value.type == CRO_Array || s->variables[vptr].value.type == CRO_Struct){
-          
           found = CRO_GC_Inner(s, s->variables[vptr].value, s->allocations[aptr].allotok);
         }
       }

@@ -3,16 +3,16 @@
 #include <string.h>
 #include <stdlib.h>
 
-#if defined(__unix) || defined(__MACH__)
-  #include <dirent.h>
-#elif defined(__win32)
-  
-#endif
-
 #include <crow/types.h>
 #include <crow/core.h>
 #include <crow/string.h>
 #include <crow/io.h>
+
+#if defined(CROW_PLATFORM_UNIX)
+  #include <dirent.h>
+#elif defined(CROW_PLATFORM_WIN32)
+  
+#endif
 
 CRO_Value CRO_import(CRO_State* s, int argc, CRO_Value* argv){
   /* TODO Include some header guard support */
@@ -491,7 +491,7 @@ CRO_Value CRO_close(CRO_State* s, int argc, CRO_Value* argv){
 CRO_Value CRO_dir(CRO_State* s, int argc, CRO_Value* argv){
   CRO_Value ret;
   
-  #if defined(__unix) || defined(__MACH__)
+  #if defined(CROW_PLATFORM_UNIX)
   if(argc == 1){
     CRO_Value dirstr, *array;
     DIR* dir;
@@ -553,7 +553,7 @@ CRO_Value CRO_dir(CRO_State* s, int argc, CRO_Value* argv){
     closedir(dir);
     return ret;
   }
-  #elif defined(_WIN32)
+  #elif defined(CROW_PLATFORM_WINDOWS)
   if(argc == 1){
     
   }

@@ -55,6 +55,10 @@ typedef struct CRO_State {
   CRO_FD* fileDescriptors;
   int fdptr;
   int fdsize;
+  
+  void** libraries;
+  int libptr;
+  int libsize;
 
   int block;
   int functionBlock;
@@ -74,28 +78,22 @@ typedef struct CRO_State {
 
 typedef unsigned int CRO_TypeDescriptor;
 
-extern CRO_TypeDescriptor CRO_Undefined;
-extern CRO_TypeDescriptor CRO_Number;
-extern CRO_TypeDescriptor CRO_Bool;
-extern CRO_TypeDescriptor CRO_Function;
-extern CRO_TypeDescriptor CRO_LocalFunction;
-extern CRO_TypeDescriptor CRO_PrimitiveFunction;
-extern CRO_TypeDescriptor CRO_Array;
-extern CRO_TypeDescriptor CRO_String;
-extern CRO_TypeDescriptor CRO_Struct;
-extern CRO_TypeDescriptor CRO_FileDescriptor;
+typedef struct {
+  CRO_TypeDescriptor type;
+  
+} CRO_TypeInformation;
 
-/*
-#define CRO_None 0
-#define CRO_Number 1
-#define CRO_Bool 2
-#define CRO_Function 3
-#define CRO_Array 4
-#define CRO_String 5
-#define CRO_Struct 6
-#define CRO_Skip 7
-#define CRO_FileDescriptor 8
-*/
+#define CRO_Undefined         3063370097
+#define CRO_Number            2832123592
+#define CRO_Bool              2916547113
+#define CRO_Function          1928887191
+#define CRO_LocalFunction      359404548
+#define CRO_PrimitiveFunction 1729842432
+#define CRO_Array              217815802
+#define CRO_String            2974501776
+#define CRO_Struct            2974512980
+#define CRO_FileDescriptor     449640074
+#define CRO_Library           4063209756
 
 #define CRO_FLAG_None       0
 #define CRO_FLAG_NoVarError 1
@@ -103,10 +101,19 @@ extern CRO_TypeDescriptor CRO_FileDescriptor;
 #define _CROWLANG_USE_COLOR
 
 #if defined(__unix) || defined(__MACH__)
+  #define CROW_PLATFORM_UNIX
+#elif defined(_WIN32)
+  #define CROW_PLATFORM_WIN32
+#else
+  #warning Unknown platform
+  #define CROW_PLATFORM_UNKNOWN
+#endif
+
+#ifdef CROW_PLATFORM_UNIX
 #define _CROWLANG_USE_VT
 #endif
 
-#if defined(_WIN32)
+#ifdef CROW_PLATFORM_WIN32
     #include <windows.h>
     HANDLE hConsole;
     WORD saved_attributes;
@@ -130,7 +137,7 @@ extern CRO_TypeDescriptor CRO_FileDescriptor;
 
     #define CRO_setColor(x) printf("\033[%sm", x)
     #define CRO_initColor() ;;
-  #elif defined(_WIN32)
+  #elif CROW_PLATFORM_WIN32
     #define RESET saved_attributes
     #define BLACK "30"
     #define RED FOREGROUND_RED
@@ -178,6 +185,7 @@ extern CRO_TypeDescriptor CRO_FileDescriptor;
 #define CRO_toNone(v) v.type = CRO_Undefined; v.allotok = 0; v.constant = 0;
 #define CRO_toBoolean(v, x) v.type = CRO_Bool; v.allotok = 0; v.value.integer = x; v.constant = 0;
 #define CRO_toString(s, v, x) v.type = CRO_String; v.value.string = x; v.allotok = CRO_malloc(s, x); v.constant = 0;
+#define CRO_toPointerType(v, t, x) v.type = t; v.value.pointer = (void*)x; v.allotok = 0; v.constant = 0;
 
 /*#define CRO_error(x) CRO_setColor(RED);printf("ERROR: "); x; CRO_setColor(RESET); return CRO_toNone();*/
 
@@ -207,6 +215,8 @@ typedef union{
   struct CRO_Value* array;
   CRO_C_Function* function;
   CRO_C_PrimitiveFunction* primitiveFunction;
+  
+  void* pointer;
 } CRO_InnerValue;
 #else
 typedef struct{
@@ -216,6 +226,8 @@ typedef struct{
   struct CRO_Value* array;
   CRO_C_Function* function;
   CRO_C_PrimitiveFunction* primitiveFunction;
+  
+  void* pointer;
 } CRO_InnerValue;
 #endif
 

@@ -7,6 +7,10 @@
 #include <crow/core.h>
 #include <crow/system.h>
 
+#if defined(CROW_PLATFORM_UNIX)
+#include <dlfcn.h>
+#endif
+
 CRO_Value CRO_sh(CRO_State* s, int argc, CRO_Value* argv){
   CRO_Value v, name;
   name = argv[1];
@@ -132,5 +136,69 @@ CRO_Value CRO_evalCommand(CRO_State* s, int argc, CRO_Value* argv){
     ret = CRO_error(s, err);
   }
 
+  return ret;
+}
+
+CRO_Value CRO_loadLibrary(CRO_State* s, int argc, CRO_Value* argv){
+  CRO_Value ret;
+  
+  if(argc == 1){
+    if(argv[1].type == CRO_String){
+#ifdef CROW_PLATFORM_UNIX
+      void* lib;
+      
+      lib = dlopen(argv[1].value.string, RTLD_LAZY);
+      
+      if(lib != NULL){
+        s->libraries[s->libptr++] = lib;
+        CRO_toPointerType(ret, CRO_Library, lib);
+        
+        return ret;
+      }
+      else{
+        CRO_toNone(ret);
+        return ret;
+      }
+#endif
+    }
+  }
+  CRO_toNone(ret);
+  return ret;
+}
+
+CRO_Value CRO_getFunction(CRO_State *s, int argc, CRO_Value *argv){
+  CRO_Value ret;
+  
+  if(argc == 2){
+    if(argv[1].type == CRO_Library){
+      if(argv[2].type == CRO_String){
+#ifdef CROW_PLATFORM_UNIX
+        CRO_C_Function *fun;
+        fun = (CRO_C_Function*)dlsym(argv[1].value.pointer, argv[2].value.string);
+        
+        if(fun != NULL){
+          ret.type = CRO_Function;
+          ret.constant = 0;
+          ret.allotok = 0;
+          ret.value.function = fun;
+          
+          return ret;
+        }
+        else{
+          CRO_toNone(ret);
+          return ret;
+        }
+#endif
+      }
+      else{
+        /* Error */
+      }
+    }
+    else{
+      /* Error */
+    }
+  }
+  
+  CRO_toNone(ret);
   return ret;
 }

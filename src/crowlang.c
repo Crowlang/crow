@@ -280,7 +280,7 @@ int main(int argc, char* argv[]){
             s->exitCode = CRO_None;
           }
 
-          CRO_printValue[v.type](v);
+          CRO_printStd(v);
 
           ptr = 0;
           lsp = 1;

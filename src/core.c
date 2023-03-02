@@ -39,18 +39,6 @@ void (*CRO_printValue[64])(CRO_Value);
 void (*CRO_freeValue[64])(CRO_Value);
 unsigned int PVptr = 2;
 
-CRO_TypeDescriptor CRO_Undefined = 0;
-CRO_TypeDescriptor CRO_Number = 0;
-CRO_TypeDescriptor CRO_Bool = 0;
-CRO_TypeDescriptor CRO_Function = 0;
-CRO_TypeDescriptor CRO_LocalFunction = 0;
-CRO_TypeDescriptor CRO_PrimitiveFunction = 0;
-CRO_TypeDescriptor CRO_Array = 0;
-CRO_TypeDescriptor CRO_String = 0;
-CRO_TypeDescriptor CRO_Struct = 0;
-CRO_TypeDescriptor CRO_FileDescriptor = 0;
-/* If CRO_Number == 0 then we add it to the types, otherwise its already been added*/
-
 CRO_TypeDescriptor CRO_exposeType(void (*print)(CRO_Value)){
   CRO_printValue[PVptr] = print;
   PVptr += 1;
@@ -79,6 +67,10 @@ void CRO_printStd(CRO_Value v){
     else if(v.type == CRO_Function || v.type == CRO_LocalFunction || v.type == CRO_PrimitiveFunction){
       CRO_setColor(CYAN);
       printf("Function\n");
+    }
+    else if(v.type == CRO_Library){
+      CRO_setColor(CYAN);
+      printf("Library\n");
     }
     else if(v.type == CRO_String){
       CRO_setColor(MAGENTA);
@@ -155,26 +147,15 @@ CRO_State* CRO_createState(void){
   s->fdptr = 0;
   s->fdsize = CRO_BUFFER_SIZE;
   
+  s->libraries = (void**)malloc(CRO_BUFFER_SIZE * sizeof(void*));
+  s->libptr = 0;
+  s->libsize = CRO_BUFFER_SIZE;
+  
   if(s->fileDescriptors == NULL){
     CRO_error(s, "Failed to allocate space for fileDescriptors");
     exit(1);
   }
   
-  /* Expose types */
-  
-  if(CRO_Undefined == 0){
-    CRO_Undefined = CRO_exposeType(CRO_printStd);
-    CRO_Number = CRO_exposeType(CRO_printStd);
-    CRO_Bool = CRO_exposeType(CRO_printStd);
-    CRO_Function = CRO_exposeType(CRO_printStd);
-    CRO_LocalFunction = CRO_exposeType(CRO_printStd);
-    CRO_PrimitiveFunction = CRO_exposeType(CRO_printStd);
-    CRO_Array = CRO_exposeType(CRO_printStd);
-    CRO_String = CRO_exposeType(CRO_printStd);
-    CRO_Struct = CRO_exposeType(CRO_printStd);
-    CRO_FileDescriptor = CRO_exposeType(CRO_printStd);
-  }
-
   /* Setup those predefined file descriptors */
   CRO_stdin.type = CRO_File;
   CRO_stdin.file = stdin;
@@ -279,8 +260,8 @@ void CRO_exposeStandardFunctions(CRO_State* s){
   CRO_exposePrimitiveFunction(s, "func", CRO_func);
   CRO_exposePrimitiveFunction(s, "=>", CRO_func);
   CRO_exposePrimitiveFunction(s, "->", CRO_subroutine);
-  /*CRO_exposeFunction(s, "block", CRO_block);
-  CRO_exposeFunction(s, "{", CRO_block);*/
+  CRO_exposePrimitiveFunction(s, "block", CRO_block);
+  CRO_exposePrimitiveFunction(s, "{", CRO_block);
   CRO_exposeFunction(s, "&&", CRO_andand);
   CRO_exposeFunction(s, "all-true", CRO_andand);
   CRO_exposeFunction(s, "||", CRO_oror);
@@ -316,6 +297,9 @@ void CRO_exposeStandardFunctions(CRO_State* s){
   CRO_exposeFunction(s, "sub-str", CRO_substr);
   CRO_exposeFunction(s, "split", CRO_split);
   CRO_exposeFunction(s, "starts-with", CRO_startsWith);
+  
+  CRO_exposeFunction(s, "load-library", CRO_loadLibrary);
+  CRO_exposeFunction(s, "get-function", CRO_getFunction);
   
   /* Expose standard variables */
   CRO_eval(s, "(defvar math-PI (const 3.141592653589793))");
@@ -756,6 +740,8 @@ CRO_Value CRO_callFunction(CRO_State* s, CRO_Value func, int argc, CRO_Value* ar
   if(func.type == CRO_LocalFunction){
     char* funcbody, *varname;
     int varnameptr, varcount, varnamesize, lastblock;
+    CRO_Variable argsconst;
+    CRO_Value argsconstV;
     
     /* TODO: Restrict access to local variables from the current scope (but not for subroutines) */
     s->block += 1;
@@ -832,6 +818,25 @@ CRO_Value CRO_callFunction(CRO_State* s, CRO_Value func, int argc, CRO_Value* ar
     }
     free(varname);
     x++;
+    
+    argsconstV.type = CRO_Array;
+    argsconstV.constant = 1;
+    argsconstV.value.array = &argv[1];
+    argsconstV.arraySize = argc;
+    
+    argsconst.value = argsconstV;
+    argsconst.block = s->block;
+    argsconst.hash = CRO_genHash("ARGS");
+    
+    s->variables[s->vptr] = argsconst;
+    s->vptr++;
+    if(s->vptr >= s->vsize){
+      s->vsize *= 2;
+      s->variables = (CRO_Variable*)realloc(s->variables, s->vsize * sizeof(CRO_Variable));
+      #ifdef CROWLANG_ALLOC_DEBUG
+      printf("[Alloc Debug]\t Variables size increased to %d\n", s->vsize);
+      #endif
+    }
     
     /* So... found out the hard way 'this' has to be set ABSOLUTELY last just
      * in case another 'this' is being passed as an arguement, this makes 

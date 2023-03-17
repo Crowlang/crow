@@ -18,7 +18,7 @@ int running = 1;
 
 char* errorMsg;
 
-CRO_Value CRO_error(CRO_State* s, const char* msg){
+CRO_Value CRO_error (CRO_State *s, const char *msg) {
   CRO_Value v;
   CRO_toNone(v);
   
@@ -28,7 +28,7 @@ CRO_Value CRO_error(CRO_State* s, const char* msg){
   return v;
 }
 
-void CRO_printError(){
+void CRO_printError (void) {
   CRO_setColor(RED);
   printf("%s\n", errorMsg);
   CRO_setColor(RESET);
@@ -39,14 +39,14 @@ void (*CRO_printValue[64])(CRO_Value);
 void (*CRO_freeValue[64])(CRO_Value);
 unsigned int PVptr = 2;
 
-CRO_TypeDescriptor CRO_exposeType(void (*print)(CRO_Value)){
+CRO_TypeDescriptor CRO_exposeType (void (*print)(CRO_Value)) {
   CRO_printValue[PVptr] = print;
   PVptr += 1;
   
   return PVptr - 1;
 }
 
-CRO_TypeDescriptor CRO_exposeGCType(void (*print)(CRO_Value), void (*free)(CRO_Value)){
+CRO_TypeDescriptor CRO_exposeGCType (void (*print)(CRO_Value), void (*free)(CRO_Value)) {
   CRO_printValue[PVptr] = print;
   CRO_freeValue[PVptr] = free;
   PVptr += 1;
@@ -55,45 +55,45 @@ CRO_TypeDescriptor CRO_exposeGCType(void (*print)(CRO_Value), void (*free)(CRO_V
 }
 
 /* TODO: Replace with a standard toString function */
-void CRO_printStd(CRO_Value v){
-    if(v.type == CRO_Undefined){
+void CRO_printStd (CRO_Value v) {
+    if (v.type == CRO_Undefined) {
       CRO_setColor(YELLOW);
       printf("Undefined\n");
     }
-    else if(v.type == CRO_Number){
+    else if (v.type == CRO_Number) {
       CRO_setColor(GREEN);
       printf("%.15g\n", v.value.number);
     }
-    else if(v.type == CRO_Function || v.type == CRO_LocalFunction || v.type == CRO_PrimitiveFunction){
+    else if (v.type == CRO_Function || v.type == CRO_LocalFunction || v.type == CRO_PrimitiveFunction) {
       CRO_setColor(CYAN);
       printf("Function\n");
     }
-    else if(v.type == CRO_Library){
+    else if (v.type == CRO_Library) {
       CRO_setColor(CYAN);
       printf("Library\n");
     }
-    else if(v.type == CRO_String){
+    else if (v.type == CRO_String) {
       CRO_setColor(MAGENTA);
       printf("\"%s\"\n", v.value.string);
     }
-    else if(v.type == CRO_Array){
+    else if (v.type == CRO_Array) {
       CRO_setColor(MAGENTA);
       printf("Array []\n");
     }
-    else if(v.type == CRO_Struct){
+    else if (v.type == CRO_Struct) {
       CRO_setColor(MAGENTA);
       printf("Struct {}\n");
     }
-    else if(v.type == CRO_FileDescriptor){
+    else if (v.type == CRO_FileDescriptor) {
       CRO_setColor(CYAN);
       printf("File\n");
     }
-    else if(v.type == CRO_Bool){
+    else if (v.type == CRO_Bool) {
       CRO_setColor(GREEN);
-      if(v.value.integer == 1){
+      if (v.value.integer == 1) {
         printf("true\n");
       }
-      else{
+      else {
         printf("false\n");
       }
     }
@@ -101,8 +101,8 @@ void CRO_printStd(CRO_Value v){
   CRO_setColor(RESET);
 }
 
-CRO_State* CRO_createState(void){
-  CRO_State* s;
+CRO_State *CRO_createState (void) {
+  CRO_State *s;
   
   /* These File descriptors are opened by default */
   CRO_FD CRO_stdin, CRO_stdout, CRO_stderr;
@@ -110,19 +110,18 @@ CRO_State* CRO_createState(void){
   s = (CRO_State*)malloc(sizeof(CRO_State));
 
   /* Make sure state is allocated */
-  if(s == NULL){
+  if (s == NULL) {
     printf("Failed to allocate memory for state!\n");
     exit(1);
   }
 
-  
   /* TODO: Fix variables runnig out of bounds */
   s->vptr = 0;
   s->vsize = CRO_BUFFER_SIZE;
   s->variables = (CRO_Variable*)malloc(s->vsize * sizeof(CRO_Variable));
   
   /* Make sure variables is allocated */
-  if(s->variables == NULL){
+  if (s->variables == NULL) {
     CRO_error(s, "Failed to allocate space for variables");
     return s;
   }
@@ -138,7 +137,7 @@ CRO_State* CRO_createState(void){
   
   
   /* Make sure allocations is allocated */
-  if(s->allocations == NULL){
+  if (s->allocations == NULL) {
     CRO_error(s, "Failed to allocate space for allocations");
     return s;
   }
@@ -151,7 +150,7 @@ CRO_State* CRO_createState(void){
   s->libptr = 0;
   s->libsize = CRO_BUFFER_SIZE;
   
-  if(s->fileDescriptors == NULL){
+  if (s->fileDescriptors == NULL) {
     CRO_error(s, "Failed to allocate space for fileDescriptors");
     exit(1);
   }
@@ -196,7 +195,7 @@ CRO_State* CRO_createState(void){
   return s;
 }
 
-void CRO_exposeStandardFunctions(CRO_State* s){
+void CRO_exposeStandardFunctions (CRO_State *s) {
   /* data.h */
   CRO_exposePrimitiveFunction(s, "defvar", defVar);
   CRO_exposePrimitiveFunction(s, "set", set);
@@ -306,21 +305,21 @@ void CRO_exposeStandardFunctions(CRO_State* s){
   CRO_eval(s, "(defvar math-π (const 3.141592653589793))");
 }
 
-void CRO_freeState(CRO_State* s){
+void CRO_freeState (CRO_State *s) {
   int i;
   
   /* Free variables */
   free(s->variables);
   
   /* Free our allocated memory */
-  for(i = 0; i < s->allocptr; i++){
-    if(s->allocations[i].allocated)
+  for (i = 0; i < s->allocptr; i++) {
+    if (s->allocations[i].allocated)
       free(s->allocations[i].memory);
   }
   free(s->allocations);
   
   /* Close all open file descriptors */
-  for(i = 3; i < s->fdptr; i++){
+  for (i = 3; i < s->fdptr; i++) {
     fclose(s->fileDescriptors[i].file);
   }
   free(s->fileDescriptors);
@@ -329,21 +328,21 @@ void CRO_freeState(CRO_State* s){
 }
 
 /* Based on Java's hashcode */
-hash_t CRO_genHash(const char* name){
+hash_t CRO_genHash (const char *name) {
   hash_t h;
   int i, len;
   
   len = (int)strlen(name);
   h = 0;
   
-  for(i = 0; i < len; i++){
+  for (i = 0; i < len; i++) {
     h = 31 * h + name[i];
   }
   
   return h;
 }
 
-void CRO_exposeFunction(CRO_State* s, const char* name, CRO_Value (*func)(CRO_State* s, int argc, CRO_Value* argv)){
+void CRO_exposeFunction (CRO_State *s, const char *name, CRO_Value (*func)(CRO_State *s, int argc, CRO_Value *argv)) {
   CRO_Value vn;
   CRO_Variable var;
   
@@ -361,7 +360,7 @@ void CRO_exposeFunction(CRO_State* s, const char* name, CRO_Value (*func)(CRO_St
   s->variables[s->vptr] = var;
   
   s->vptr++;
-  if(s->vptr >= s->vsize){
+  if (s->vptr >= s->vsize) {
     s->vsize *= 2;
     s->variables = (CRO_Variable*)realloc(s->variables, s->vsize * sizeof(CRO_Variable));
     #ifdef CROWLANG_ALLOC_DEBUG
@@ -370,7 +369,7 @@ void CRO_exposeFunction(CRO_State* s, const char* name, CRO_Value (*func)(CRO_St
   }
 }
 
-void CRO_exposePrimitiveFunction(CRO_State* s, const char* name, CRO_Value (*func)(CRO_State* s, int argc, char** argv)){
+void CRO_exposePrimitiveFunction (CRO_State *s, const char *name, CRO_Value (*func)(CRO_State *s, int argc, char **argv)) {
   CRO_Value vn;
   CRO_Variable var;
   
@@ -388,7 +387,7 @@ void CRO_exposePrimitiveFunction(CRO_State* s, const char* name, CRO_Value (*fun
   s->variables[s->vptr] = var;
   
   s->vptr++;
-  if(s->vptr >= s->vsize){
+  if (s->vptr >= s->vsize) {
     s->vsize *= 2;
     s->variables = (CRO_Variable*)realloc(s->variables, s->vsize * sizeof(CRO_Variable));
     #ifdef CROWLANG_ALLOC_DEBUG
@@ -397,7 +396,7 @@ void CRO_exposePrimitiveFunction(CRO_State* s, const char* name, CRO_Value (*fun
   }
 }
 
-void CRO_exposeVariable(CRO_State* s, const char* name, CRO_Value v){
+void CRO_exposeVariable (CRO_State *s, const char *name, CRO_Value v) {
   CRO_Variable var;
   
   var.block = 0;
@@ -407,7 +406,7 @@ void CRO_exposeVariable(CRO_State* s, const char* name, CRO_Value v){
   s->variables[s->vptr] = var;
   s->vptr++;
   
-  if(s->vptr >= s->vsize){
+  if (s->vptr >= s->vsize) {
     s->vsize *= 2;
     s->variables = (CRO_Variable*)realloc(s->variables, s->vsize * sizeof(CRO_Variable));
     #ifdef CROWLANG_ALLOC_DEBUG
@@ -416,7 +415,7 @@ void CRO_exposeVariable(CRO_State* s, const char* name, CRO_Value v){
   }
 }
 
-char* getWord(char* src, int* ptr, int* end){
+static char *getWord(char *src, int *ptr, int *end){
   char* ret;
   int rptr, size, paren, inQuotes;
 
@@ -435,22 +434,22 @@ char* getWord(char* src, int* ptr, int* end){
   rptr = 0;
 
   /* Lets get started */
-  for(; src[(*ptr)] != 0; (*ptr)++){
+  for (; src[(*ptr)] != 0; (*ptr)++) {
     
     /* Expand the word buffer if needed */
-    if(rptr + 1 == size){
+    if (rptr + 1 == size) {
       size += CRO_BUFFER_SIZE;
       ret = realloc(ret, size * sizeof(char));
     }
     
     /* If we are in quotes ("") we need to parse everything literally */
-    if(inQuotes){
+    if (inQuotes) {
       /* Are we at the end of the string? */
-      if(src[(*ptr)] == '\"'){
+      if (src[(*ptr)] == '\"') {
         /* Yes, we can safely exit */
         inQuotes = 0;
       }
-      else if(src[(*ptr)] == 0){
+      else if (src[(*ptr)] == 0) {
         return ret;
       }
 
@@ -460,10 +459,10 @@ char* getWord(char* src, int* ptr, int* end){
     
     /* If we are not in parenthesis, and we have encountered a space, we have 
      * reached the end of this word */
-    else if(paren == 0 && src[(*ptr)] == ' '){
+    else if (paren == 0 && src[(*ptr)] == ' ') {
       (*ptr)++;
 
-      if(paren < 0){
+      if(paren < 0) {
         *end = 1;
         rptr--;
       }
@@ -472,37 +471,37 @@ char* getWord(char* src, int* ptr, int* end){
     }
     
     /* We have encountered a string, so make sure we treat it as such */
-    else if(src[(*ptr)] == '\"'){
+    else if (src[(*ptr)] == '\"') {
       inQuotes = 1;
       ret[rptr++] = src[(*ptr)];
     }
     
     /* If we have hit an open paren, we must start treating this word as being
      * inside the parens */
-    else if(src[(*ptr)] == '('){
+    else if (src[(*ptr)] == '(') {
       paren++;
       ret[rptr++] = src[(*ptr)];
     }
     
     /* If we find a closing paren, we need to close out whatever we were 
      * checking */
-    else if(src[(*ptr)] == ')'){
+    else if (src[(*ptr)] == ')') {
       paren--;
       ret[rptr++] = src[(*ptr)];
       
       /* If we go lower than 0, we have hit the end */
-      if(paren < 0){
+      if (paren < 0) {
         break;
       }
     }
     
     /* Catch all to just add it to the word */
-    else{
+    else {
       ret[rptr++] = src[(*ptr)];
     }
   }
 
-  if(paren < 0){
+  if (paren < 0) {
     *end = 1;
     rptr--;
   }
@@ -511,7 +510,7 @@ char* getWord(char* src, int* ptr, int* end){
   return ret;
 }
 
-char CRO_isNumber(char* text){
+static char CRO_isNumber (char *text) {
   int x;
   char lastCharReal;
   
@@ -520,23 +519,22 @@ char CRO_isNumber(char* text){
   lastCharReal = 0;
   
   /* TODO: Maybe make this run faster */
-  for(x = 0; text[x] != 0; x++){
-    if((text[x] >= '0' && text[x] <= '9')){
+  for (x = 0; text[x] != 0; x++) {
+    if ((text[x] >= '0' && text[x] <= '9')) {
       lastCharReal = 1;
       continue;
     }
-    else if((text[x] == '-') || (text[x] == '.') || (text[x] == 'e') || (text[x] == '+')){
+    else if ((text[x] == '-') || (text[x] == '.') || (text[x] == 'e') || (text[x] == '+')) {
       lastCharReal = 0;
       continue;
     }
     return 0;
   }
   
-  
   return lastCharReal;
 }
 
-allotok_t CRO_malloc(CRO_State* s, void* memory){
+allotok_t CRO_malloc (CRO_State *s, void *memory) {
   allotok_t memtok;
   
   memtok = (allotok_t)memory;
@@ -544,7 +542,7 @@ allotok_t CRO_malloc(CRO_State* s, void* memory){
   #ifdef CROWLANG_GC_DEBUG
   {
     int aptr = 0;
-    for(aptr = 0; aptr < s->allocptr; aptr++){
+    for (aptr = 0; aptr < s->allocptr; aptr++) {
       #ifdef CROWLANG_GC_DEBUG
       printf("[GC Debug]\t %x at %d\n", s->allocations[aptr].memory, aptr);
       #endif
@@ -562,7 +560,7 @@ allotok_t CRO_malloc(CRO_State* s, void* memory){
   
   s->allocptr++;
   
-  if(s->allocptr >= s->asize){
+  if (s->allocptr >= s->asize) {
     s->asize *= 2;
     s->allocations = (CRO_Allocation*)realloc(s->allocations, s->asize * sizeof(CRO_Allocation));
     #ifdef CROWLANG_ALLOC_DEBUG
@@ -573,61 +571,31 @@ allotok_t CRO_malloc(CRO_State* s, void* memory){
   return memtok;
 }
 
-/*
-int CRO_realloc(CRO_State* s, void* memory, int tok, size_t newSize){
-  void* oldmem = s->allocations[aptr].memory;
-  void* newMem;
-  int vptr;
-  
-  newMem = realloc(oldmem, newSize);
-  
-  for(vptr = 0; vptr < s->vptr; vptr++){
-    if(tok == s->variables[vptr].value.allotok){
-      if(s->variables[vptr].value.type == CRO_Array){
-        s->variables[vptr].value.value.array = newMem;
-      }
-    }
-    else if(s->variables[vptr].value.type == CRO_Array || s->variables[vptr].value.type == CRO_Struct){
-      CRO_Value arr = s->variables[vptr].value;
-      int vaptr;
-
-      for(vaptr = 0; vaptr < arr.arraySize; vaptr++){
-        if(tok == arr.value.array[vaptr].allotok){
-          if(s->variables[vptr].value.type == CRO_Array){
-            s->variables[vptr].value.value.array = newMem;
-          }
-        }
-      }
-    }
-  }
-  return tok;
-}*/
-
-char* CRO_cloneStr(const char* str){
+char *CRO_cloneStr (const char *str) {
   size_t len = strlen(str);
-  char* ret = malloc((len + 1) * sizeof(char));
+  char *ret = malloc((len + 1) * sizeof(char));
 
   memcpy(ret, str, len);
   ret[len] = 0;
   return ret;
 }
 
-static int CRO_GC_Inner(CRO_State* s, CRO_Value arr, allotok_t atok){
+static int CRO_GC_Inner(CRO_State *s, CRO_Value arr, allotok_t atok){
   int vaptr;
-  for(vaptr = 0; vaptr < arr.arraySize; vaptr++){
+  for (vaptr = 0; vaptr < arr.arraySize; vaptr++) {
     
-    if(atok == arr.value.array[vaptr].allotok){
+    if (atok == arr.value.array[vaptr].allotok) {
       return 1;
     }
     
-    if(arr.value.array[vaptr].type == CRO_Array || arr.value.array[vaptr].type == CRO_Struct){
+    if (arr.value.array[vaptr].type == CRO_Array || arr.value.array[vaptr].type == CRO_Struct) {
         return CRO_GC_Inner(s, arr.value.array[vaptr], atok);
     }
   }
   return 0;
 }
 
-void CRO_GC(CRO_State* s){
+void CRO_GC (CRO_State *s) {
   int aptr = 1;
 
   #ifdef CROWLANG_GC_DEBUG
@@ -635,8 +603,8 @@ void CRO_GC(CRO_State* s){
   #endif
 
   /* Look for open memory allocations */
-  for(aptr = 0; aptr < s->allocptr; aptr++){
-    if(s->allocations[aptr].allocated){
+  for (aptr = 0; aptr < s->allocptr; aptr++) {
+    if (s->allocations[aptr].allocated) {
       int vptr, found;
       found = 0;
       
@@ -644,26 +612,26 @@ void CRO_GC(CRO_State* s){
       printf("[GC Debug] Checking %d\n", aptr);
       #endif
       
-      for(vptr = 0; vptr < s->vptr; vptr++){
-        if(s->allocations[aptr].allotok == s->variables[vptr].value.allotok){
+      for (vptr = 0; vptr < s->vptr; vptr++) {
+        if (s->allocations[aptr].allotok == s->variables[vptr].value.allotok) {
           found = 1;
           break;
         }
-        else if(s->variables[vptr].value.type == CRO_Array || s->variables[vptr].value.type == CRO_Struct){
+        else if (s->variables[vptr].value.type == CRO_Array || s->variables[vptr].value.type == CRO_Struct) {
           found = CRO_GC_Inner(s, s->variables[vptr].value, s->allocations[aptr].allotok);
         }
       }
 
-      if(found == 0){
+      if (found == 0) {
         
         #ifdef CROWLANG_GC_DEBUG
         printf("[GC Debug] We are good to free %x at %d [%ld]\n", s->allocations[aptr].memory, aptr, s->allocations[aptr].allotok);
         #endif
         
-        if(s->allocptr == 1){
+        if (s->allocptr == 1) {
           free(s->allocations[aptr].memory);
         }
-        else{
+        else {
           CRO_Allocation tmp;
           tmp = s->allocations[s->allocptr - 1];
           s->allocations[s->allocptr - 1] = s->allocations[aptr];
@@ -676,7 +644,7 @@ void CRO_GC(CRO_State* s){
         aptr--;
       }
       #ifdef CROWLANG_GC_DEBUG
-      else{
+      else {
         printf("[GC Debug] %x at %d lives to see another day...\n", s->allocations[aptr].memory, aptr);
       }
       #endif
@@ -688,30 +656,30 @@ void CRO_GC(CRO_State* s){
   #endif
 
   /* Look for open file descriptors */
-  for(aptr = 3; aptr < s->fdptr; aptr++){
-    if(s->fileDescriptors[aptr].type != CRO_None){
+  for (aptr = 3; aptr < s->fdptr; aptr++) {
+    if (s->fileDescriptors[aptr].type != CRO_None) {
       int vptr, found;
       found = 0;
       
-      for(vptr = 0; vptr < s->vptr; vptr++){
-        if(s->variables[vptr].value.type == CRO_FileDescriptor && aptr == s->variables[vptr].value.value.integer){
+      for (vptr = 0; vptr < s->vptr; vptr++) {
+        if (s->variables[vptr].value.type == CRO_FileDescriptor && aptr == s->variables[vptr].value.value.integer) {
           
           found = 1;
           break;
         }
-        else if(s->variables[vptr].value.type == CRO_Array || s->variables[vptr].value.type == CRO_Struct){
+        else if (s->variables[vptr].value.type == CRO_Array || s->variables[vptr].value.type == CRO_Struct) {
           CRO_Value arr = s->variables[vptr].value;
           int vaptr;
 
-          for(vaptr = 0; vaptr < arr.arraySize; vaptr++){
-            if(s->variables[vptr].value.type == CRO_FileDescriptor && aptr == s->variables[vptr].value.value.integer){
+          for (vaptr = 0; vaptr < arr.arraySize; vaptr++) {
+            if (s->variables[vptr].value.type == CRO_FileDescriptor && aptr == s->variables[vptr].value.value.integer) {
               found = 1;
               break;
             }
           }
         }
       }
-      if(!found){
+      if (!found) {
         #ifdef CROWLANG_GC_DEBUG
         printf("Closing file descriptor %d\n", aptr);
         #endif
@@ -723,9 +691,9 @@ void CRO_GC(CRO_State* s){
   }
 }
 
-CRO_Value CRO_innerEval(CRO_State* s, char* src);
+CRO_Value CRO_innerEval(CRO_State *s, char *src);
 
-CRO_Value CRO_callFunction(CRO_State* s, CRO_Value func, int argc, CRO_Value* argv, int isStruct, CRO_Value str, char subroutineCall){
+CRO_Value CRO_callFunction (CRO_State *s, CRO_Value func, int argc, CRO_Value *argv, int isStruct, CRO_Value str, char subroutineCall) {
   CRO_Value v;
   int x;
   
@@ -737,7 +705,7 @@ CRO_Value CRO_callFunction(CRO_State* s, CRO_Value func, int argc, CRO_Value* ar
   /* If the function value is null, it means we have a local defined function, in which the actual 
    * function body is located in the value.string var */
 
-  if(func.type == CRO_LocalFunction){
+  if (func.type == CRO_LocalFunction) {
     char* funcbody, *varname;
     int varnameptr, varcount, varnamesize, lastblock;
     CRO_Variable argsconst;
@@ -761,9 +729,9 @@ CRO_Value CRO_callFunction(CRO_State* s, CRO_Value func, int argc, CRO_Value* ar
      * These variables are the names of our arguements so we set those here to their
      * actual variable counterparts */
     /* funcbody[0] should be a '(' */
-    for(x = 1; funcbody[x] != 0; x++){
-      if(funcbody[x] == ')' || funcbody[x] == ' '){
-        if(varnameptr > 0){
+    for (x = 1; funcbody[x] != 0; x++) {
+      if (funcbody[x] == ')' || funcbody[x] == ' ') {
+        if (varnameptr > 0) {
           CRO_Variable argvv;
 
           varname[varnameptr] = 0;
@@ -776,10 +744,10 @@ CRO_Value CRO_callFunction(CRO_State* s, CRO_Value func, int argc, CRO_Value* ar
           
           /* Set the value to its coresponding ARGV value*/
           /* If there are more args expected than supplied, make them undefined */
-          if(varcount <= argc){
+          if (varcount <= argc) {
             argvv.value = argv[varcount];
           }
-          else{
+          else {
             CRO_Value undef;
             CRO_toNone(undef);
             
@@ -791,7 +759,7 @@ CRO_Value CRO_callFunction(CRO_State* s, CRO_Value func, int argc, CRO_Value* ar
           s->vptr++;
           
           
-          if(s->vptr >= s->vsize){
+          if (s->vptr >= s->vsize) {
             s->vsize *= 2;
             s->variables = (CRO_Variable*)realloc(s->variables, s->vsize * sizeof(CRO_Variable));
             #ifdef CROWLANG_ALLOC_DEBUG
@@ -801,16 +769,16 @@ CRO_Value CRO_callFunction(CRO_State* s, CRO_Value func, int argc, CRO_Value* ar
           
         }
 
-        if(funcbody[x] == ')'){
+        if (funcbody[x] == ')') {
           break;
         }
         varnameptr = 0;
         varcount++;
       }
-      else if(funcbody[x] > 32){
+      else if (funcbody[x] > 32) {
         varname[varnameptr++] = funcbody[x];
         
-        if(varnameptr >= varnamesize){
+        if (varnameptr >= varnamesize) {
           varnamesize *= 2;
           varname = realloc(varname, varnamesize * sizeof(char));
         }
@@ -830,7 +798,7 @@ CRO_Value CRO_callFunction(CRO_State* s, CRO_Value func, int argc, CRO_Value* ar
     
     s->variables[s->vptr] = argsconst;
     s->vptr++;
-    if(s->vptr >= s->vsize){
+    if (s->vptr >= s->vsize) {
       s->vsize *= 2;
       s->variables = (CRO_Variable*)realloc(s->variables, s->vsize * sizeof(CRO_Variable));
       #ifdef CROWLANG_ALLOC_DEBUG
@@ -841,7 +809,7 @@ CRO_Value CRO_callFunction(CRO_State* s, CRO_Value func, int argc, CRO_Value* ar
     /* So... found out the hard way 'this' has to be set ABSOLUTELY last just
      * in case another 'this' is being passed as an arguement, this makes 
      * literally everything bad... but there isn't much i can do about it now */
-    if(isStruct){
+    if (isStruct) {
       CRO_Variable this;
       this.hash = CRO_genHash("this");
       this.block = s->block;
@@ -854,7 +822,7 @@ CRO_Value CRO_callFunction(CRO_State* s, CRO_Value func, int argc, CRO_Value* ar
 
       s->variables[s->vptr] = this;
       s->vptr++;
-      if(s->vptr >= s->vsize){
+      if (s->vptr >= s->vsize) {
         s->vsize *= 2;
         s->variables = (CRO_Variable*)realloc(s->variables, s->vsize * sizeof(CRO_Variable));
         #ifdef CROWLANG_ALLOC_DEBUG
@@ -863,14 +831,14 @@ CRO_Value CRO_callFunction(CRO_State* s, CRO_Value func, int argc, CRO_Value* ar
       }
     }
     
-    if(!subroutineCall){
+    if (!subroutineCall) {
       lastblock = s->functionBlock;
       s->functionBlock = s->block;
     }
     
     v = CRO_eval(s, &funcbody[x]);
     
-    for(x = s->vptr - 1; x >= 0; x--){
+    for (x = s->vptr - 1; x >= 0; x--) {
       if(s->block <= s->variables[x].block){
 
 #ifdef CROWLANG_VAR_DEBUG
@@ -879,7 +847,7 @@ CRO_Value CRO_callFunction(CRO_State* s, CRO_Value func, int argc, CRO_Value* ar
 
         s->vptr--;
       }
-      else{
+      else {
         /* If we hit a variable not in our same block, safe bet says
          * the ones below it also aren't */
         break;
@@ -892,14 +860,14 @@ CRO_Value CRO_callFunction(CRO_State* s, CRO_Value func, int argc, CRO_Value* ar
     printf("Block decreased to %d\n", s->block);
 #endif
     
-    if(!subroutineCall)
+    if (!subroutineCall)
       s->functionBlock = lastblock;
   }
-  else{
+  else {
     v = func.value.function(s, argc, argv);
   }
   
-  if(s->exitCode == s->exitContext){
+  if (s->exitCode == s->exitContext) {
     s->exitCode = 0;
   }
   
@@ -907,14 +875,14 @@ CRO_Value CRO_callFunction(CRO_State* s, CRO_Value func, int argc, CRO_Value* ar
   return v;
 }
 
-CRO_Value CRO_innerEval(CRO_State* s, char* src){
+CRO_Value CRO_innerEval(CRO_State *s, char *src) {
   CRO_Value v;
 
   int ptr = 0;
-  if(src == NULL){
+  if (src == NULL) {
     raise(SIGINT);
   }
-  else if(src[ptr] == '('){
+  else if (src[ptr] == '(') {
     int end = 0;
     int argc;
     char *fname, *methodName;
@@ -934,26 +902,26 @@ CRO_Value CRO_innerEval(CRO_State* s, char* src){
     func = CRO_innerEval(s, fname);
     
     /* If we are a struct, make sure to store the method name for later */
-    if(func.type == CRO_Struct){
+    if (func.type == CRO_Struct) {
       methodName = getWord(src, &ptr, &end);
     }
     
-    if(func.type == CRO_PrimitiveFunction){
-      char** argv;
+    if (func.type == CRO_PrimitiveFunction) {
+      char **argv;
       
       argv = (char**)malloc(64 * sizeof(char*));
       argv[0] = fname;
       
-      while(!end){
+      while (!end) {
         /* TODO: Maybe make getWord use a buffer we supply, would cut down on allocations */
         char* word = getWord(src, &ptr, &end);
         
         
-        if(word[0] != 0){
+        if (word[0] != 0) {
           argv[1 + argc] =  word;
           
           /* Maybe try to optimize this out */
-          if(s->exitCode >= CRO_ErrorCode){
+          if (s->exitCode >= CRO_ErrorCode) {
             CRO_toNone(v);
             return v;
           }
@@ -964,7 +932,7 @@ CRO_Value CRO_innerEval(CRO_State* s, char* src){
       
       v = func.value.primitiveFunction(s, argc, argv);
       
-      for(; argc > 0; argc--){
+      for (; argc > 0; argc--) {
         free(argv[argc]);
       }
       free(argv);
@@ -976,15 +944,15 @@ CRO_Value CRO_innerEval(CRO_State* s, char* src){
     
     /* Collect our arguments here */
     s->block++;
-    while(!end){
+    while (!end) {
       /* TODO: Maybe make getWord use a buffer we supply, would cut down on allocations */
-      char* word = getWord(src, &ptr, &end);
+      char *word = getWord(src, &ptr, &end);
       
-      if(word[0] != 0){
+      if (word[0] != 0) {
         argv[1 + argc] = CRO_innerEval(s, word);
         
         /* Maybe try to optimize this out */
-        if(s->exitCode >= CRO_ErrorCode){
+        if (s->exitCode >= CRO_ErrorCode) {
           CRO_toNone(v);
           return v;
         }
@@ -998,7 +966,7 @@ CRO_Value CRO_innerEval(CRO_State* s, char* src){
     }
     s->block--;
     
-    if(func.type == CRO_Function || func.type == CRO_LocalFunction){
+    if (func.type == CRO_Function || func.type == CRO_LocalFunction) {
       v = CRO_callFunction(s, func, argc, argv, 0, func, 0);
 
       free(argv);
@@ -1006,24 +974,24 @@ CRO_Value CRO_innerEval(CRO_State* s, char* src){
       return v;
     }
     /* We have a call to a function in an object */
-    else if(func.type == CRO_Struct){
+    else if (func.type == CRO_Struct) {
       int x, found = 0;
       CRO_Value caller;
       
-     for(x = 0; x < func.arraySize; x+= 2){
+     for (x = 0; x < func.arraySize; x+= 2) {
         /* Search the structure for a value with the same name as the second arg (the method being called on the object */
-        if(strcmp(methodName, func.value.array[x].value.string) == 0){
+        if (strcmp(methodName, func.value.array[x].value.string) == 0) {
           found = 1;
           caller = func.value.array[x + 1];
           break;
         }
       }
       
-      if(!found){
+      if (!found) {
         /* Error */
         printf("Not found\n");
       }
-      else{
+      else {
         v = CRO_callFunction(s, caller, argc - 1, &argv[1], 1, func, 0);
         
         free(argv);
@@ -1038,7 +1006,7 @@ CRO_Value CRO_innerEval(CRO_State* s, char* src){
     free(argv);
 
     {
-      char* errorMsg = malloc(64 * sizeof(char));
+      char *errorMsg = malloc(64 * sizeof(char));
       sprintf(errorMsg, "Function '%s' is not defined", src);
       v = CRO_error(s, errorMsg);
       return v;
@@ -1048,28 +1016,28 @@ CRO_Value CRO_innerEval(CRO_State* s, char* src){
   
   /* Eventually we should handle this in the file read portion so we dont even
    * read the data */
-  else if(src[ptr] == ';' && src[ptr + 1] == ';'){
-    while(src[ptr] != 0 && src[ptr] != '\n'){
+  else if (src[ptr] == ';' && src[ptr + 1] == ';') {
+    while (src[ptr] != 0 && src[ptr] != '\n') {
       ptr++;
     }
   }
-  else if(src[ptr] == '\"' || src[ptr] == '\''){
-    int strptr = 0;
-    char sc = src[ptr];
-    char* str;
-    int strsize;
+  else if (src[ptr] == '\"' || src[ptr] == '\'') {
+    int strptr, strsize;
+    char sc, *str;
     allotok_t tok;
-
+    
+    sc = src[ptr];
     str = malloc(CRO_BUFFER_SIZE * sizeof(char));
     strsize = CRO_BUFFER_SIZE;
+    strptr = 0;
     
     ptr++;
-    while(src[ptr] != sc){
+    while (src[ptr] != sc) {
       
       /* Handle escape */
-      if(src[ptr] == '\\'){
+      if (src[ptr] == '\\') {
         ptr++;
-        switch(src[ptr]){
+        switch (src[ptr]) {
           case 'n':
             str[strptr++] = '\n';
           break;
@@ -1084,11 +1052,11 @@ CRO_Value CRO_innerEval(CRO_State* s, char* src){
           break;
         }
       }
-      else{
+      else {
         str[strptr++] = src[ptr];
       }
       
-      if(strptr >= strsize){
+      if (strptr >= strsize) {
         strsize *= 2;
         str = realloc(str, strsize * sizeof(char));
       }
@@ -1110,38 +1078,38 @@ CRO_Value CRO_innerEval(CRO_State* s, char* src){
 
     return v;
   }
-  else{
+  else {
     hash_t vhash;
     int x;
     
-    if(CRO_isNumber(src)){
+    if (CRO_isNumber(src)) {
       double out = 0.0;
       out = 5.5;
       sscanf(src, "%lf", &out);
       CRO_toNumber(v, out);
       return v;
     }
-    else if(strcmp(src, "true") == 0){
+    else if (strcmp(src, "true") == 0) {
       CRO_toBoolean(v, 1);
       return v;
     }
-    else if(strcmp(src, "false") == 0){
+    else if (strcmp(src, "false") == 0) {
       CRO_toBoolean(v, 0);
       return v;
     }
-    else if(strcmp(src, "undefined") == 0){
+    else if (strcmp(src, "undefined") == 0) {
       CRO_toNone(v);
       return v;
     }
     
     vhash = CRO_genHash(src);
 
-    for(x = s->vptr - 1; x >= 0; x--){
-      if(vhash == s->variables[x].hash){
-        if(s->variables[x].block >= s->functionBlock || s->variables[x].block == 0){
+    for (x = s->vptr - 1; x >= 0; x--) {
+      if (vhash == s->variables[x].hash) {
+        if (s->variables[x].block >= s->functionBlock || s->variables[x].block == 0) {
           return s->variables[x].value;
         }
-        else{
+        else {
           printf("IN WRONG BLOCK\n");
           printf("We are in block %d (function block %d) while that var is in block %d\n", s->block, s->functionBlock, s->variables[x].block);
         }
@@ -1149,7 +1117,7 @@ CRO_Value CRO_innerEval(CRO_State* s, char* src){
     }
 
     {
-    char* errorMsg = malloc(64 * sizeof(char));
+    char *errorMsg = malloc(64 * sizeof(char));
     sprintf(errorMsg, "Variable '%s' is not defined", src);
     v = CRO_error(s, errorMsg);
     return v;
@@ -1159,10 +1127,10 @@ CRO_Value CRO_innerEval(CRO_State* s, char* src){
   return v;
 }
 
-CRO_Value CRO_eval(CRO_State* s, char* src){
+CRO_Value CRO_eval (CRO_State *s, char *src) {
   CRO_Value v;
   int c, paren, state, ptr, size, com, lsp, le, sc, srcptr;
-  char* input;
+  char *input;
   
   com = 0;
   paren = 0;
@@ -1177,20 +1145,20 @@ CRO_Value CRO_eval(CRO_State* s, char* src){
   c = src[srcptr++];
   
   /* Run for as long as we aren't hitting EOF */
-  while(running && c != 0){
+  while (running && c != 0) {
     
-    if(com != 2 && c == ';'){
+    if (com != 2 && c == ';') {
       com++;
     }
-    else if(com == 1){
+    else if (com == 1) {
       com = 0;
     }
     
     /* We are, so deal with that accordingly */
-    if(com == 2){
+    if (com == 2) {
       /* Read until the new line, thats how we figure out if we are out
        * of the comment or not */
-      if(c == '\n'){
+      if (c == '\n') {
         com = 0;
         
         /* There should be one paren still in here */
@@ -1212,40 +1180,40 @@ CRO_Value CRO_eval(CRO_State* s, char* src){
      * execution anyway */
      
      /* Also make sure we don't trim strings */
-    if(state != CC_EXEC && state != CC_STRING && c <= 32){
-      if(lsp){
+    if (state != CC_EXEC && state != CC_STRING && c <= 32) {
+      if (lsp) {
         c = src[srcptr++];;
         continue;
       }
-      else{
+      else {
         c = ' ';
         lsp = 1;
       }
     }
-    else{
+    else {
       lsp = 0;
     }
     
-    switch(state){
+    switch (state) {
       
       /* We currently aren't processing anything yet */
       case CC_NONE: {
         
         /* TODO: Eventually make a CC_STRING to make sure strings are properly
          * closed */
-        if(c <= 32){
+        if (c <= 32) {
           c = src[srcptr++];;
           continue;
         }
-        else if(c == '('){
+        else if (c == '(') {
           paren = 1;
           state = CC_STATEMENT;
         }
-        else if(c == '\"' || c == '\''){
+        else if (c == '\"' || c == '\'') {
           state = CC_STRING;
           sc = c;
         }
-        else{
+        else {
           state = CC_VARIABLE;
         }
       }
@@ -1254,14 +1222,14 @@ CRO_Value CRO_eval(CRO_State* s, char* src){
       /* We are processing a function call */
       case CC_STATEMENT: {
         /* Keep track of how many parenthesis deep we are */
-        if(c == '('){
+        if (c == '(') {
           paren += 1;
         }
-        else if(c == ')'){
+        else if (c == ')') {
           paren -= 1;
           
           /* If we reached zero, we know we can start executing */
-          if(paren == 0){
+          if (paren == 0) {
             state = CC_EXEC;
           }
         }
@@ -1273,7 +1241,7 @@ CRO_Value CRO_eval(CRO_State* s, char* src){
         /* If we are reading a value statement and we see a (, we know we
          * are now reading a function call.  Likewise if we see a space we
          * know we reached the end of the statement */
-        if(c == '(' || c <= 32){
+        if (c == '(' || c <= 32) {
           state = CC_EXEC;
           continue;
         }
@@ -1283,18 +1251,18 @@ CRO_Value CRO_eval(CRO_State* s, char* src){
       case CC_STRING: {
         /* If we see a \, and our last character was not an escape, then this
          * one is. */
-        if(le == 0 && c == '\\'){
+        if (le == 0 && c == '\\') {
           le = 1;
         }
         /* If we had an escape last character, it means the escape is now over
          * since we have no support for the longer escapes */
-        else if(le == 1){
+        else if (le == 1) {
           le = 0;
         }
         /* If we don't have an escape, but we do have either a ' or ", which
          * ever started the string, then we are at the end of the string and
          * are safe to start executing */
-        else if(le == 0 && c == sc){
+        else if (le == 0 && c == sc) {
           state = CC_EXEC;
         }
         
@@ -1309,7 +1277,7 @@ CRO_Value CRO_eval(CRO_State* s, char* src){
         
         
         /* Check our exit code */
-        if(s->exitCode == CRO_ExitCode){
+        if (s->exitCode == CRO_ExitCode) {
           c = 0;
           continue;
         }
@@ -1329,7 +1297,7 @@ CRO_Value CRO_eval(CRO_State* s, char* src){
      * we don't intend on doing this, call 'continue' rather than 'break' */
     input[ptr++] = (char)c;
     
-    if(ptr >= size){
+    if (ptr >= size) {
       size *= 2;
       input = realloc(input, size * sizeof(char));
     }
@@ -1337,7 +1305,7 @@ CRO_Value CRO_eval(CRO_State* s, char* src){
     c = src[srcptr++];;
   }
   
-  if(running && ptr > 0){
+  if (running && ptr > 0) {
     input[ptr] = 0;
         
     v = CRO_innerEval(s, input);
@@ -1348,10 +1316,10 @@ CRO_Value CRO_eval(CRO_State* s, char* src){
   return v;
 }
 
-CRO_Value CRO_evalFile(CRO_State* s, FILE* src){
+CRO_Value CRO_evalFile (CRO_State *s, FILE *src) {
   CRO_Value v;
   int c, paren, state, ptr, size, com, lsp, le, sc;
-  char* input;
+  char *input;
   
   com = 0;
   paren = 0;
@@ -1365,25 +1333,24 @@ CRO_Value CRO_evalFile(CRO_State* s, FILE* src){
   c = fgetc(src);
   
   /* Run for as long as we aren't hitting EOF */
-  while(running && c != EOF){
+  while (running && c != EOF) {
     
-    if(com != 2 && c == ';'){
+    if (com != 2 && c == ';') {
       com++;
     }
-    else if(com == 1){
+    else if (com == 1) {
       com = 0;
     }
     
     /* We are, so deal with that accordingly */
-    if(com == 2){
+    if (com == 2) {
       /* Read until the new line, thats how we figure out if we are out
        * of the comment or not */
-      if(c == '\n'){
+      if (c == '\n') {
         com = 0;
         
         /* There should be one paren still in here */
         ptr--;
-        
       }
       
       c = fgetc(src);
@@ -1400,40 +1367,40 @@ CRO_Value CRO_evalFile(CRO_State* s, FILE* src){
      * execution anyway */
      
      /* Also make sure we don't trim strings */
-    if(state != CC_EXEC && state != CC_STRING && c <= 32){
-      if(lsp){
+    if (state != CC_EXEC && state != CC_STRING && c <= 32) {
+      if (lsp) {
         c = fgetc(src);
         continue;
       }
-      else{
+      else {
         c = ' ';
         lsp = 1;
       }
     }
-    else{
+    else {
       lsp = 0;
     }
     
-    switch(state){
+    switch (state) {
       
       /* We currently aren't processing anything yet */
       case CC_NONE: {
         
         /* TODO: Eventually make a CC_STRING to make sure strings are properly
          * closed */
-        if(c <= 32){
+        if (c <= 32) {
           c = fgetc(src);
           continue;
         }
-        else if(c == '('){
+        else if (c == '(') {
           paren = 1;
           state = CC_STATEMENT;
         }
-        else if(c == '\"' || c == '\''){
+        else if (c == '\"' || c == '\'') {
           state = CC_STRING;
           sc = c;
         }
-        else{
+        else {
           state = CC_VARIABLE;
         }
       }
@@ -1442,14 +1409,14 @@ CRO_Value CRO_evalFile(CRO_State* s, FILE* src){
       /* We are processing a function call */
       case CC_STATEMENT: {
         /* Keep track of how many parenthesis deep we are */
-        if(c == '('){
+        if (c == '(') {
           paren += 1;
         }
-        else if(c == ')'){
+        else if (c == ')') {
           paren -= 1;
           
           /* If we reached zero, we know we can start executing */
-          if(paren == 0){
+          if (paren == 0) {
             state = CC_EXEC;
           }
         }
@@ -1461,7 +1428,7 @@ CRO_Value CRO_evalFile(CRO_State* s, FILE* src){
         /* If we are reading a value statement and we see a (, we know we 
          * are now reading a function call.  Likewise if we see a space we
          * know we reached the end of the statement */
-        if(c == '(' || c <= 32){
+        if (c == '(' || c <= 32) {
           state = CC_EXEC;
           continue;
         }
@@ -1471,18 +1438,18 @@ CRO_Value CRO_evalFile(CRO_State* s, FILE* src){
       case CC_STRING: {
         /* If we see a \, and our last character was not an escape, then this
          * one is. */
-        if(le == 0 && c == '\\'){
+        if (le == 0 && c == '\\') {
           le = 1;
         }
         /* If we had an escape last character, it means the escape is now over
          * since we have no support for the longer escapes */
-        else if(le == 1){
+        else if (le == 1) {
           le = 0;
         }
         /* If we don't have an escape, but we do have either a ' or ", which
          * ever started the string, then we are at the end of the string and
          * are safe to start executing */
-        else if(le == 0 && c == sc){
+        else if (le == 0 && c == sc) {
           state = CC_EXEC;
         }
         
@@ -1494,10 +1461,8 @@ CRO_Value CRO_evalFile(CRO_State* s, FILE* src){
         input[ptr] = 0;
         v = CRO_innerEval(s, input);
         
-        
-        
         /* Check our exit code */
-        if(s->exitCode == CRO_ExitCode){
+        if (s->exitCode == CRO_ExitCode) {
           c = EOF;
           continue;
         }
@@ -1517,7 +1482,7 @@ CRO_Value CRO_evalFile(CRO_State* s, FILE* src){
      * we don't intend on doing this, call 'continue' rather than 'break' */
     input[ptr++] = (char)c;
     
-    if(ptr >= size){
+    if (ptr >= size) {
       size *= 2;
       input = realloc(input, size * sizeof(char));
     }
@@ -1525,7 +1490,7 @@ CRO_Value CRO_evalFile(CRO_State* s, FILE* src){
     c = fgetc(src);
   }
   
-  if(running && ptr > 0){
+  if (running && ptr > 0) {
     input[ptr] = 0;
         
     v = CRO_innerEval(s, input);

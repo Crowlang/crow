@@ -598,7 +598,7 @@ CRO_Value CRO_eachWithIterator(CRO_State* s, int argc, CRO_Value* argv){
       func = argv[2];
       
       CRO_toNone(callArgs[0])
-      if(func.type == CRO_Function || CRO_LocalFunction){
+      if(func.type == CRO_Function || func.type == CRO_LocalFunction){
         for(index = 0; index < array.arraySize; index++){
           
           CRO_toNumber(counter, index);

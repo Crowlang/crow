@@ -10,8 +10,19 @@
 CRO_Value CRO_block (CRO_State *s, int argc, char**argv) {
   int x;
   CRO_Value v;
-  
-  s->block += 1;
+  CRO_Closure *lastScope, *scope;
+
+  lastScope = s->scope;
+  s->scope = CRO_createClosure(s);
+#ifdef CROWLANG_SCOPE_DEBUG
+  printf("Scope is now %x (upgraded from %x)\n", s->scope, lastScope);
+#endif
+
+  scope = s->scope;
+
+  scope->active = 1;
+  scope->depends = lastScope;
+
   for (x = 1; x <= argc; x++) {
     v = CRO_eval(s, argv[x]);
     
@@ -24,13 +35,12 @@ CRO_Value CRO_block (CRO_State *s, int argc, char**argv) {
       break;
     }
   }
-  for (x = s->vptr - 1; x >= 0; x--) {
-    if (s->block == s->variables[x].block) {
-      s->vptr--;
-    }
-  }
 
-  s->block -= 1;
+  scope->active = 0;
+  s->scope = lastScope;
+#ifdef CROWLANG_SCOPE_DEBUG
+  printf("Scope is now %x (downgraded from %x)\n", s->scope, scope);
+#endif
 
   return v;
 }
@@ -108,7 +118,7 @@ CRO_Value CRO_func (CRO_State *s, int argc, char **argv) {
   v.value.string = body;
   v.allotok = allotok;
   v.constant = 0;
-
+  v.functionClosure = s->scope;
   return v;
 
 }
@@ -154,6 +164,7 @@ CRO_Value CRO_subroutine (CRO_State *s, int argc, char **argv) {
   v.value.string = body;
   v.allotok = allotok;
   v.constant = 0;
+  v.functionClosure = s->scope;
 
   return v;
 
@@ -165,11 +176,13 @@ CRO_Value CRO_defun (CRO_State *s, int argc, char **argv) {
   if (argc >= 3) {
     hash_t vhash;
     CRO_Variable var;
-    int x;
+    unsigned int x;
     char *name;
+    CRO_Closure *scope;
     
     vhash = CRO_genHash(argv[1]);
-    
+    scope = s->scope;
+
     /* Swap name out with the name of the function 'func' */
     name = argv[1];
     argv[1] = "func";
@@ -179,25 +192,23 @@ CRO_Value CRO_defun (CRO_State *s, int argc, char **argv) {
     /* Now set it back */
     argv[1] = name;
     
-    for (x = 0;x < s->vptr; x++) {
-      if (vhash == s->variables[x].hash && s->variables[x].block == s->block) {
+    for (x = 0;x < scope->vptr; x++) {
+      if (vhash == scope->variables[x].hash) {
         printf("Error: Variable exists\n");
       }
     }
 
     var.hash = vhash;
-    
-    var.block = s->block;
     var.value = ret;
     
-    s->variables[s->vptr] = var;
+    scope->variables[scope->vptr] = var;
     
-    s->vptr++;
-    if (s->vptr >= s->vsize) {
-      s->vsize *= 2;
-      s->variables = (CRO_Variable*)realloc(s->variables, s->vsize * sizeof(CRO_Variable));
+    scope->vptr++;
+    if (scope->vptr >= scope->vsize) {
+      scope->vsize *= 2;
+      scope->variables = (CRO_Variable*)realloc(scope->variables, scope->vsize * sizeof(CRO_Variable));
       #ifdef CROWLANG_ALLOC_DEBUG
-      printf("[Alloc Debug]\t Variables size increased to %d\n", s->vsize);
+      printf("[Alloc Debug]\t Variables size increased to %d\n", scope->vsize);
       #endif
     }
 

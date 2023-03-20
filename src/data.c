@@ -9,11 +9,13 @@
 
 /* Define a variable */
 CRO_Value defVar (CRO_State *s, int argc, char **argv) {
-  int x = 0;
+  unsigned int x = 0;
   char *name, *value;
   hash_t vhash;
   CRO_Variable var;
   CRO_Value vn;
+  CRO_Closure *scope;
+
   if (argc < 1) {
     /*CRO_error("defVar, not enough arguements given");*/
   }
@@ -26,32 +28,30 @@ CRO_Value defVar (CRO_State *s, int argc, char **argv) {
     value = argv[2];
     vn = CRO_innerEval(s, value);
   }
-
+  scope = s->scope;
   vhash = CRO_genHash(name);
 
-  for (;x < s->vptr; x++) {
-    if (vhash == s->variables[x].hash && s->variables[x].block == s->block) {
+  for (;x < scope->vptr; x++) {
+    if (vhash == scope->variables[x].hash) {
       printf("Error: Variable exists\n");
     }
   }
 
   var.hash = vhash;
-  
-  var.block = s->block;
   var.value = vn;
   
 #ifdef CROWLANG_VAR_DEBUG
-  printf("Defined variable %ld in block %d\n", vhash, s->block);
+  printf("Defined variable %ld in closure %x\n", vhash, s->scope);
 #endif
   
-  s->variables[s->vptr] = var;
+  scope->variables[scope->vptr] = var;
   
-  s->vptr++;
-  if (s->vptr >= s->vsize) {
-    s->vsize *= 2;
-    s->variables = (CRO_Variable*)realloc(s->variables, s->vsize * sizeof(CRO_Variable));
+  scope->vptr++;
+  if (scope->vptr >= scope->vsize) {
+    scope->vsize *= 2;
+    scope->variables = (CRO_Variable*)realloc(scope->variables, scope->vsize * sizeof(CRO_Variable));
     #ifdef CROWLANG_ALLOC_DEBUG
-    printf("[Alloc Debug]\t Variables size increased to %d\n", s->vsize);
+    printf("[Alloc Debug]\t Variables size increased to %d\n", scope->vsize);
     #endif
   }
 
@@ -60,30 +60,34 @@ CRO_Value defVar (CRO_State *s, int argc, char **argv) {
 
 /* Set a defined variable to a value */
 CRO_Value set (CRO_State *s, int argc, char **argv) {
-  int x = 0;
+  unsigned int x;
   char *name, *value;
   hash_t vhash;
   CRO_Value vn;
+  CRO_Closure *scope;
 
   if (argc == 2) {
     name = argv[1];
     value = argv[2];
 
     vhash = CRO_genHash(name);
+    scope = s->scope;
     
     vn = CRO_innerEval(s, value);
-    
-    for (;x < s->vptr; x++) {
-      if (vhash == s->variables[x].hash) {
-        /* Check if we are trying to overwrite a constant value */
-        if(!(s->variables[x].value.constant))
-          s->variables[x].value = vn;
-        else {
-          printf("Error\n");
+
+    do {
+      for (x = 0; x < scope->vptr; x++) {
+        if (vhash == scope->variables[x].hash) {
+          if (!(scope->variables[x].value.constant)) {
+            scope->variables[x].value = vn;
+            return vn;
+          }
+          else {
+            CRO_error(s, "Attempting to overwrite constant variable");
+          }
         }
-        return vn;
       }
-    }
+    } while (scope != NULL);
     /*CRO_error("Could not find variable");*/
     CRO_toNone(vn);
     return vn;

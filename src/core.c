@@ -121,16 +121,24 @@ CRO_State *CRO_createState (void) {
     exit(1);
   }
 
-  /* TODO: Fix variables runnig out of bounds */
-  s->vptr = 0;
-  s->vsize = CRO_BUFFER_SIZE;
-  s->variables = (CRO_Variable*)malloc(s->vsize * sizeof(CRO_Variable));
+  s->cptr = 0;
+  s->csize = CRO_BUFFER_SIZE;
+  s->closures = (CRO_Closure**)malloc(s->csize * sizeof(CRO_Closure*));
 
   /* Make sure variables is allocated */
-  if (s->variables == NULL) {
-    CRO_error(s, "Failed to allocate space for variables");
+  if (s->closures == NULL) {
+    CRO_error(s, "Failed to allocate space for closures");
     return s;
   }
+
+  /* Create our global closure which will always be at 0 in the closure list */
+  s->scope = CRO_createClosure(s);
+  s->scope->active = 1;
+  s->scope->depends = NULL;
+
+#ifdef CROWLANG_SCOPE_DEBUG
+  printf("Global scope is %x\n", s->scope);
+#endif
 
   /* Maybe make allocations use CALLOC and have it be a standard size */
 
@@ -312,10 +320,14 @@ void CRO_exposeStandardFunctions (CRO_State *s) {
 }
 
 void CRO_freeState (CRO_State *s) {
-  int i;
+  unsigned int i;
 
   /* Free variables */
-  free(s->variables);
+  /* FIXME: Reenable this for closures after testing */
+  for(i = 0; i < s->cptr; i++){
+    free(s->closures[i]->variables);
+  }
+  free(s->closures);
 
   /* Free our allocated memory */
   for (i = 0; i < s->allocptr; i++) {
@@ -351,6 +363,7 @@ hash_t CRO_genHash (const char *name) {
 void CRO_exposeFunction (CRO_State *s, const char *name, CRO_Value (*func)(CRO_State *s, int argc, CRO_Value *argv)) {
   CRO_Value vn;
   CRO_Variable var;
+  CRO_Closure *scope;
 
   /* Create our function value */
   vn.type = CRO_Function;
@@ -358,19 +371,21 @@ void CRO_exposeFunction (CRO_State *s, const char *name, CRO_Value (*func)(CRO_S
   vn.constant = 1;
 
   /* Create the variable to hold it */
-  var.block = 0;
   var.hash = CRO_genHash(name);
   var.value = vn;
 
-  /* Finally add it to the variables */
-  s->variables[s->vptr] = var;
+  /* Get a handle on our scope */
+  scope = s->scope;
 
-  s->vptr++;
-  if (s->vptr >= s->vsize) {
-    s->vsize *= 2;
-    s->variables = (CRO_Variable*)realloc(s->variables, s->vsize * sizeof(CRO_Variable));
+  /* Finally add it to the variables */
+  scope->variables[scope->vptr++] = var;
+
+  scope->vptr++;
+  if (scope->vptr >= scope->vsize) {
+    scope->vsize *= 2;
+    scope->variables = (CRO_Variable*)realloc(scope->variables, scope->vsize * sizeof(CRO_Variable));
     #ifdef CROWLANG_ALLOC_DEBUG
-    printf("[Alloc Debug]\t Variables size increased to %d\n", s->vsize);
+    printf("[Alloc Debug]\t Variables size increased to %d\n", scope->vsize);
     #endif
   }
 }
@@ -378,6 +393,7 @@ void CRO_exposeFunction (CRO_State *s, const char *name, CRO_Value (*func)(CRO_S
 void CRO_exposePrimitiveFunction (CRO_State *s, const char *name, CRO_Value (*func)(CRO_State *s, int argc, char **argv)) {
   CRO_Value vn;
   CRO_Variable var;
+  CRO_Closure *scope;
 
   /* Create our function value */
   vn.type = CRO_PrimitiveFunction;
@@ -385,40 +401,69 @@ void CRO_exposePrimitiveFunction (CRO_State *s, const char *name, CRO_Value (*fu
   vn.constant = 1;
 
   /* Create the variable to hold it */
-  var.block = 0;
   var.hash = CRO_genHash(name);
   var.value = vn;
 
-  /* Finally add it to the variables */
-  s->variables[s->vptr] = var;
+  /* Get a handle on our scope */
+  scope = s->scope;
 
-  s->vptr++;
-  if (s->vptr >= s->vsize) {
-    s->vsize *= 2;
-    s->variables = (CRO_Variable*)realloc(s->variables, s->vsize * sizeof(CRO_Variable));
+  /* Finally add it to the variables */
+  scope->variables[scope->vptr++] = var;
+
+  scope->vptr++;
+  if (scope->vptr >= scope->vsize) {
+    scope->vsize *= 2;
+    scope->variables = (CRO_Variable*)realloc(scope->variables, scope->vsize * sizeof(CRO_Variable));
     #ifdef CROWLANG_ALLOC_DEBUG
-    printf("[Alloc Debug]\t Variables size increased to %d\n", s->vsize);
+    printf("[Alloc Debug]\t Variables size increased to %d\n", scope->vsize);
     #endif
   }
 }
 
+CRO_Closure *CRO_createClosure (CRO_State *s) {
+  CRO_Closure *c;
+  CRO_Variable *variables;
+  
+  c = (CRO_Closure*)malloc(sizeof(CRO_Closure));
+  
+  c->vptr = 0;
+  c->vsize = CRO_BUFFER_SIZE;
+  
+  variables = (CRO_Variable*)malloc(c->vsize * sizeof(CRO_Variable));
+  
+  c->variables = variables;
+  
+  s->closures[s->cptr++] = c;
+  if (s->cptr >= s->csize) {
+    s->csize *= 2;
+    s->closures = (CRO_Closure**)realloc(s->closures, s->csize * sizeof(CRO_Closure));
+    #ifdef CROWLANG_ALLOC_DEBUG
+    printf("[Alloc Debug]\t Closure size increased to %d\n", s->vsize);
+    #endif
+  }
+  
+  return c;
+}
+
 void CRO_exposeVariable (CRO_State *s, const char *name, CRO_Value v) {
   CRO_Variable var;
+  CRO_Closure *scope;
 
-  var.block = 0;
   var.hash = CRO_genHash(name);
   var.value = v;
 
-  s->variables[s->vptr] = var;
-  s->vptr++;
+  scope = s->scope;
+  scope->variables[scope->vptr++] = var;
 
-  if (s->vptr >= s->vsize) {
-    s->vsize *= 2;
-    s->variables = (CRO_Variable*)realloc(s->variables, s->vsize * sizeof(CRO_Variable));
+  scope->vptr++;
+  if (scope->vptr >= scope->vsize) {
+    scope->vsize *= 2;
+    scope->variables = (CRO_Variable*)realloc(scope->variables, scope->vsize * sizeof(CRO_Variable));
     #ifdef CROWLANG_ALLOC_DEBUG
-    printf("[Alloc Debug]\t Variables size increased to %d\n", s->vsize);
+    printf("[Alloc Debug]\t Variables size increased to %d\n", scope->vsize);
     #endif
   }
+
 }
 
 static char *getWord (char *src, int *ptr, int *end) {
@@ -602,29 +647,77 @@ static int CRO_GC_Inner (CRO_State *s, CRO_Value arr, allotok_t atok) {
 }
 
 void CRO_GC (CRO_State *s) {
-  int aptr = 1;
+  unsigned int aptr, cptr, found;
 
   #ifdef CROWLANG_GC_DEBUG
   printf("[GC Debug] Starting GC\n");
   #endif
+  found = 0;
 
-  /* Look for open memory allocations */
+  /* First look for dead closures on which nothing depends */
+  for (cptr = 0; cptr < s->cptr; cptr++) {
+    /* We found an inactive closure, check if we still need it */
+    if (s->closures[cptr]->active == 0) {
+      unsigned int chkptr, vptr;
+
+      found = 0;
+      for (chkptr = 0; found == 0 && chkptr < s->cptr; chkptr++) {
+        if (s->closures[chkptr]->depends == s->closures[cptr]) {
+          printf("Found depends\n");
+          found = 1;
+          break;
+        }
+
+        /* Now see if any function depend on it */
+        for (vptr = 0; found == 0 && vptr < s->closures[chkptr]->vptr; vptr++) {
+          if (s->closures[chkptr]->variables[vptr].value.functionClosure == s->closures[cptr]) {
+            found = 1;
+            break;
+          }
+        }
+      }
+
+      if (!found) {
+        CRO_Closure *tmp;
+        tmp = s->closures[s->cptr - 1];
+        s->closures[s->cptr - 1] = s->closures[cptr];
+        s->closures[cptr] = tmp;
+
+#ifdef CROWLANG_GC_DEBUG
+        printf("[GC Debug] Freeing closure %x\n", s->closures[s->cptr - 1]);
+#endif
+
+
+        free(s->closures[s->cptr - 1]->variables);
+        free(s->closures[s->cptr - 1]);
+
+        s->cptr--;
+        cptr--;
+      }
+    }
+  }
+
+  /* Now, look for open memory allocations */
   for (aptr = 0; aptr < s->allocptr; aptr++) {
     if (s->allocations[aptr].allocated) {
-      int vptr, found;
       found = 0;
 
       #ifdef CROWLANG_GC_DEBUG
       printf("[GC Debug] Checking %d\n", aptr);
       #endif
 
-      for (vptr = 0; vptr < s->vptr; vptr++) {
-        if (s->allocations[aptr].allotok == s->variables[vptr].value.allotok) {
-          found = 1;
-          break;
-        }
-        else if (s->variables[vptr].value.type == CRO_Array || s->variables[vptr].value.type == CRO_Struct) {
-          found = CRO_GC_Inner(s, s->variables[vptr].value, s->allocations[aptr].allotok);
+      for (cptr = 0; found == 0 && cptr < s->cptr; cptr++) {
+        unsigned int vptr;
+        CRO_Closure *scope;
+        scope = s->closures[cptr];
+        for (vptr = 0; vptr < scope->vptr; vptr++) {
+          if (s->allocations[aptr].allotok == scope->variables[vptr].value.allotok) {
+            found = 1;
+            break;
+          }
+          else if (scope->variables[vptr].value.type == CRO_Array || scope->variables[vptr].value.type == CRO_Struct) {
+            found = CRO_GC_Inner(s, scope->variables[vptr].value, s->allocations[aptr].allotok);
+          }
         }
       }
 
@@ -664,10 +757,11 @@ void CRO_GC (CRO_State *s) {
   /* Look for open file descriptors */
   for (aptr = 3; aptr < s->fdptr; aptr++) {
     if (s->fileDescriptors[aptr].type != CRO_None) {
-      int vptr, found;
+      int found;
       found = 0;
 
-      for (vptr = 0; vptr < s->vptr; vptr++) {
+      /* FIXME: Remove this in favor of custom free commands for FileDescriptor type */
+      /*for (vptr = 0; vptr < s->vptr; vptr++) {
         if (s->variables[vptr].value.type == CRO_FileDescriptor && aptr == s->variables[vptr].value.value.integer) {
 
           found = 1;
@@ -684,7 +778,8 @@ void CRO_GC (CRO_State *s) {
             }
           }
         }
-      }
+      }*/
+      found = 1;
       if (!found) {
         #ifdef CROWLANG_GC_DEBUG
         printf("Closing file descriptor %d\n", aptr);
@@ -713,15 +808,21 @@ CRO_Value CRO_callFunction (CRO_State *s, CRO_Value func, int argc, CRO_Value *a
 
   if (func.type == CRO_LocalFunction) {
     char *funcbody, *varname;
-    int varnameptr, varcount, varnamesize, lastblock;
+    int varnameptr, varcount, varnamesize;
     CRO_Variable argsconst;
     CRO_Value argsconstV;
+    CRO_Closure *lastScope, *scope;
 
-    /* TODO: Restrict access to local variables from the current scope (but not for subroutines) */
-    s->block += 1;
+    lastScope = s->scope;
 
-#ifdef CROWLANG_VAR_DEBUG
-    printf("Block increased to %d\n", s->block);
+    s->scope = CRO_createClosure(s);
+    s->scope->active = 1;
+    s->scope->depends = func.functionClosure;
+
+    scope = s->scope;
+
+#ifdef CROWLANG_SCOPE_DEBUG
+  printf("Scope is now %x (upgraded from %x)\n", s->scope, lastScope);
 #endif
 
     funcbody = func.value.string;
@@ -742,7 +843,6 @@ CRO_Value CRO_callFunction (CRO_State *s, CRO_Value func, int argc, CRO_Value *a
 
           varname[varnameptr] = 0;
           argvv.hash = CRO_genHash(varname);
-          argvv.block = s->block;
 
 #ifdef CROWLANG_VAR_DEBUG
           printf("Defined variable %ld in block %d\n", argvv.hash, s->block);
@@ -760,16 +860,16 @@ CRO_Value CRO_callFunction (CRO_State *s, CRO_Value func, int argc, CRO_Value *a
             argvv.value = undef;
           }
 
-          s->variables[s->vptr] = argvv;
+          scope->variables[scope->vptr] = argvv;
 
-          s->vptr++;
+          scope->vptr++;
 
 
-          if (s->vptr >= s->vsize) {
-            s->vsize *= 2;
-            s->variables = (CRO_Variable*)realloc(s->variables, s->vsize * sizeof(CRO_Variable));
+          if (scope->vptr >= scope->vsize) {
+            scope->vsize *= 2;
+            scope->variables = (CRO_Variable*)realloc(scope->variables, scope->vsize * sizeof(CRO_Variable));
             #ifdef CROWLANG_ALLOC_DEBUG
-            printf("[Alloc Debug]\t Variables size increased to %d\n", s->vsize);
+            printf("[Alloc Debug]\t Variables size increased to %d\n", scope->vsize);
             #endif
           }
 
@@ -799,16 +899,15 @@ CRO_Value CRO_callFunction (CRO_State *s, CRO_Value func, int argc, CRO_Value *a
     argsconstV.arraySize = argc;
 
     argsconst.value = argsconstV;
-    argsconst.block = s->block;
     argsconst.hash = CRO_genHash("ARGS");
 
-    s->variables[s->vptr] = argsconst;
-    s->vptr++;
-    if (s->vptr >= s->vsize) {
-      s->vsize *= 2;
-      s->variables = (CRO_Variable*)realloc(s->variables, s->vsize * sizeof(CRO_Variable));
+    scope->variables[scope->vptr] = argsconst;
+    scope->vptr++;
+    if (scope->vptr >= scope->vsize) {
+      scope->vsize *= 2;
+      scope->variables = (CRO_Variable*)realloc(scope->variables, scope->vsize * sizeof(CRO_Variable));
       #ifdef CROWLANG_ALLOC_DEBUG
-      printf("[Alloc Debug]\t Variables size increased to %d\n", s->vsize);
+      printf("[Alloc Debug]\t Variables size increased to %d\n", scope->vsize);
       #endif
     }
 
@@ -818,7 +917,6 @@ CRO_Value CRO_callFunction (CRO_State *s, CRO_Value func, int argc, CRO_Value *a
     if (isStruct) {
       CRO_Variable this;
       this.hash = CRO_genHash("this");
-      this.block = s->block;
 
 #ifdef CROWLANG_VAR_DEBUG
       printf("Defined variable %ld in block %d\n", this.hash, s->block);
@@ -826,48 +924,26 @@ CRO_Value CRO_callFunction (CRO_State *s, CRO_Value func, int argc, CRO_Value *a
 
       this.value = str;
 
-      s->variables[s->vptr] = this;
-      s->vptr++;
-      if (s->vptr >= s->vsize) {
-        s->vsize *= 2;
-        s->variables = (CRO_Variable*)realloc(s->variables, s->vsize * sizeof(CRO_Variable));
+      scope->variables[scope->vptr] = this;
+      scope->vptr++;
+      if (scope->vptr >= scope->vsize) {
+        scope->vsize *= 2;
+        scope->variables = (CRO_Variable*)realloc(scope->variables, scope->vsize * sizeof(CRO_Variable));
         #ifdef CROWLANG_ALLOC_DEBUG
-        printf("[Alloc Debug]\t Variables size increased to %d\n", s->vsize);
+        printf("[Alloc Debug]\t Variables size increased to %d\n", scope->vsize);
         #endif
       }
     }
 
-    if (!subroutineCall) {
-      lastblock = s->functionBlock;
-      s->functionBlock = s->block;
-    }
-
     v = CRO_eval(s, &funcbody[x]);
 
-    for (x = s->vptr - 1; x >= 0; x--) {
-      if (s->block <= s->variables[x].block) {
+    scope->active = 0;
+    s->scope = lastScope;
 
-#ifdef CROWLANG_VAR_DEBUG
-        printf("Remving variable %ld in block %d\n", s->variables[x].hash, s->variables[x].block);
+#ifdef CROWLANG_SCOPE_DEBUG
+  printf("Scope is now %x (downgraded from %x)\n", s->scope, scope);
 #endif
 
-        s->vptr--;
-      }
-      else {
-        /* If we hit a variable not in our same block, safe bet says
-         * the ones below it also aren't */
-        break;
-      }
-    }
-
-    s->block -= 1;
-
-#ifdef CROWLANG_VAR_DEBUG
-    printf("Block decreased to %d\n", s->block);
-#endif
-
-    if (!subroutineCall)
-      s->functionBlock = lastblock;
   }
   else {
     v = func.value.function(s, argc, argv);
@@ -1085,7 +1161,6 @@ CRO_Value CRO_innerEval(CRO_State *s, char *src) {
     return v;
   }
   else {
-    hash_t vhash;
     int x;
 
     if (CRO_isNumber(src)) {
@@ -1107,19 +1182,27 @@ CRO_Value CRO_innerEval(CRO_State *s, char *src) {
       CRO_toNone(v);
       return v;
     }
+    else {
+      hash_t vhash;
+      CRO_Closure *scope;
+      
+      vhash = CRO_genHash(src);
 
-    vhash = CRO_genHash(src);
+      /* Get our curent scope from our state */
+      scope = s->scope;
+      do {
+        /* Go through every variable in our scope */
+        for (x = scope->vptr - 1; x >= 0; x--) {
+          /* If the variable has the same hash, we have the correct variable reference */
+          if(vhash == scope->variables[x].hash) {
+            return scope->variables[x].value;
+          }
+        }
 
-    for (x = s->vptr - 1; x >= 0; x--) {
-      if (vhash == s->variables[x].hash) {
-        if (s->variables[x].block >= s->functionBlock || s->variables[x].block == 0) {
-          return s->variables[x].value;
-        }
-        else {
-          printf("IN WRONG BLOCK\n");
-          printf("We are in block %d (function block %d) while that var is in block %d\n", s->block, s->functionBlock, s->variables[x].block);
-        }
-      }
+        /* Otherwise we check if our scope depends on another and switch to it*/
+        scope = scope->depends;
+      } while (scope != NULL); /* A scope depending on NULL means we hit the end */
+      /* No variable found */
     }
 
     {

@@ -120,7 +120,7 @@ CRO_Value CRO_open (CRO_State *s, int argc, CRO_Value *argv) {
   }
   
   if (file.type == CRO_String) {
-    int x;
+    unsigned int x;
     
     fd.type = CRO_File;
     fd.file = fopen(file.value.string, modeStr);

@@ -44,21 +44,23 @@ typedef struct CRO_FD {
 } CRO_FD;
 
 typedef struct CRO_State {
-  struct CRO_Variable *variables;
-  int vptr;
-  int vsize;
+  struct CRO_Closure **closures;
+  unsigned int cptr;
+  unsigned int csize;
+  
+  struct CRO_Closure *scope;
 
   CRO_Allocation *allocations;
-  int allocptr;
-  int asize;
+  unsigned int allocptr;
+  unsigned int asize;
 
   CRO_FD *fileDescriptors;
-  int fdptr;
-  int fdsize;
+  unsigned int fdptr;
+  unsigned int fdsize;
 
   void **libraries;
-  int libptr;
-  int libsize;
+  unsigned int libptr;
+  unsigned int libsize;
 
   int block;
   int functionBlock;
@@ -238,18 +240,30 @@ typedef struct CRO_Value {
   CRO_InnerValue value;
 
   int arraySize;
-  #ifdef CROWLANG_GREEDY_MEMORY_ALLOCATION
-  int arrayCapacity;
-  #endif
 
   allotok_t allotok;
+  
+  /* TODO: This is only needed for functions, maybe move it into the union*/
+  struct CRO_Closure *functionClosure;
 } CRO_Value;
 
 typedef struct CRO_Variable {
   hash_t hash;
-  int block;
-
   CRO_Value value;
+  
+  struct CRO_Variable *left;
+  struct CRO_Variable *right;
 } CRO_Variable;
+
+typedef struct CRO_Closure {
+  struct CRO_Closure *depends;
+  unsigned char active;
+  
+  CRO_Variable *variables;
+  unsigned int vptr;
+  unsigned int vsize;
+} CRO_Closure;
+
+#define CRO_globalScope(s) s->closures[0]
 
 #endif

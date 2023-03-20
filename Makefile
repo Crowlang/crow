@@ -15,6 +15,7 @@ CFLAGS += -O2
 # If you use any of these options, expect errors and warnings
 #CFLAGS += -DCROWLANG_GC_DEBUG
 #CFLAGS += -DCROWLANG_ALLOC_DEBUG
+#CFLAGS += -DCROWLANG_SCOPE_DEBUG
 
 # Don't edit anything under this line unless you know what you're doing
 

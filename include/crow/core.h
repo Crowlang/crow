@@ -12,6 +12,8 @@ CRO_State *CRO_createState(void);
 void CRO_exposeStandardFunctions(CRO_State *s);
 void CRO_freeState(CRO_State *s);
 
+CRO_Closure *CRO_createClosure (CRO_State *s);
+
 void CRO_printStd(CRO_Value v);
 
 CRO_Value CRO_callFunction(CRO_State *s, CRO_Value func, int argc, CRO_Value *argv, int isStruct, CRO_Value str, char subroutineCall);

@@ -16,7 +16,7 @@
 
 int running = 1;
 
-char* errorMsg;
+char *errorMsg;
 
 CRO_Value CRO_error (CRO_State *s, const char *msg) {
   CRO_Value v;
@@ -415,8 +415,8 @@ void CRO_exposeVariable (CRO_State *s, const char *name, CRO_Value v) {
   }
 }
 
-static char *getWord(char *src, int *ptr, int *end){
-  char* ret;
+static char *getWord (char *src, int *ptr, int *end) {
+  char *ret;
   int rptr, size, paren, inQuotes;
 
   /* The word we will return */
@@ -580,7 +580,7 @@ char *CRO_cloneStr (const char *str) {
   return ret;
 }
 
-static int CRO_GC_Inner(CRO_State *s, CRO_Value arr, allotok_t atok){
+static int CRO_GC_Inner (CRO_State *s, CRO_Value arr, allotok_t atok) {
   int vaptr;
   for (vaptr = 0; vaptr < arr.arraySize; vaptr++) {
     
@@ -706,7 +706,7 @@ CRO_Value CRO_callFunction (CRO_State *s, CRO_Value func, int argc, CRO_Value *a
    * function body is located in the value.string var */
 
   if (func.type == CRO_LocalFunction) {
-    char* funcbody, *varname;
+    char *funcbody, *varname;
     int varnameptr, varcount, varnamesize, lastblock;
     CRO_Variable argsconst;
     CRO_Value argsconstV;
@@ -839,7 +839,7 @@ CRO_Value CRO_callFunction (CRO_State *s, CRO_Value func, int argc, CRO_Value *a
     v = CRO_eval(s, &funcbody[x]);
     
     for (x = s->vptr - 1; x >= 0; x--) {
-      if(s->block <= s->variables[x].block){
+      if (s->block <= s->variables[x].block) {
 
 #ifdef CROWLANG_VAR_DEBUG
         printf("Remving variable %ld in block %d\n", s->variables[x].hash, s->variables[x].block);
@@ -914,7 +914,7 @@ CRO_Value CRO_innerEval(CRO_State *s, char *src) {
       
       while (!end) {
         /* TODO: Maybe make getWord use a buffer we supply, would cut down on allocations */
-        char* word = getWord(src, &ptr, &end);
+        char *word = getWord(src, &ptr, &end);
         
         
         if (word[0] != 0) {

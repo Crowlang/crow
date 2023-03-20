@@ -29,7 +29,7 @@ typedef unsigned long allotok_t;
 
 typedef struct CRO_Allocation {
   char allocated;
-  void* memory;
+  void *memory;
   allotok_t allotok;
 } CRO_Allocation;
 
@@ -39,24 +39,24 @@ typedef struct CRO_Allocation {
 
 typedef struct CRO_FD {
   char type;
-  FILE* file;
+  FILE *file;
   socket_t socket;
 } CRO_FD;
 
 typedef struct CRO_State {
-  struct CRO_Variable* variables;
+  struct CRO_Variable *variables;
   int vptr;
   int vsize;
 
-  CRO_Allocation* allocations;
+  CRO_Allocation *allocations;
   int allocptr;
   int asize;
 
-  CRO_FD* fileDescriptors;
+  CRO_FD *fileDescriptors;
   int fdptr;
   int fdsize;
   
-  void** libraries;
+  void **libraries;
   int libptr;
   int libsize;
 
@@ -71,7 +71,7 @@ typedef struct CRO_State {
 #define CRO_GC_TIMER 64
 
 #ifndef CRO_GC_OLD
-  #define CRO_callGC(s) if(s->gctime++ >= CRO_GC_TIMER){CRO_GC(s);s->gctime = 0;}
+  #define CRO_callGC(s) if(s->gctime++ >= CRO_GC_TIMER) {CRO_GC(s);s->gctime = 0;}
 #else
   #define CRO_callGC(s) CRO_GC(s);
 #endif
@@ -204,30 +204,30 @@ typedef struct {
 
 #define CRO_USE_UNIONS 1
 
-typedef struct CRO_Value (CRO_C_Function)(CRO_State* s, int argc, struct CRO_Value* argv);
-typedef struct CRO_Value (CRO_C_PrimitiveFunction)(CRO_State* s, int argc, char** argv);
+typedef struct CRO_Value (CRO_C_Function)(CRO_State *s, int argc, struct CRO_Value *argv);
+typedef struct CRO_Value (CRO_C_PrimitiveFunction)(CRO_State *s, int argc, char **argv);
 
 #ifdef CRO_USE_UNIONS
-typedef union{
+typedef union  {
   double number;
   int integer;
-  colchar_t* string;
-  struct CRO_Value* array;
-  CRO_C_Function* function;
-  CRO_C_PrimitiveFunction* primitiveFunction;
+  colchar_t *string;
+  struct CRO_Value *array;
+  CRO_C_Function *function;
+  CRO_C_PrimitiveFunction *primitiveFunction;
   
-  void* pointer;
+  void *pointer;
 } CRO_InnerValue;
 #else
-typedef struct{
+typedef struct  {
   double number;
   int integer;
-  colchar_t* string;
-  struct CRO_Value* array;
-  CRO_C_Function* function;
-  CRO_C_PrimitiveFunction* primitiveFunction;
+  colchar_t *string;
+  struct CRO_Value *array;
+  CRO_C_Function *function;
+  CRO_C_PrimitiveFunction *primitiveFunction;
   
-  void* pointer;
+  void *pointer;
 } CRO_InnerValue;
 #endif
 

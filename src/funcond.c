@@ -7,25 +7,25 @@
 #include <crow/core.h>
 #include <crow/funcond.h>
 
-CRO_Value CRO_block(CRO_State* s, int argc, char**argv){
+CRO_Value CRO_block (CRO_State *s, int argc, char**argv) {
   int x;
   CRO_Value v;
   
   s->block += 1;
-  for(x = 1; x <= argc; x++){
+  for (x = 1; x <= argc; x++) {
     v = CRO_eval(s, argv[x]);
     
     /* If we have an exit code, this code block is OVER */
-    if(s->exitCode >= s->exitContext){
-      if(s->exitCode == s->exitContext){
+    if (s->exitCode >= s->exitContext) {
+      if (s->exitCode == s->exitContext) {
         s->exitCode = 0;
       }
           
       break;
     }
   }
-  for(x = s->vptr - 1; x >= 0; x--){
-    if(s->block == s->variables[x].block){
+  for (x = s->vptr - 1; x >= 0; x--) {
+    if (s->block == s->variables[x].block) {
       s->vptr--;
     }
   }
@@ -35,14 +35,13 @@ CRO_Value CRO_block(CRO_State* s, int argc, char**argv){
   return v;
 }
 
-CRO_Value CRO_func(CRO_State* s, int argc, char** argv){
+CRO_Value CRO_func (CRO_State *s, int argc, char **argv) {
   CRO_Value v;
-  char* args;
-  char* body;
+  char *args, *body;
   int arglen, x, bsize, bptr, i;
   allotok_t allotok;
 
-  if(argc < 2){
+  if (argc < 2) {
     printf("Error (func) requires at least 2 arguements\n");
   }
 
@@ -58,12 +57,12 @@ CRO_Value CRO_func(CRO_State* s, int argc, char** argv){
   
   body[bptr++] = '(';
   
-  if(args[0] == '('){
+  if (args[0] == '(') {
     int argc = 1;
     arglen = 0;
-    for(x = 1; args[x] != 0; x++){
-      if(args[x] == ' ' || args[x] == ')'){
-        if(arglen > 0){
+    for (x = 1; args[x] != 0; x++) {
+      if (args[x] == ' ' || args[x] == ')') {
+        if (arglen > 0) {
           
         }
 
@@ -72,7 +71,7 @@ CRO_Value CRO_func(CRO_State* s, int argc, char** argv){
         arglen++;
         argc++;
       }
-      else{
+      else {
 
         /* Only collect non space characters because spaces dont matter in
          * arguement definitions */
@@ -80,7 +79,7 @@ CRO_Value CRO_func(CRO_State* s, int argc, char** argv){
           body[bptr++] = args[x];
       }
       
-      if(bptr >= bsize){
+      if (bptr >= bsize) {
         bsize *= 2;
         body = realloc(body, bsize * sizeof(char));
       }
@@ -89,11 +88,11 @@ CRO_Value CRO_func(CRO_State* s, int argc, char** argv){
     bptr++;
   }
   
-  for(i = 2; i <= argc; i++){
-    for(x = 0; argv[i][x] != 0; x++){
+  for (i = 2; i <= argc; i++) {
+    for (x = 0; argv[i][x] != 0; x++) {
       body[bptr++] = argv[i][x];
       
-      if(bptr >= bsize){
+      if (bptr >= bsize) {
         bsize *= 2;
         body = realloc(body, bsize * sizeof(char));
       }
@@ -114,13 +113,13 @@ CRO_Value CRO_func(CRO_State* s, int argc, char** argv){
 
 }
 
-CRO_Value CRO_subroutine(CRO_State* s, int argc, char** argv){
+CRO_Value CRO_subroutine (CRO_State *s, int argc, char **argv) {
   CRO_Value v;
-  char* body;
+  char *body;
   int x, bsize, bptr, i;
   allotok_t allotok;
 
-  if(argc < 1){
+  if (argc < 1) {
     printf("Error (subroutine) requires at least 1 arguement\n");
   }
 
@@ -135,11 +134,11 @@ CRO_Value CRO_subroutine(CRO_State* s, int argc, char** argv){
   body[bptr++] = '(';
   body[bptr++] = ')';
   
-  for(i = 1; i <= argc; i++){
-    for(x = 0; argv[i][x] != 0; x++){
+  for (i = 1; i <= argc; i++) {
+    for (x = 0; argv[i][x] != 0; x++) {
       body[bptr++] = argv[i][x];
       
-      if(bptr >= bsize){
+      if (bptr >= bsize) {
         bsize *= 2;
         body = realloc(body, bsize * sizeof(char));
       }
@@ -160,14 +159,14 @@ CRO_Value CRO_subroutine(CRO_State* s, int argc, char** argv){
 
 }
 
-CRO_Value CRO_defun(CRO_State* s, int argc, char** argv){
+CRO_Value CRO_defun (CRO_State *s, int argc, char **argv) {
   CRO_Value ret;
   
-  if(argc >= 3){
+  if (argc >= 3) {
     hash_t vhash;
     CRO_Variable var;
     int x;
-    char* name;
+    char *name;
     
     vhash = CRO_genHash(argv[1]);
     
@@ -180,8 +179,8 @@ CRO_Value CRO_defun(CRO_State* s, int argc, char** argv){
     /* Now set it back */
     argv[1] = name;
     
-    for(x = 0;x < s->vptr; x++){
-      if(vhash == s->variables[x].hash && s->variables[x].block == s->block){
+    for (x = 0;x < s->vptr; x++) {
+      if (vhash == s->variables[x].hash && s->variables[x].block == s->block) {
         printf("Error: Variable exists\n");
       }
     }
@@ -194,7 +193,7 @@ CRO_Value CRO_defun(CRO_State* s, int argc, char** argv){
     s->variables[s->vptr] = var;
     
     s->vptr++;
-    if(s->vptr >= s->vsize){
+    if (s->vptr >= s->vsize) {
       s->vsize *= 2;
       s->variables = (CRO_Variable*)realloc(s->variables, s->vsize * sizeof(CRO_Variable));
       #ifdef CROWLANG_ALLOC_DEBUG
@@ -204,8 +203,8 @@ CRO_Value CRO_defun(CRO_State* s, int argc, char** argv){
 
     return ret;
   }
-  else{
-    char* err;
+  else {
+    char *err;
     err = malloc(128 * sizeof(char));
     
     sprintf(err, "(%s): Expected 3 arguements (%d given)", argv[0], argc);
@@ -218,15 +217,15 @@ CRO_Value CRO_defun(CRO_State* s, int argc, char** argv){
   return ret;
 }
 
-CRO_Value CRO_andand(CRO_State* s, int argc, CRO_Value* argv){
+CRO_Value CRO_andand (CRO_State *s, int argc, CRO_Value *argv) {
   CRO_Value ret;
   
-  if(argc >= 2){
+  if (argc >= 2) {
     int i;
     
-    for(i = 1; i <= argc; i++){
-      if(argv[i].type != CRO_Bool){
-        char* err;
+    for (i = 1; i <= argc; i++) {
+      if (argv[i].type != CRO_Bool) {
+        char *err;
         err = malloc(128 * sizeof(char));
         
         sprintf(err, "(%s): Argument %d is not an boolean", argv[0].value.string, i);
@@ -234,7 +233,7 @@ CRO_Value CRO_andand(CRO_State* s, int argc, CRO_Value* argv){
         
         return ret;
       }
-      else if(!(argv[i].value.integer)){
+      else if (!(argv[i].value.integer)) {
         CRO_toBoolean(ret, 0);
         return ret;
       }
@@ -242,8 +241,8 @@ CRO_Value CRO_andand(CRO_State* s, int argc, CRO_Value* argv){
     
     CRO_toBoolean(ret, 1);
   }
-  else{
-    char* err;
+  else {
+    char *err;
     err = malloc(128 * sizeof(char));
     
     sprintf(err, "(%s): 2 or more arguements expected", argv[0].value.string);
@@ -253,16 +252,16 @@ CRO_Value CRO_andand(CRO_State* s, int argc, CRO_Value* argv){
   return ret;
 }
 
-CRO_Value CRO_oror(CRO_State* s, int argc, CRO_Value* argv){
+CRO_Value CRO_oror (CRO_State *s, int argc, CRO_Value *argv) {
   CRO_Value ret;
   
-  if(argc >= 2){
+  if (argc >= 2) {
     int i;
     
-    for(i = 1; i <= argc; i++){
+    for (i = 1; i <= argc; i++) {
       
-      if(argv[i].type != CRO_Bool){
-        char* err;
+      if (argv[i].type != CRO_Bool) {
+        char *err;
         err = malloc(128 * sizeof(char));
         
         sprintf(err, "(%s): Argument %d is not an boolean", argv[0].value.string, i);
@@ -270,7 +269,7 @@ CRO_Value CRO_oror(CRO_State* s, int argc, CRO_Value* argv){
         
         return ret;
       }
-      else if(argv[i].value.integer){
+      else if (argv[i].value.integer) {
         CRO_toBoolean(ret, 1);
         return ret;
       }
@@ -278,8 +277,8 @@ CRO_Value CRO_oror(CRO_State* s, int argc, CRO_Value* argv){
     
     CRO_toBoolean(ret, 0);
   }
-  else{
-    char* err;
+  else {
+    char *err;
     err = malloc(128 * sizeof(char));
     
     sprintf(err, "(%s): 2 or more arguements expected", argv[0].value.string);
@@ -289,7 +288,7 @@ CRO_Value CRO_oror(CRO_State* s, int argc, CRO_Value* argv){
   return ret;
 }
 
-CRO_Value CRO_equals(CRO_State* s, int argc, CRO_Value* argv){
+CRO_Value CRO_equals (CRO_State *s, int argc, CRO_Value *argv) {
   /* TODO: Make this work for any number of operands */
   CRO_Value a;
   CRO_Value b;
@@ -299,29 +298,29 @@ CRO_Value CRO_equals(CRO_State* s, int argc, CRO_Value* argv){
   a = argv[1];
   b = argv[2];
 
-  if(a.type == b.type){
-    if(a.type == CRO_Number){
-      if(a.value.number == b.value.number){
+  if (a.type == b.type) {
+    if (a.type == CRO_Number) {
+      if (a.value.number == b.value.number) {
         CRO_toBoolean(ret, 1);
       }
-      else{
+      else {
         CRO_toBoolean(ret, 0);
       }
     }
-    else if(a.type == CRO_String){
-      if(strcmp(a.value.string, b.value.string) == 0){
+    else if (a.type == CRO_String) {
+      if (strcmp(a.value.string, b.value.string) == 0) {
         CRO_toBoolean(ret, 1);
       }
-      else{
+      else {
         CRO_toBoolean(ret, 0);
       }
     }
-    else{
+    else {
       printf("Error: cannot do operation with that\n");
       CRO_toNone(ret);
     }
   }
-  else{
+  else {
     printf("Error: A is not the same type as B\n");
     CRO_toNone(ret);
   }
@@ -329,7 +328,7 @@ CRO_Value CRO_equals(CRO_State* s, int argc, CRO_Value* argv){
   return ret;
 }
 
-CRO_Value CRO_notEquals(CRO_State* s, int argc, CRO_Value* argv){
+CRO_Value CRO_notEquals (CRO_State *s, int argc, CRO_Value *argv) {
   CRO_Value r;
 
   r = CRO_equals(s, argc, argv);
@@ -338,29 +337,27 @@ CRO_Value CRO_notEquals(CRO_State* s, int argc, CRO_Value* argv){
   return r;
 }
 
-CRO_Value CRO_greaterThan(CRO_State* s, int argc, CRO_Value* argv){
-  CRO_Value a;
-  CRO_Value b;
-  CRO_Value ret;
+CRO_Value CRO_greaterThan (CRO_State *s, int argc, CRO_Value *argv) {
+  CRO_Value a, b, ret;
 
   a = argv[1];
   b = argv[2];
 
-  if(a.type == b.type){
-    if(a.type == CRO_Number){
-      if(a.value.number > b.value.number){
+  if (a.type == b.type) {
+    if (a.type == CRO_Number) {
+      if (a.value.number > b.value.number) {
         CRO_toBoolean(ret, 1);
       }
-      else{
+      else {
         CRO_toBoolean(ret, 0);
       }
     }
-    else{
+    else {
       printf("Error: cannot do operation with that\n");
       CRO_toNone(ret);
     }
   }
-  else{
+  else {
     printf("Error: A is not the same type as B\n");
     CRO_toNone(ret);
   }
@@ -368,29 +365,27 @@ CRO_Value CRO_greaterThan(CRO_State* s, int argc, CRO_Value* argv){
   return ret;
 }
 
-CRO_Value CRO_lessThan(CRO_State* s, int argc, CRO_Value* argv){
-  CRO_Value a;
-  CRO_Value b;
-  CRO_Value ret;
+CRO_Value CRO_lessThan (CRO_State *s, int argc, CRO_Value *argv) {
+  CRO_Value a, b, ret;
 
   a = argv[1];
   b = argv[2];
 
-  if(a.type == b.type){
-    if(a.type == CRO_Number){
-      if(a.value.number < b.value.number){
+  if (a.type == b.type) {
+    if (a.type == CRO_Number) {
+      if (a.value.number < b.value.number) {
         CRO_toBoolean(ret, 1);
       }
-      else{
+      else {
         CRO_toBoolean(ret, 0);
       }
     }
-    else{
+    else {
       printf("Error: cannot do operation with that\n");
       CRO_toNone(ret);
     }
   }
-  else{
+  else {
     printf("Error: A is not the same type as B\n");
     CRO_toNone(ret);
   }
@@ -400,22 +395,22 @@ CRO_Value CRO_lessThan(CRO_State* s, int argc, CRO_Value* argv){
   return ret;
 }
 
-CRO_Value CRO_defined(CRO_State* s, int argc, char** argv){
+CRO_Value CRO_defined (CRO_State *s, int argc, char **argv) {
   CRO_Value a, ret;
   
-  if(argc == 1){
+  if (argc == 1) {
     a = CRO_innerEval(s, argv[1]);
-    if(s->exitCode == CRO_ErrorCode){
+    if (s->exitCode == CRO_ErrorCode) {
       s->exitCode = CRO_None;
     }
-    if(a.type != CRO_Undefined){
+    if (a.type != CRO_Undefined) {
       CRO_toBoolean(ret, 1);
     }
-    else{
+    else {
       CRO_toBoolean(ret, 0);
     }
   }
-  else{
+  else {
     CRO_toNone(ret);
     /* Error not enough args */
   }
@@ -424,30 +419,30 @@ CRO_Value CRO_defined(CRO_State* s, int argc, char** argv){
   return ret;
 }
 
-CRO_Value CRO_if(CRO_State* s, int argc, char** argv){
+CRO_Value CRO_if (CRO_State *s, int argc, char **argv) {
   int x;
   CRO_Value v;
 
-  if(argc < 2){
+  if (argc < 2) {
     printf("Error");
   }
 
-  for(x = 1; x <= argc; x+=2){
+  for (x = 1; x <= argc; x+=2) {
     /* If x is equal to argc, we are in the else statement (which is optional) */
-    if(x == argc){
+    if (x == argc) {
       v = CRO_innerEval(s, argv[x]);
       return v;
     }
     /* Otherwise the first word is a conditional, and the second is the body */
-    else{
+    else {
       v = CRO_innerEval(s, argv[x]);
-      if(v.type == CRO_Bool){
-        if(v.value.integer){
+      if (v.type == CRO_Bool) {
+        if (v.value.integer) {
           v = CRO_innerEval(s, argv[x + 1]);
           return v;
         }
       }
-      else{
+      else {
         printf("Error: not boolean\n");
       }
     }
@@ -456,16 +451,16 @@ CRO_Value CRO_if(CRO_State* s, int argc, char** argv){
   return v;
 }
 
-CRO_Value CRO_not(CRO_State* s, int argc, CRO_Value* argv){
+CRO_Value CRO_not (CRO_State *s, int argc, CRO_Value *argv) {
   CRO_Value ret;
-  if(argc == 1){
+  if (argc == 1) {
     CRO_Value bolexpr = argv[1];
-    if(bolexpr.type == CRO_Bool){
+    if (bolexpr.type == CRO_Bool) {
       bolexpr.value.integer = !bolexpr.value.integer;
       return bolexpr;
     }
-    else{
-      char* err;
+    else {
+      char *err;
       err = malloc(128 * sizeof(char));
       
       sprintf(err, "(%s): Argument 1 is not a bool", argv[0].value.string);
@@ -473,8 +468,8 @@ CRO_Value CRO_not(CRO_State* s, int argc, CRO_Value* argv){
       
     }
   }
-  else{
-    char* err;
+  else {
+    char *err;
     err = malloc(128 * sizeof(char));
     
     sprintf(err, "(%s): Expected 1 arguement. (%d given)", argv[0].value.string, argc);
@@ -491,20 +486,18 @@ CRO_Value CRO_not(CRO_State* s, int argc, CRO_Value* argv){
  * is higher, for example in a loop a (return) is encountered, then the exit 
  * code is preserverd */
 
-CRO_Value CRO_each(CRO_State* s, int argc, CRO_Value* argv){
-  CRO_Value array;
-  CRO_Value ret;
+CRO_Value CRO_each (CRO_State *s, int argc, CRO_Value *argv) {
+  CRO_Value array, ret;
   char lastExitContext;
   
   lastExitContext = s->exitContext;
   s->exitContext = CRO_BreakCode;
   
-  if(argc == 2){
+  if (argc == 2) {
     array = argv[1];
     
-    if(array.type == CRO_Array){
-      CRO_Value itemV, func;
-      CRO_Value* argz;
+    if (array.type == CRO_Array) {
+      CRO_Value itemV, func, *argz;
       long index;
       
       func = argv[2];
@@ -512,16 +505,16 @@ CRO_Value CRO_each(CRO_State* s, int argc, CRO_Value* argv){
       argz = (CRO_Value*)malloc(2 * sizeof(CRO_Value));
       CRO_toNone(argz[0]);
       
-      if(func.type == CRO_Function || func.type == CRO_LocalFunction){
-        for(index = 0; index < array.arraySize; index++){
+      if (func.type == CRO_Function || func.type == CRO_LocalFunction) {
+        for (index = 0; index < array.arraySize; index++) {
           /* Get the value of the item in the array and set it to the var */
           itemV = array.value.array[index];
           
           argz[1] = itemV;
           ret = CRO_callFunction(s, func, 1, argz, 0, func, 1);
           
-          if(s->exitCode >= s->exitContext){
-            if(s->exitCode == s->exitContext){
+          if (s->exitCode >= s->exitContext) {
+            if (s->exitCode == s->exitContext) {
               s->exitCode = 0;
             }
             
@@ -534,8 +527,8 @@ CRO_Value CRO_each(CRO_State* s, int argc, CRO_Value* argv){
         free(argz);
         
       }
-      else if(func.type == CRO_PrimitiveFunction){
-        char* err;
+      else if (func.type == CRO_PrimitiveFunction) {
+        char *err;
         
         free(argz);
         
@@ -544,8 +537,8 @@ CRO_Value CRO_each(CRO_State* s, int argc, CRO_Value* argv){
         sprintf(err, "(%s): Argument 2 function cannot be used here", argv[0].value.string);
         ret = CRO_error(s, err);
       }
-      else{
-        char* err;
+      else {
+        char *err;
         
         free(argz);
         
@@ -556,8 +549,8 @@ CRO_Value CRO_each(CRO_State* s, int argc, CRO_Value* argv){
       }
     }
     
-    else{
-      char* err;
+    else {
+      char *err;
       err = malloc(128 * sizeof(char));
       
       sprintf(err, "(%s): Argument 1 is not an Array", argv[0].value.string);
@@ -565,8 +558,8 @@ CRO_Value CRO_each(CRO_State* s, int argc, CRO_Value* argv){
       
     }
   }
-  else{
-    char* err;
+  else {
+    char *err;
     err = malloc(128 * sizeof(char));
     
     sprintf(err, "(%s): Expected 3 arguements. (%d given)", argv[0].value.string, argc);
@@ -578,7 +571,7 @@ CRO_Value CRO_each(CRO_State* s, int argc, CRO_Value* argv){
   return ret;
 }
 
-CRO_Value CRO_eachWithIterator(CRO_State* s, int argc, CRO_Value* argv){
+CRO_Value CRO_eachWithIterator (CRO_State *s, int argc, CRO_Value *argv) {
   CRO_Value array;
   CRO_Value ret;
   
@@ -587,10 +580,10 @@ CRO_Value CRO_eachWithIterator(CRO_State* s, int argc, CRO_Value* argv){
   lastExitContext = s->exitContext;
   s->exitContext = CRO_BreakCode;
   
-  if(argc == 2){
+  if (argc == 2) {
     array = argv[1];
     
-    if(array.type == CRO_Array){
+    if (array.type == CRO_Array) {
       CRO_Value func, item, counter, *callArgs;
       int index;
       
@@ -598,8 +591,8 @@ CRO_Value CRO_eachWithIterator(CRO_State* s, int argc, CRO_Value* argv){
       func = argv[2];
       
       CRO_toNone(callArgs[0])
-      if(func.type == CRO_Function || func.type == CRO_LocalFunction){
-        for(index = 0; index < array.arraySize; index++){
+      if (func.type == CRO_Function || func.type == CRO_LocalFunction) {
+        for (index = 0; index < array.arraySize; index++) {
           
           CRO_toNumber(counter, index);
           
@@ -612,8 +605,8 @@ CRO_Value CRO_eachWithIterator(CRO_State* s, int argc, CRO_Value* argv){
           /* Now execute it with the variable in place */
           ret = CRO_callFunction(s, func, 2, callArgs, 0, func, 1);
           
-          if(s->exitCode >= s->exitContext){
-            if(s->exitCode == s->exitContext){
+          if (s->exitCode >= s->exitContext) {
+            if (s->exitCode == s->exitContext) {
               s->exitCode = 0;
             }
             
@@ -623,23 +616,23 @@ CRO_Value CRO_eachWithIterator(CRO_State* s, int argc, CRO_Value* argv){
           CRO_callGC(s);
         }
       }
-      else if(func.type == CRO_PrimitiveFunction){
-        char* err;
+      else if (func.type == CRO_PrimitiveFunction) {
+        char *err;
         err = malloc(128 * sizeof(char));
         
         sprintf(err, "(%s): Argument 2 function cannot be used here", argv[0].value.string);
         ret = CRO_error(s, err);
       }
-      else{
-        char* err;
+      else {
+        char *err;
         err = malloc(128 * sizeof(char));
         
         sprintf(err, "(%s): Argument 2 is not a function", argv[0].value.string);
         ret = CRO_error(s, err);
       }
     }
-    else{
-      char* err;
+    else {
+      char *err;
       err = malloc(128 * sizeof(char));
       
       sprintf(err, "(%s): Argument 1 is not an Array.", argv[0].value.string);
@@ -647,8 +640,8 @@ CRO_Value CRO_eachWithIterator(CRO_State* s, int argc, CRO_Value* argv){
       
     }
   }
-  else{
-    char* err;
+  else {
+    char *err;
     err = malloc(128 * sizeof(char));
     
     sprintf(err, "(%s): Expected 3 arguements. (%d given)", argv[0].value.string, argc);
@@ -660,21 +653,21 @@ CRO_Value CRO_eachWithIterator(CRO_State* s, int argc, CRO_Value* argv){
   return ret;
 }
 
-CRO_Value CRO_while(CRO_State* s, int argc, char** argv){
+CRO_Value CRO_while (CRO_State *s, int argc, char **argv) {
   CRO_Value cond, ret;
   char lastExitContext;
   
   lastExitContext = s->exitContext;
   s->exitContext = CRO_BreakCode;
   
-  if(argc == 2){
+  if (argc == 2) {
     cond = CRO_innerEval(s, argv[1]);
     
-    while(cond.type == CRO_Bool && cond.value.integer){
+    while (cond.type == CRO_Bool && cond.value.integer) {
       ret = CRO_innerEval(s, argv[2]);
       
-      if(s->exitCode >= s->exitContext){
-        if(s->exitCode == s->exitContext){
+      if (s->exitCode >= s->exitContext) {
+        if (s->exitCode == s->exitContext) {
           s->exitCode = 0;
         }
         
@@ -685,8 +678,8 @@ CRO_Value CRO_while(CRO_State* s, int argc, char** argv){
       CRO_callGC(s);
     }
   }
-  else{
-    char* err;
+  else {
+    char *err;
     err = malloc(128 * sizeof(char));
     
     sprintf(err, "(%s): Expected 3 arguements. (%d given)", argv[0], argc);
@@ -698,14 +691,14 @@ CRO_Value CRO_while(CRO_State* s, int argc, char** argv){
   return ret;
 }
 
-CRO_Value CRO_doWhile(CRO_State* s, int argc, char** argv){
+CRO_Value CRO_doWhile (CRO_State *s, int argc, char **argv) {
   CRO_Value cond, ret;
   char lastExitContext;
   
   lastExitContext = s->exitContext;
   s->exitContext = CRO_BreakCode;
   
-  if(argc == 2){
+  if (argc == 2) {
     
     
     do {
@@ -713,8 +706,8 @@ CRO_Value CRO_doWhile(CRO_State* s, int argc, char** argv){
       ret = CRO_innerEval(s, argv[1]);
       
       
-      if(s->exitCode >= s->exitContext){
-        if(s->exitCode == s->exitContext){
+      if (s->exitCode >= s->exitContext) {
+        if (s->exitCode == s->exitContext) {
           s->exitCode = 0;
         }
         
@@ -725,8 +718,8 @@ CRO_Value CRO_doWhile(CRO_State* s, int argc, char** argv){
       cond = CRO_innerEval(s, argv[2]);
     } while(cond.type == CRO_Bool && cond.value.integer);
   }
-  else{
-    char* err;
+  else {
+    char *err;
     err = malloc(128 * sizeof(char));
     
     sprintf(err, "(%s): Expected 3 arguements. (%d given)", argv[0], argc);
@@ -738,19 +731,19 @@ CRO_Value CRO_doWhile(CRO_State* s, int argc, char** argv){
   return ret;
 }
 
-CRO_Value CRO_loop(CRO_State* s, int argc, char** argv){
+CRO_Value CRO_loop (CRO_State *s, int argc, char **argv) {
   CRO_Value ret;
   char lastExitContext;
   
   lastExitContext = s->exitContext;
   s->exitContext = CRO_BreakCode;
   
-  while(1){
+  while (1) {
     
     ret = CRO_innerEval(s, argv[1]);
     
-    if(s->exitCode >= s->exitContext){
-      if(s->exitCode == s->exitContext){
+    if (s->exitCode >= s->exitContext) {
+      if (s->exitCode == s->exitContext) {
         s->exitCode = 0;
       }
       break;
@@ -764,12 +757,12 @@ CRO_Value CRO_loop(CRO_State* s, int argc, char** argv){
   return ret;
 }
 
-CRO_Value CRO_break(CRO_State* s, int argc, CRO_Value* argv){
+CRO_Value CRO_break (CRO_State *s, int argc, CRO_Value *argv) {
   CRO_Value v;
-  if(argc == 1){
+  if (argc == 1) {
     v = argv[1];
   }
-  else{
+  else {
     CRO_toNone(v);
   }
   
@@ -778,12 +771,12 @@ CRO_Value CRO_break(CRO_State* s, int argc, CRO_Value* argv){
   return v;
 }
 
-CRO_Value CRO_return(CRO_State* s, int argc, CRO_Value* argv){
+CRO_Value CRO_return (CRO_State *s, int argc, CRO_Value *argv) {
   CRO_Value v;
-  if(argc == 1){
+  if (argc == 1) {
     v = argv[1];
   }
-  else{
+  else {
     CRO_toNone(v);
   }
   
@@ -792,12 +785,12 @@ CRO_Value CRO_return(CRO_State* s, int argc, CRO_Value* argv){
   return v;
 }
 
-CRO_Value CRO_exit(CRO_State* s, int argc, CRO_Value* argv){
+CRO_Value CRO_exit (CRO_State *s, int argc, CRO_Value *argv) {
   CRO_Value v;
-  if(argc == 1){
+  if (argc == 1) {
     v = argv[1];
   }
-  else{
+  else {
     CRO_toNone(v);
   }
   

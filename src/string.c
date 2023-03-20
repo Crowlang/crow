@@ -6,71 +6,64 @@
 #include <crow/core.h>
 #include <crow/string.h>
 
-CRO_Value CRO_string(CRO_State* s, int argc, CRO_Value* argv){
+CRO_Value CRO_string (CRO_State *s, int argc, CRO_Value *argv) {
   CRO_Value v;
-  int x;
-  char* stringValue;
-  int stringSize;
-  int strptr;
-  
+  int x, stringSize, strptr;
+  char *stringValue;
   
   stringValue = malloc(CRO_BUFFER_SIZE * sizeof(char));
   stringSize = CRO_BUFFER_SIZE;
   strptr = 0;
   
-  
-
-  for(x = 1; x <= argc; x++){
+  for (x = 1; x <= argc; x++) {
     int y;
-    char* innerBuffer;
+    char *innerBuffer;
     
     v = argv[x];
     
-      
-      
-    if(v.type == CRO_Number){
+    if (v.type == CRO_Number) {
       innerBuffer = malloc(CRO_BUFFER_SIZE * sizeof(char));
       sprintf(innerBuffer, "%.15g", v.value.number);
     }
-    else if(v.type == CRO_Function){
+    else if (v.type == CRO_Function) {
       innerBuffer = "Function";
     }
-    else if(v.type == CRO_String){
+    else if (v.type == CRO_String) {
       innerBuffer = v.value.string;
     }
-    else if(v.type == CRO_Undefined){
+    else if (v.type == CRO_Undefined) {
       innerBuffer = "Undefined";
     }
-    else if(v.type == CRO_Array){
+    else if (v.type == CRO_Array) {
       innerBuffer = "Array []";
       /* TODO: Make this print contents of array */
     }
-    else if(v.type == CRO_Struct){
+    else if (v.type == CRO_Struct) {
       innerBuffer = "Struct {}";
     }
-    else if(v.type == CRO_Bool){
-      if(v.value.integer){
+    else if (v.type == CRO_Bool) {
+      if (v.value.integer) {
         innerBuffer = "true";
       }
-      else{
+      else {
         innerBuffer = "false";
       }
     }
-    else{
+    else {
       innerBuffer = "";
     }
     
-    for(y = 0; innerBuffer[y] != 0; y++){
+    for (y = 0; innerBuffer[y] != 0; y++) {
       stringValue[strptr] = innerBuffer[y];
       strptr++;
       
-      if(strptr >= stringSize){
+      if (strptr >= stringSize) {
         stringSize *= 2;
         stringValue = realloc(stringValue, stringSize * sizeof(char));
       }
     }
     
-    if(v.type == CRO_Number){
+    if (v.type == CRO_Number) {
       free(innerBuffer);
     }
   }
@@ -80,12 +73,12 @@ CRO_Value CRO_string(CRO_State* s, int argc, CRO_Value* argv){
 }
 
 /* TODO: Implement str-insert */
-CRO_Value CRO_strInsert(CRO_State* s, int argc, CRO_Value* argv){
+CRO_Value CRO_strInsert (CRO_State *s, int argc, CRO_Value *argv) {
   CRO_Value ret;
   
-  if(argc == 3){
+  if (argc == 3) {
     CRO_Value str, insert, index;
-    char* newString;
+    char *newString;
     int nsSize, nsPtr;
     
     str = argv[1];
@@ -101,33 +94,33 @@ CRO_Value CRO_strInsert(CRO_State* s, int argc, CRO_Value* argv){
        * stop at the index for inserting the new string*/
       {
         int i, j;
-        unsigned char* string;
+        unsigned char *string;
         
         string = (unsigned char*)str.value.string;
         
         i = 0;
         j = 0;
         
-        for(;string[j] != 0 && i != index.value.number; i++){
+        for (;string[j] != 0 && i != index.value.number; i++) {
           int k;
           
-          if(string[j] >= 240){
+          if (string[j] >= 240) {
             k = 4;
           }
-          else if(string[j] >= 224){
+          else if (string[j] >= 224) {
             k = 3;
           }
-          else if(string[j] >= 192){
+          else if (string[j] >= 192) {
             k = 2;
           }
-          else{
+          else {
             k = 1;
           }
           
-          for(; k > 0; k--, j++){
+          for (; k > 0; k--, j++) {
             newString[nsPtr++] = string[j];
             
-            if(nsPtr >= nsSize){
+            if (nsPtr >= nsSize) {
               nsSize *= 2;
               newString = (char*)realloc(newString, nsSize * sizeof(char));
             }
@@ -137,10 +130,10 @@ CRO_Value CRO_strInsert(CRO_State* s, int argc, CRO_Value* argv){
         
         /* Now copy the inserted string into the new string */
         string = (unsigned char*)insert.value.string;
-        for(i = 0; string[i] != 0; i++){
+        for (i = 0; string[i] != 0; i++) {
           newString[nsPtr++] = string[i];
           
-          if(nsPtr >= nsSize){
+          if (nsPtr >= nsSize) {
             nsSize *= 2;
             newString = (char*)realloc(newString, nsSize * sizeof(char));
           }
@@ -148,10 +141,10 @@ CRO_Value CRO_strInsert(CRO_State* s, int argc, CRO_Value* argv){
         
         /* Now copy the rest of the string */
         string = (unsigned char*)str.value.string;
-        for(; string[j] != 0; j++){
+        for (; string[j] != 0; j++) {
           newString[nsPtr++] = string[j];
           
-          if(nsPtr >= nsSize){
+          if (nsPtr >= nsSize) {
             nsSize *= 2;
             newString = (char*)realloc(newString, nsSize * sizeof(char));
           }
@@ -174,7 +167,7 @@ CRO_Value CRO_strInsert(CRO_State* s, int argc, CRO_Value* argv){
     
     CRO_toString(s, ret, newString);
   }
-  else{
+  else {
     CRO_toNone(ret);
     /* Error */
   }
@@ -182,19 +175,19 @@ CRO_Value CRO_strInsert(CRO_State* s, int argc, CRO_Value* argv){
   return ret;
 }
 
-CRO_Value CRO_charAt(CRO_State* s, int argc, CRO_Value* argv){
+CRO_Value CRO_charAt (CRO_State *s, int argc, CRO_Value *argv) {
   CRO_Value v, str, pos;
-  if(argc == 2){
+  if (argc == 2) {
     int index;
-    char* characterAt;
+    char *characterAt;
     
     str = argv[1];
     pos = argv[2];
     
-    if(str.type != CRO_String){
+    if (str.type != CRO_String) {
       /* Error */
     }
-    else if(pos.type != CRO_Number){
+    else if (pos.type != CRO_Number) {
       /* Error */
     }
     
@@ -204,41 +197,41 @@ CRO_Value CRO_charAt(CRO_State* s, int argc, CRO_Value* argv){
       /* Go through the string and make sure to account for UTF8 characters */
       {
         int i, j, size;
-        unsigned char* string;
+        unsigned char *string;
         
         string = (unsigned char*)str.value.string;
         
         j = 0;
         
-        for(i = 0;string[j] != 0 && i != index; i++){
-          if(string[j] >= 240){
+        for (i = 0;string[j] != 0 && i != index; i++) {
+          if (string[j] >= 240) {
             j += 4;
           }
-          else if(string[j] >= 224){
+          else if (string[j] >= 224) {
             j += 3;
           }
-          else if(string[j] >= 192){
+          else if (string[j] >= 192) {
             j += 2;
           }
-          else{
+          else {
             j += 1;
           }
         }
         
-        if(string[j] >= 240){
+        if (string[j] >= 240) {
           size = 4;
         }
-        else if(string[j] >= 224){
+        else if (string[j] >= 224) {
           size = 3;
         }
-        else if(string[j] >= 192){
+        else if (string[j] >= 192) {
           size = 2;
         }
-        else if(string[j] == 0){
+        else if (string[j] == 0) {
           CRO_toNone(v);
           return v;
         }
-        else{
+        else {
           size = 1;
         }
 
@@ -264,28 +257,28 @@ CRO_Value CRO_charAt(CRO_State* s, int argc, CRO_Value* argv){
     
     CRO_toString(s, v, characterAt);
   }
-  else{
+  else {
     CRO_toNone(v);
   }
 
   return v;
 }
 
-CRO_Value CRO_substr(CRO_State* s, int argc, CRO_Value* argv){
+CRO_Value CRO_substr (CRO_State *s, int argc, CRO_Value *argv) {
   CRO_Value ret;
   
-  if(argc == 3){
+  if (argc == 3) {
     CRO_Value str, start, end;
     int i, j, startIndex, endIndex, nsSize, nsPtr;
-    char* newString;
-    unsigned char* string;
+    char *newString;
+    unsigned char *string;
     
     str = argv[1];
     start = argv[2];
     end = argv[3];
     
-    if(str.type != CRO_String){
-      char* err;
+    if (str.type != CRO_String) {
+      char *err;
       err = malloc(128 * sizeof(char));
       
       sprintf(err, "[%s] Argument 1 is not a string", argv[0].value.string);
@@ -293,8 +286,8 @@ CRO_Value CRO_substr(CRO_State* s, int argc, CRO_Value* argv){
 
       return ret;
     }
-    else if(start.type != CRO_Number){
-      char* err;
+    else if (start.type != CRO_Number) {
+      char *err;
       err = malloc(128 * sizeof(char));
       
       sprintf(err, "[%s] Argument 2 is not a number", argv[0].value.string);
@@ -302,8 +295,8 @@ CRO_Value CRO_substr(CRO_State* s, int argc, CRO_Value* argv){
       
       return ret;
     }
-    else if(end.type != CRO_Number){
-      char* err;
+    else if (end.type != CRO_Number) {
+      char *err;
       err = malloc(128 * sizeof(char));
       
       sprintf(err, "[%s] Argument 3 is not a number", argv[0].value.string);
@@ -322,40 +315,40 @@ CRO_Value CRO_substr(CRO_State* s, int argc, CRO_Value* argv){
     
     j = 0;
     
-    for(i = 0; string[j] != 0 && i != startIndex; i++){
-      if(string[j] >= 240){
+    for (i = 0; string[j] != 0 && i != startIndex; i++) {
+      if (string[j] >= 240) {
         j += 4;
       }
-      else if(string[j] >= 224){
+      else if (string[j] >= 224) {
         j += 3;
       }
-      else if(string[j] >= 192){
+      else if (string[j] >= 192) {
         j += 2;
       }
-      else{
+      else {
         j += 1;
       }
     }
     
-    for(;string[j] != 0 && i != endIndex; i++){
+    for (;string[j] != 0 && i != endIndex; i++) {
       int k;
-      if(string[j] >= 240){
+      if (string[j] >= 240) {
         k = 4;
       }
-      else if(string[j] >= 224){
+      else if (string[j] >= 224) {
         k = 3;
       }
-      else if(string[j] >= 192){
+      else if (string[j] >= 192) {
         k = 2;
       }
-      else{
+      else {
         k = 1;
       }
       
-      for(; k > 0; k--, j++){
+      for (; k > 0; k--, j++) {
         newString[nsPtr++] = string[j];
         
-        if(nsPtr >= nsSize){
+        if (nsPtr >= nsSize) {
           nsSize *= 2;
           newString = (char*)realloc(newString, nsSize * sizeof(char));
         }
@@ -367,8 +360,8 @@ CRO_Value CRO_substr(CRO_State* s, int argc, CRO_Value* argv){
     
     return ret;
   }
-  else{
-    char* err;
+  else {
+    char *err;
     err = malloc(128 * sizeof(char));
     
     sprintf(err, "[%s] Expected 3 arguements, %d given", argv[0].value.string, argc);
@@ -378,20 +371,19 @@ CRO_Value CRO_substr(CRO_State* s, int argc, CRO_Value* argv){
   }
 }
 
-CRO_Value CRO_split(CRO_State* s, int argc, CRO_Value* argv){
+CRO_Value CRO_split (CRO_State *s, int argc, CRO_Value *argv) {
   CRO_Value ret;
   
-  if(argc == 2){
-    CRO_Value string;
-    CRO_Value delim;
+  if (argc == 2) {
+    CRO_Value string, delim;
     
     string = argv[1];
     delim = argv[2];
     
-    if(string.type == CRO_String){
-      if(delim.type == CRO_String){
-        CRO_Value* array;
-        char* stringBuffer;
+    if (string.type == CRO_String) {
+      if (delim.type == CRO_String) {
+        CRO_Value *array;
+        char *stringBuffer;
         size_t stringLen, delimLen, ptr;
         int arrayPtr, sbPtr, arraySize, stringSize;
         
@@ -412,21 +404,21 @@ CRO_Value CRO_split(CRO_State* s, int argc, CRO_Value* argv){
         ret.value.array = array;
         
         /* Iterate over the string */
-        for(ptr = 0; ptr < stringLen; ptr++){
+        for (ptr = 0; ptr < stringLen; ptr++) {
           /* Have we found the deliminator? */
-          if(strncmp(&string.value.string[ptr], delim.value.string, delimLen) == 0){
+          if (strncmp(&string.value.string[ptr], delim.value.string, delimLen) == 0) {
             CRO_Value addString;
             
             /* If the delim length is 0, we are matching EVERY char, so we need
              * to add it to the buffer or else we will just have an array of
              * blank strings, however blank strings ARE allowed in the results,
              * so this is a specific event that needs to be accounted for */
-            if(delimLen == 0){
+            if (delimLen == 0) {
               stringBuffer[sbPtr++] = string.value.string[ptr];
             }
             /* If the delim length isnt 0, we need to add that to ptr so we pass
              * over the entire match */
-            else{
+            else {
               ptr += delimLen - 1;
             }
             
@@ -439,7 +431,7 @@ CRO_Value CRO_split(CRO_State* s, int argc, CRO_Value* argv){
             array[arrayPtr++] = addString;
             
             /* Increase the array size if we need to */
-            if(arrayPtr >= arraySize){
+            if (arrayPtr >= arraySize) {
               arraySize *= 2;
               array = (CRO_Value*)realloc(array, arraySize * sizeof(CRO_Value));
             }
@@ -449,9 +441,9 @@ CRO_Value CRO_split(CRO_State* s, int argc, CRO_Value* argv){
             stringBuffer = (char*)malloc(stringSize * sizeof(char));
           }
           /* If we dont match the delim, we just are adding to the buffer */
-          else{
+          else {
             stringBuffer[sbPtr++] = string.value.string[ptr];
-            if(sbPtr >= stringSize){
+            if (sbPtr >= stringSize) {
               stringSize *= 2;
               stringBuffer = (char*)realloc(stringBuffer, stringSize * sizeof(char));
             }
@@ -461,13 +453,13 @@ CRO_Value CRO_split(CRO_State* s, int argc, CRO_Value* argv){
         
         /* Again with edge cases, we need to make sure we DON'T process extra 
          * data if we have a delim with length 0 */
-        if(delimLen != 0){
+        if (delimLen != 0) {
           CRO_Value addString;
           stringBuffer[sbPtr] = 0;
           CRO_toString(s, addString, stringBuffer);
           
           array[arrayPtr++] = addString;
-          if(arrayPtr >= arraySize){
+          if (arrayPtr >= arraySize) {
             arraySize *= 2;
             array = (CRO_Value*)realloc(array, arraySize * sizeof(CRO_Value));
           }
@@ -478,8 +470,8 @@ CRO_Value CRO_split(CRO_State* s, int argc, CRO_Value* argv){
         ret.arraySize = arrayPtr;
         return ret;
       }
-      else{
-        char* err;
+      else {
+        char *err;
         err = malloc(128 * sizeof(char));
         
         sprintf(err, "[%s] Argument 2 is not a string", argv[0].value.string);
@@ -488,8 +480,8 @@ CRO_Value CRO_split(CRO_State* s, int argc, CRO_Value* argv){
         return ret;
       }
     }
-    else{
-      char* err;
+    else {
+      char *err;
       err = malloc(128 * sizeof(char));
       
       sprintf(err, "[%s] Argument 1 is not a string", argv[0].value.string);
@@ -498,8 +490,8 @@ CRO_Value CRO_split(CRO_State* s, int argc, CRO_Value* argv){
       return ret;
     }
   }
-  else{
-    char* err;
+  else {
+    char *err;
     err = malloc(128 * sizeof(char));
     
     sprintf(err, "[%s] Expected 2 arguements. (%d given)", argv[0].value.string, argc);
@@ -509,30 +501,30 @@ CRO_Value CRO_split(CRO_State* s, int argc, CRO_Value* argv){
   }
 }
 
-CRO_Value CRO_startsWith(CRO_State* s, int argc, CRO_Value* argv){
+CRO_Value CRO_startsWith (CRO_State *s, int argc, CRO_Value *argv) {
   CRO_Value ret;
   
-  if(argc == 2){
+  if (argc == 2) {
     CRO_Value str, start;
     str = argv[1];
     start = argv[2];
     
-    if(str.type == CRO_String){
-      if(start.type == CRO_String){
+    if (str.type == CRO_String) {
+      if (start.type == CRO_String) {
         size_t len;
         
         len = strlen(start.value.string);
         
-        if(strncmp(str.value.string, start.value.string, len) == 0){
+        if (strncmp(str.value.string, start.value.string, len) == 0) {
           CRO_toBoolean(ret, 1);
         }
-        else{
+        else {
           CRO_toBoolean(ret, 0);
         }
         return ret;
       }
-      else{
-        char* err;
+      else {
+        char *err;
         err = malloc(128 * sizeof(char));
       
         sprintf(err, "[%s] Argument 2 is not a String", argv[0].value.string);
@@ -541,8 +533,8 @@ CRO_Value CRO_startsWith(CRO_State* s, int argc, CRO_Value* argv){
         return ret;
       }
     }
-    else{
-      char* err;
+    else {
+      char *err;
       err = malloc(128 * sizeof(char));
       
       sprintf(err, "[%s] Argument 1 is not a String", argv[0].value.string);
@@ -551,8 +543,8 @@ CRO_Value CRO_startsWith(CRO_State* s, int argc, CRO_Value* argv){
       return ret;
     }
   }
-  else{
-    char* err;
+  else {
+    char *err;
     err = malloc(128 * sizeof(char));
     
     sprintf(err, "[%s] Expected 2 arguements. (%d given)", argv[0].value.string, argc);

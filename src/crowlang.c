@@ -23,7 +23,7 @@
     return strndup(str, len);
 }*/
 
-/*CRO_Value CRO_error(const char* msg){
+/*CRO_Value CRO_error (const char *msg) {
   CRO_setColor(RED);
   printf("ERROR: %s\n", msg);
   CRO_setColor(RESET);
@@ -33,23 +33,23 @@
 /* We have to put all of these so we can free them from the handler.  Please
  * tell me if there is a more elegant way to do this */
 static CRO_State *s;
-static char* input;
-static FILE* srcfile;
+static char *input;
+static FILE *srcfile;
 
 static int execType = 0;
 
-static void handler(int sig){
-  if(execType == 1){
+static void handler (int sig) {
+  if (execType == 1) {
     fclose(srcfile);
   }
-  else if(execType == 2){
+  else if (execType == 2) {
     free(input);
   }
   CRO_freeState(s);
   exit(0);
 }
 
-int main(int argc, char* argv[]){
+int main (int argc, char *argv[]) {
     CRO_initColor();
   signal(SIGINT, handler);
 
@@ -57,18 +57,18 @@ int main(int argc, char* argv[]){
 
   CRO_exposeStandardFunctions(s);
 
-  if(argc >= 1){
+  if (argc >= 1) {
     /* TODO: Manually expose arguements here */
   }
 
   /* We probably shouldnt be executing this, but in the off chance that
    * we are, we return the error and exit */
-  if(s->exitCode >= CRO_ExitCode){
+  if (s->exitCode >= CRO_ExitCode) {
     CRO_printError();
     exit(1);
   }
 
-  if(argc > 1){
+  if (argc > 1) {
     CRO_Value v;
 
     execType = 1;
@@ -76,7 +76,7 @@ int main(int argc, char* argv[]){
 
     v = CRO_evalFile(s, srcfile);
 
-    if(s->exitCode >= CRO_ExitCode){
+    if (s->exitCode >= CRO_ExitCode) {
       CRO_printError();
       exit(1);
     }
@@ -84,15 +84,15 @@ int main(int argc, char* argv[]){
     fclose(srcfile);
     CRO_freeState(s);
 
-    if(v.type == CRO_Number){
+    if (v.type == CRO_Number) {
       return (int)v.value.number;
     }
-    else{
+    else {
       return 0;
     }
   }
-  else{
-    FILE* src;
+  else {
+    FILE *src;
     CRO_Value v;
     int c, paren, state, lsp, ptr, size, com, le, sc;
 
@@ -121,20 +121,20 @@ int main(int argc, char* argv[]){
     c = fgetc(src);
 
     /* Run for as long as we aren't hitting EOF, in this case a CTRL+D */
-    while(running && c != EOF){
+    while (running && c != EOF) {
 
-      if(com != 2 && c == ';'){
+      if (com != 2 && c == ';') {
         com++;
       }
-      else if(com == 1){
+      else if (com == 1) {
         com = 0;
       }
 
       /* We are, so deal with that accordingly */
-      if(com == 2){
+      if (com == 2) {
         /* Read until the new line, thats how we figure out if we are out
          * of the comment or not */
-        if(c == '\n'){
+        if (c == '\n') {
           com = 0;
 
           /* There should be one paren still in here */
@@ -142,7 +142,7 @@ int main(int argc, char* argv[]){
 
           /* If the ptr is 0, then we are back to the beginning of the line, so
            * show the PS1 */
-          if(ptr == 0){
+          if (ptr == 0) {
             printf("%% ");
             fflush(stdout);
           }
@@ -160,40 +160,40 @@ int main(int argc, char* argv[]){
        * execution anyway */
 
        /* Also make sure we don't trim strings */
-      if(state != CC_EXEC && state != CC_STRING && c <= 32){
-        if(lsp){
+      if (state != CC_EXEC && state != CC_STRING && c <= 32) {
+        if (lsp) {
           c = fgetc(src);
           continue;
         }
-        else{
+        else {
           c = ' ';
           lsp = 1;
         }
       }
-      else{
+      else {
         lsp = 0;
       }
 
-      switch(state){
+      switch (state) {
 
         /* We currently aren't processing anything yet */
         case CC_NONE: {
 
           /* TODO: Eventually make a CC_STRING to make sure strings are properly
            * closed */
-          if(c <= 32){
+          if (c <= 32) {
             c = fgetc(src);
             continue;
           }
-          else if(c == '('){
+          else if (c == '(') {
             paren = 1;
             state = CC_STATEMENT;
           }
-          else if(c == '\"' || c == '\''){
+          else if (c == '\"' || c == '\'') {
             state = CC_STRING;
             sc = c;
           }
-          else{
+          else {
             state = CC_VARIABLE;
           }
         }
@@ -202,21 +202,21 @@ int main(int argc, char* argv[]){
         /* We are processing a function call */
         case CC_STATEMENT: {
           /* Keep track of how many parenthesis deep we are */
-          if(c == '('){
+          if (c == '(') {
             paren += 1;
           }
-          else if(c == ')'){
+          else if (c == ')') {
             paren -= 1;
 
             /* If we reached zero, we know we can start executing */
-            if(paren == 0){
+            if (paren == 0) {
               state = CC_EXEC;
             }
           }
           /* We encountered a new line in the statement, which means the user is
            * probably inserting a new line into their statement, which means we
            * should indicate to them the program is not hung */
-          else if(c == '\n'){
+          else if (c == '\n') {
             printf("> ");
             fflush(stdout);
           }
@@ -228,7 +228,7 @@ int main(int argc, char* argv[]){
           /* If we are reading a value statement and we see a (, we know we
            * are now reading a function call.  Likewise if we see a space we
            * know we reached the end of the statement */
-          if(c == '(' || c <= 32){
+          if (c == '(' || c <= 32) {
             state = CC_EXEC;
             continue;
           }
@@ -238,23 +238,23 @@ int main(int argc, char* argv[]){
         case CC_STRING: {
           /* If we see a \, and our last character was not an escape, then this
            * one is. */
-          if(le == 0 && c == '\\'){
+          if (le == 0 && c == '\\') {
             le = 1;
           }
           /* If we had an escape last character, it means the escape is now over
            * since we have no support for the longer escapes */
-          else if(le == 1){
+          else if (le == 1) {
             le = 0;
           }
           /* If we don't have an escape, but we do have either a ' or ", which
            * ever started the string, then we are at the end of the string and
            * are safe to start executing */
-          else if(le == 0 && c == sc){
+          else if (le == 0 && c == sc) {
             state = CC_EXEC;
           }
           /* If we have a new line, it will print that way in the console, so
            * we make sure to visually indicate that */
-          else if(c == '\n'){
+          else if (c == '\n') {
             printf("> ");
             fflush(stdout);
           }
@@ -271,11 +271,11 @@ int main(int argc, char* argv[]){
 
 
           /* Check our exit code */
-          if(s->exitCode == CRO_ExitCode){
+          if (s->exitCode == CRO_ExitCode) {
             c = EOF;
             continue;
           }
-          else if(s->exitCode == CRO_ErrorCode){
+          else if (s->exitCode == CRO_ErrorCode) {
             CRO_printError();
             s->exitCode = CRO_None;
           }
@@ -299,7 +299,7 @@ int main(int argc, char* argv[]){
        * we don't intend on doing this, call 'continue' rather than 'break' */
       input[ptr++] = (char)c;
 
-      if(ptr >= size){
+      if (ptr >= size) {
         size *= 2;
         input = realloc(input, size * sizeof(char));
       }
@@ -311,10 +311,10 @@ int main(int argc, char* argv[]){
     free(input);
     CRO_freeState(s);
 
-    if(v.type == CRO_Number){
+    if (v.type == CRO_Number) {
       return (int)v.value.number;
     }
-    else{
+    else {
       return 0;
     }
   }

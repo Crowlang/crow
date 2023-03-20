@@ -55,7 +55,7 @@ typedef struct CRO_State {
   CRO_FD *fileDescriptors;
   int fdptr;
   int fdsize;
-  
+
   void **libraries;
   int libptr;
   int libsize;
@@ -80,7 +80,7 @@ typedef unsigned int CRO_TypeDescriptor;
 
 typedef struct {
   CRO_TypeDescriptor type;
-  
+
 } CRO_TypeInformation;
 
 #define CRO_Undefined         3063370097
@@ -114,9 +114,9 @@ typedef struct {
 #endif
 
 #ifdef CROW_PLATFORM_WIN32
-    #include <windows.h>
-    HANDLE hConsole;
-    WORD saved_attributes;
+  #include <windows.h>
+  extern HANDLE hConsole;
+  extern WORD saved_attributes;
 #endif
 
 #ifdef _CROWLANG_USE_COLOR
@@ -137,7 +137,7 @@ typedef struct {
 
     #define CRO_setColor(x) printf("\033[%sm", x)
     #define CRO_initColor() ;;
-  #elif CROW_PLATFORM_WIN32
+  #elif defined(CROW_PLATFORM_WIN32)
     #define RESET saved_attributes
     #define BLACK "30"
     #define RED FOREGROUND_RED
@@ -215,7 +215,7 @@ typedef union  {
   struct CRO_Value *array;
   CRO_C_Function *function;
   CRO_C_PrimitiveFunction *primitiveFunction;
-  
+
   void *pointer;
 } CRO_InnerValue;
 #else
@@ -226,7 +226,7 @@ typedef struct  {
   struct CRO_Value *array;
   CRO_C_Function *function;
   CRO_C_PrimitiveFunction *primitiveFunction;
-  
+
   void *pointer;
 } CRO_InnerValue;
 #endif

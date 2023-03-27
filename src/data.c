@@ -87,6 +87,8 @@ CRO_Value set (CRO_State *s, int argc, char **argv) {
           }
         }
       }
+      
+      scope = scope->depends;
     } while (scope != NULL);
     /*CRO_error("Could not find variable");*/
     CRO_toNone(vn);

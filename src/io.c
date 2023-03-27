@@ -25,9 +25,16 @@ CRO_Value CRO_import (CRO_State *s, int argc, CRO_Value *argv) {
     file = argv[1];
     
     if (file.type == CRO_String) {
+      CRO_Closure *lastScope;
       importFile = fopen(file.value.string, "r");
-      
+
+      /* Set the scope for the imported file as the global scope */
+      lastScope = s->scope;
+
+      s->scope = CRO_globalScope(s);
       ret = CRO_evalFile(s, importFile);
+
+      s->scope = lastScope;
       return ret;
     }
     else {

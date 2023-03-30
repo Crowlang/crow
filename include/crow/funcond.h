@@ -25,6 +25,8 @@ CRO_Value CRO_while(CRO_State *s, int argc, char **argv);
 CRO_Value CRO_doWhile(CRO_State *s, int argc, char **argv);
 CRO_Value CRO_loop(CRO_State *s, int argc, char **argv);
 
+CRO_Value CRO_doTimes (CRO_State *s, int argc, CRO_Value *argv);
+
 CRO_Value CRO_break(CRO_State *s, int argc, CRO_Value *argv);
 CRO_Value CRO_return(CRO_State *s, int argc, CRO_Value *argv);
 CRO_Value CRO_exit(CRO_State *s, int argc, CRO_Value *argv);

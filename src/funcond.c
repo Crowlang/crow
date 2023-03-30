@@ -768,6 +768,46 @@ CRO_Value CRO_loop (CRO_State *s, int argc, char **argv) {
   return ret;
 }
 
+CRO_Value CRO_doTimes (CRO_State *s, int argc, CRO_Value *argv) {
+  CRO_Value v;
+
+  if (argc == 2) {
+    CRO_Value func, times;
+
+    func = argv[1];
+    times = argv[2];
+
+    if (func.type == CRO_Function || func.type == CRO_LocalFunction) {
+      if (times.type == CRO_Number) {
+        int i, timesToCall;
+
+        timesToCall = times.value.number;
+
+        for (i = 0; i < timesToCall; i++)
+          v = CRO_callFunction(s, func, 0, NULL, 0, func, 0);
+      }
+      else {
+        CRO_toNone(v);
+        /* Error */
+      }
+    }
+    else {
+      CRO_toNone(v);
+      /* TODO: Error */
+    }
+  }
+  else {
+    char *err;
+    err = malloc(128 * sizeof(char));
+
+    sprintf(err, "[%s] Expected 2 arguements. (%d given)", argv[0].value.string, argc);
+    v = CRO_error(s, err);
+    return v;
+  }
+
+  return v;
+}
+
 CRO_Value CRO_break (CRO_State *s, int argc, CRO_Value *argv) {
   CRO_Value v;
   if (argc == 1) {

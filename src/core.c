@@ -292,6 +292,7 @@ void CRO_exposeStandardFunctions (CRO_State *s) {
   CRO_exposePrimitiveFunction(s, "while", CRO_while);
   CRO_exposePrimitiveFunction(s, "do-while", CRO_doWhile);
   CRO_exposePrimitiveFunction(s, "loop", CRO_loop);
+  CRO_exposeFunction(s, "do-times", CRO_doTimes);
   CRO_exposeFunction(s, "break", CRO_break);
   CRO_exposeFunction(s, "return", CRO_return);
   CRO_exposeFunction(s, "exit", CRO_exit);

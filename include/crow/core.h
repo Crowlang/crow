@@ -10,6 +10,7 @@ extern void (*CRO_printValue[64])(CRO_Value);
 
 CRO_State *CRO_createState(void);
 void CRO_exposeStandardFunctions(CRO_State *s);
+void CRO_exposeArguments (CRO_State *s, int argc, char **argv);
 void CRO_freeState(CRO_State *s);
 
 CRO_Closure *CRO_createClosure (CRO_State *s);

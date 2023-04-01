@@ -60,6 +60,50 @@ CRO_TypeDescriptor CRO_exposeGCType (void (*print)(CRO_Value), void (*free)(CRO_
   return PVptr - 1;
 }
 
+void CRO_exposeArguments (CRO_State *s, int argc, char **argv) {
+  int x;
+  CRO_Variable var;
+  CRO_Value array;
+  CRO_Closure *scope;
+
+  array.type = CRO_Array;
+  array.value.array = (CRO_Value*)malloc(argc + 1 * sizeof(CRO_Value));
+  array.arraySize = argc + 1;
+  array.allotok = CRO_malloc(s, array.value.array);
+
+  /* Convert the arguments to CRO_Value */
+  for (x = 0; x <= argc; x++) {
+    CRO_Value arg;
+
+    arg.type = CRO_String;
+    arg.value.string = argv[x];
+    /* DO NOT GIVE THESE AN ALLOTOK, THEY CANNOT BE FREE'D */
+
+    array.value.array[0] = arg;
+  }
+
+  /* Set constant */
+  array.constant = 1;
+
+  var.value = array;
+  var.hash = CRO_genHash("ARGS");
+
+  scope = CRO_globalScope(s);
+
+  /* Add the ARGS variable to the scope */
+  scope->variables[scope->vptr] = var;
+
+  scope->vptr++;
+  if (scope->vptr >= scope->vsize) {
+    scope->vsize *= 2;
+    scope->variables = (CRO_Variable*)realloc(scope->variables, scope->vsize * sizeof(CRO_Variable));
+    #ifdef CROWLANG_ALLOC_DEBUG
+    printf("[Alloc Debug]\t Variables size increased to %d\n", scope->vsize);
+    #endif
+  }
+
+}
+
 /* TODO: Replace with a standard toString function */
 void CRO_printStd (CRO_Value v) {
     if (v.type == CRO_Undefined) {

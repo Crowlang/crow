@@ -548,3 +548,39 @@ CRO_Value CRO_hash (CRO_State *s, int argc, CRO_Value *argv) {
   }
   return ret;
 }
+
+CRO_Value CRO_currentScope (CRO_State *s, int argc, char **argv) {
+  CRO_Value v;
+
+  if (argc == 1) {
+    CRO_Closure *scope;
+    hash_t vhash;
+    int x;
+
+    vhash = CRO_genHash(argv[1]);
+    scope = s->scope;
+
+    /* Go through every variable in ONLY our scope */
+    for (x = scope->vptr - 1; x >= 0; x--) {
+      if (vhash == scope->variables[x].hash) {
+        return scope->variables[x].value;
+      }
+    }
+
+    {
+    char *errorMsg = malloc(64 * sizeof(char));
+    sprintf(errorMsg, "Variable '%s' is not defined in the current scope", argv[1]);
+    v = CRO_error(s, errorMsg);
+    return v;
+    }
+  }
+  else {
+    char *err;
+    err = malloc(128 * sizeof(char));
+
+    sprintf(err, "Expected 1 arguement (%d given)", argc);
+    v = CRO_error(s, err);
+  }
+  
+  return v;
+}

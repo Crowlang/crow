@@ -226,6 +226,7 @@ void CRO_exposeStandardFunctions (CRO_State *s) {
   CRO_exposeFunction(s, "struct-get", CRO_getStruct);
   CRO_exposeFunction(s, "number", CRO_number);
   CRO_exposeFunction(s, "hash", CRO_hash);
+  CRO_exposePrimitiveFunction(s, "current-scope", CRO_currentScope);
 
   /* math.h */
   CRO_exposeFunction(s, "add", CRO_add);

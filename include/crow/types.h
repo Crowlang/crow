@@ -74,6 +74,8 @@ typedef struct CRO_State {
 
 #ifndef CRO_GC_OLD
   #define CRO_callGC(s) if(s->gctime++ >= CRO_GC_TIMER) {CRO_GC(s);s->gctime = 0;}
+#elif defined(CROWLANG_DISABLE_GC)
+  #define CRO_callGC(s)
 #else
   #define CRO_callGC(s) CRO_GC(s);
 #endif

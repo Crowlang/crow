@@ -13,6 +13,7 @@ CFLAGS += -O2
 #CFLAGS += -march=native
 
 # If you use any of these options, expect errors and warnings
+#CFLAGS += -DCROWLANG_DISABLE_GC
 #CFLAGS += -DCROWLANG_GC_DEBUG
 #CFLAGS += -DCROWLANG_ALLOC_DEBUG
 #CFLAGS += -DCROWLANG_SCOPE_DEBUG

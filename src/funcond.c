@@ -111,13 +111,13 @@ CRO_Value CRO_func (CRO_State *s, int argc, char **argv) {
   }
   body[bptr - 1] = 0;
   
-  allotok = CRO_malloc(s, body);
+  allotok = CRO_malloc(s, body, free);
 
   v.type = CRO_LocalFunction;
   v.value.function = NULL;
   v.value.string = body;
   v.allotok = allotok;
-  v.constant = 0;
+  v.flags = CRO_FLAG_NONE;
   v.functionClosure = s->scope;
   return v;
 
@@ -157,13 +157,13 @@ CRO_Value CRO_subroutine (CRO_State *s, int argc, char **argv) {
   }
   body[bptr - 1] = 0;
   
-  allotok = CRO_malloc(s, body);
+  allotok = CRO_malloc(s, body, free);
 
   v.type = CRO_LocalFunction;
   v.value.function = NULL;
   v.value.string = body;
   v.allotok = allotok;
-  v.constant = 0;
+  v.flags = CRO_FLAG_NONE;
   v.functionClosure = s->scope;
 
   return v;

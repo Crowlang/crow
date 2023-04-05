@@ -178,7 +178,7 @@ CRO_Value CRO_getFunction (CRO_State *s, int argc, CRO_Value *argv) {
         
         if (fun != NULL) {
           ret.type = CRO_Function;
-          ret.constant = 0;
+          ret.flags = CRO_FLAG_NONE;
           ret.allotok = 0;
           ret.value.function = fun;
           

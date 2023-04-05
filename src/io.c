@@ -96,8 +96,8 @@ CRO_Value CRO_getln (CRO_State *s, int argc, CRO_Value *argv) {
     line[lptr] = 0;
     ret.type = CRO_String;
     ret.value.string = line;
-    ret.constant = 0;
-    ret.allotok = CRO_malloc(s, line);
+    ret.flags = CRO_FLAG_NONE;
+    ret.allotok = CRO_malloc(s, line, free);
   }
   else {
     free(line);
@@ -110,11 +110,10 @@ CRO_Value CRO_getln (CRO_State *s, int argc, CRO_Value *argv) {
 CRO_Value CRO_open (CRO_State *s, int argc, CRO_Value *argv) {
   CRO_Value file, mode, ret;
   CRO_FD fd;
-  int fdptr;
   char *modeStr;
 
   file = argv[1];
-  ret.constant = 0;
+  ret.flags = CRO_FLAG_NONE;
 
   /* If we have two arguments, we have a mode specifier as well */
   if (argc == 2) {
@@ -142,7 +141,6 @@ CRO_Value CRO_open (CRO_State *s, int argc, CRO_Value *argv) {
       }
     }
     
-    fdptr = s->fdptr;
     s->fileDescriptors[s->fdptr] = fd;
     
     s->fdptr++;
@@ -161,7 +159,8 @@ CRO_Value CRO_open (CRO_State *s, int argc, CRO_Value *argv) {
     }
     
     ret.type = CRO_FileDescriptor;
-    ret.value.integer = fdptr;
+    ret.value.pointer = fd.file;
+    ret.allotok = CRO_malloc(s, fd.file, CRO_freeFile);
     return ret;
   }
   
@@ -186,20 +185,13 @@ CRO_Value CRO_read (CRO_State *s, int argc, CRO_Value *argv) {
       bptr = 0;
       bsize = CRO_BUFFER_SIZE;
       
-      fd = s->fileDescriptors[file.value.integer];
-      
-      if (fd.type == CRO_File) {
-        while ((c = fgetc(fd.file)) != EOF) {
-          body[bptr++] = c;
-          
-          if (bptr >= bsize) {
-            bsize *= 2;
-            body = realloc(body, bsize * sizeof(char));
-          }
+      while ((c = fgetc((FILE*)file.value.pointer)) != EOF) {
+        body[bptr++] = c;
+
+        if (bptr >= bsize) {
+          bsize *= 2;
+          body = realloc(body, bsize * sizeof(char));
         }
-      }
-      else {
-        
       }
       body[bptr] = 0;
       
@@ -313,8 +305,6 @@ CRO_Value CRO_read (CRO_State *s, int argc, CRO_Value *argv) {
 }
 
 CRO_Value CRO_readLine (CRO_State *s, int argc, CRO_Value *argv) {
-
-  CRO_FD file;
   CRO_Value fileValue, ret;
   
   fileValue = argv[1];
@@ -326,39 +316,35 @@ CRO_Value CRO_readLine (CRO_State *s, int argc, CRO_Value *argv) {
     line = (char*)malloc(CRO_BUFFER_SIZE * sizeof(char));
     size = CRO_BUFFER_SIZE;
     lptr = 0;
-    
-    file = s->fileDescriptors[fileValue.value.integer];
-    
-    if (file.type == CRO_File) {
-      while ((c = fgetc(file.file)) != EOF) {
-        /* We got a new line, so we have read the entire line */
-        if (c == '\n') {
-          break;
-        }
-        else {
-          line[lptr++] = (char)c;
-          
-          if (lptr >= size) {
-            size += CRO_BUFFER_SIZE;
-            line = (char*)realloc(line, (size * sizeof(char)));
-          }
-        }
-      }
-      
-      if (lptr > 0 || c != EOF) {
-        line[lptr] = 0;
-        ret.type = CRO_String;
-        ret.value.string = line;
-        ret.constant = 0;
-        ret.allotok = CRO_malloc(s, line);
+
+    while ((c = fgetc((FILE*)fileValue.value.pointer)) != EOF) {
+      /* We got a new line, so we have read the entire line */
+      if (c == '\n') {
+        break;
       }
       else {
-        free(line);
-        CRO_toNone(ret);
+        line[lptr++] = (char)c;
+
+        if (lptr >= size) {
+          size += CRO_BUFFER_SIZE;
+          line = (char*)realloc(line, (size * sizeof(char)));
+        }
       }
-      
-      return ret;
     }
+
+    if (lptr > 0 || c != EOF) {
+      line[lptr] = 0;
+      ret.type = CRO_String;
+      ret.value.string = line;
+      ret.flags = CRO_FLAG_NONE;
+      ret.allotok = CRO_malloc(s, line, free);
+    }
+    else {
+      free(line);
+      CRO_toNone(ret);
+    }
+      
+    return ret;
     
   }
   CRO_toNone(ret);
@@ -366,7 +352,6 @@ CRO_Value CRO_readLine (CRO_State *s, int argc, CRO_Value *argv) {
 }
 
 CRO_Value CRO_write (CRO_State *s, int argc, CRO_Value *argv) {
-  CRO_FD file;
   CRO_Value fileValue;
 
   /* Get our file descirptor */
@@ -376,15 +361,12 @@ CRO_Value CRO_write (CRO_State *s, int argc, CRO_Value *argv) {
   if (fileValue.type == CRO_FileDescriptor) {
     CRO_Value writeValue;
     const char *stringValue;
-    
-    file = s->fileDescriptors[fileValue.value.integer];
+
     writeValue = argv[2];
     stringValue = writeValue.value.string;
-    
-    /* TODO: Make this work for other types of CRO_File */
-    if (file.type == CRO_File) {
-      fwrite(stringValue, 1, strlen(stringValue), file.file);
-    }
+
+    fwrite(stringValue, 1, strlen(stringValue), (FILE*)fileValue.value.pointer);
+
     return writeValue;
   }
   
@@ -474,6 +456,7 @@ CRO_Value CRO_eof (CRO_State *s, int argc, CRO_Value *argv) {
   }
 }
 
+/* FIXME: Remove this and add a (flush) function in its place */
 CRO_Value CRO_close (CRO_State *s, int argc, CRO_Value *argv) {
   CRO_FD file;
   CRO_Value fileValue, r;
@@ -555,7 +538,7 @@ CRO_Value CRO_dir (CRO_State *s, int argc, CRO_Value *argv) {
     ret.type = CRO_Array;
     ret.value.array = array;
     ret.arraySize = arrayPtr;
-    ret.allotok = CRO_malloc(s, array);
+    ret.allotok = CRO_malloc(s, array, free);
     
     closedir(dir);
     return ret;

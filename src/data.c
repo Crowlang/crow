@@ -78,7 +78,7 @@ CRO_Value set (CRO_State *s, int argc, char **argv) {
     do {
       for (x = 0; x < scope->vptr; x++) {
         if (vhash == scope->variables[x].hash) {
-          if (!(scope->variables[x].value.constant)) {
+          if (!(scope->variables[x].value.flags & CRO_FLAG_CONSTANT)) {
             scope->variables[x].value = vn;
             return vn;
           }
@@ -108,7 +108,7 @@ CRO_Value CRO_const (CRO_State *s, int argc, CRO_Value *argv) {
 
   v = argv[1];
 
-  v.constant = 1;
+  v.flags |= CRO_FLAG_CONSTANT;
 
   return v;
 }
@@ -126,13 +126,13 @@ CRO_Value CRO_array (CRO_State *s, int argc, CRO_Value *argv) {
     array[x] = argv[x + 1];
   }
 
-  tok = CRO_malloc(s, (void*)array);
+  tok = CRO_malloc(s, (void*)array, free);
 
   v.type = CRO_Array;
   v.value.array = array;
   v.arraySize = argc;
   v.allotok = tok;
-  v.constant = 0;
+  v.flags = CRO_FLAG_SEARCH;
 
   return v;
 }
@@ -235,13 +235,13 @@ CRO_Value CRO_makeArray (CRO_State *s, int argc, CRO_Value *argv) {
     array[x] = nil;
   }
 
-  tok = CRO_malloc(s, (void*)array);
+  tok = CRO_malloc(s, (void*)array, free);
   
   v.type = CRO_Array;
   v.value.array = array;
   v.arraySize = size;
   v.allotok = tok;
-  v.constant = 0;
+  v.flags = CRO_FLAG_SEARCH;
 
   return v;
 }
@@ -276,13 +276,13 @@ CRO_Value CRO_resizeArray (CRO_State *s, int argc, CRO_Value *argv) {
     
     newArray = memcpy(newArray, array.value.array, cpySize);
     
-    tok = CRO_malloc(s, (void*)newArray);
+    tok = CRO_malloc(s, (void*)newArray, free);
 
     v.type = CRO_Array;
     v.value.array = newArray;
     v.arraySize = sz;
     v.allotok = tok;
-    v.constant = 0;
+    v.flags = CRO_FLAG_SEARCH;
 
     return v;
   }
@@ -326,7 +326,7 @@ CRO_Value CRO_arraySet (CRO_State *s, int argc, CRO_Value *argv) {
   }
 
   /* Make sure we are not trying to overwrite a constant value */
-  if (!(arr.value.array[index].constant)) {
+  if (!(arr.value.array[index].flags & CRO_FLAG_CONSTANT)) {
     arr.value.array[index] = val;
   }
   else {
@@ -418,15 +418,15 @@ CRO_Value CRO_makeStruct (CRO_State *s, int argc, CRO_Value *argv) {
 
   for (x = 0; x < argc; x++) {
     str[x * 2] = argv[x + 1];
-    str[x * 2].constant = 1;
+    str[x * 2].flags = CRO_FLAG_CONSTANT;
   }
 
-  v.allotok = CRO_malloc(s, str);
+  v.allotok = CRO_malloc(s, str, free);
 
   v.type = CRO_Struct;
   v.value.array = str;
   v.arraySize = (argc) * 2;
-  v.constant = 0;
+  v.flags = CRO_FLAG_SEARCH;
 
   return v;
   

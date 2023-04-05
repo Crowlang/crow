@@ -400,9 +400,6 @@ CRO_Value CRO_split (CRO_State *s, int argc, CRO_Value *argv) {
         array = (CRO_Value*)malloc(arraySize * sizeof(CRO_Value));
         stringBuffer = (char*)malloc(stringSize * sizeof(char));
         
-        ret.type = CRO_Array;
-        ret.value.array = array;
-        
         /* Iterate over the string */
         for (ptr = 0; ptr < stringLen; ptr++) {
           /* Have we found the deliminator? */
@@ -415,6 +412,10 @@ CRO_Value CRO_split (CRO_State *s, int argc, CRO_Value *argv) {
              * so this is a specific event that needs to be accounted for */
             if (delimLen == 0) {
               stringBuffer[sbPtr++] = string.value.string[ptr];
+              if(sbPtr >= stringSize){
+                stringSize *= 2;
+                stringBuffer = (char*)realloc(stringBuffer, stringSize * sizeof(char));
+              }
             }
             /* If the delim length isnt 0, we need to add that to ptr so we pass
              * over the entire match */
@@ -466,8 +467,10 @@ CRO_Value CRO_split (CRO_State *s, int argc, CRO_Value *argv) {
         }
         
         ret.type = CRO_Array;
-        ret.allotok = CRO_malloc(s, array);
+        ret.allotok = CRO_malloc(s, array, free);
         ret.arraySize = arrayPtr;
+        ret.type = CRO_Array;
+        ret.value.array = array;
         return ret;
       }
       else {

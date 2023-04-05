@@ -15,7 +15,7 @@ void CRO_freeState(CRO_State *s);
 
 CRO_Closure *CRO_createClosure (CRO_State *s);
 
-void CRO_printStd(CRO_Value v);
+char* CRO_printStd(CRO_Value v);
 
 CRO_Value CRO_callFunction(CRO_State *s, CRO_Value func, int argc, CRO_Value *argv, int isStruct, CRO_Value str, char subroutineCall);
 
@@ -26,8 +26,10 @@ void CRO_exposeVariable(CRO_State *s, const char *name, CRO_Value v);
 
 char *CRO_cloneStr(const char *str);
 
-allotok_t CRO_malloc(CRO_State *s, void *memory);
+allotok_t CRO_malloc(CRO_State *s, void *memory, CRO_FreeData_Function *free);
 void CRO_GC(CRO_State *s);
+
+void CRO_freeFile (void* v);
 
 CRO_Value CRO_error(CRO_State *s, const char *msg);
 void CRO_printError();

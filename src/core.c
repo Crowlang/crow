@@ -45,19 +45,71 @@ void (*CRO_printValue[64])(CRO_Value);
 void (*CRO_freeValue[64])(CRO_Value);
 unsigned int PVptr = 2;
 
-CRO_TypeDescriptor CRO_exposeType (void (*print)(CRO_Value)) {
-  CRO_printValue[PVptr] = print;
-  PVptr += 1;
+static void CRO_exposeTypeInner (CRO_State *s, CRO_Type *toAdd) {
+  CRO_Type *t;
 
-  return PVptr - 1;
+  if (s->datatypes == NULL) {
+    s->datatypes = toAdd;
+  }
+  else {
+    t = s->datatypes;
+    while (t != NULL) {
+      if (toAdd->hash >= t->hash) {
+        if (t->right == NULL) {
+          t->right = toAdd;
+          break;
+        }
+        else {
+          t = t->right;
+        }
+      }
+      else {
+        if (t->left == NULL) {
+          t->left = toAdd;
+          break;
+        }
+        else {
+          t = t->left;
+        }
+      }
+    }
+  }
 }
 
-CRO_TypeDescriptor CRO_exposeGCType (void (*print)(CRO_Value), void (*free)(CRO_Value)) {
-  CRO_printValue[PVptr] = print;
-  CRO_freeValue[PVptr] = free;
-  PVptr += 1;
+void CRO_exposeType (CRO_State *s, CRO_TypeDescriptor type, const char* name, CRO_ToString_Function *print) {
+  CRO_Type *toAdd;
 
-  return PVptr - 1;
+  toAdd = (CRO_Type*) malloc(sizeof(CRO_Type));
+  toAdd->hash = type;
+  toAdd->name = name;
+  toAdd->color = 0;
+
+  toAdd->toString = print;
+  toAdd->free = NULL;
+  toAdd->search = NULL;
+
+  toAdd->left = NULL;
+  toAdd->right = NULL;
+
+  CRO_exposeTypeInner(s, toAdd);
+}
+
+void CRO_exposeGCType (CRO_State *s, CRO_TypeDescriptor type, const char* name, CRO_ToString_Function *print, CRO_FreeData_Function *free, CRO_Search_Function *search){
+  CRO_Type *toAdd;
+
+  toAdd = (CRO_Type*) malloc(sizeof(CRO_Type));
+  toAdd->hash = type;
+  toAdd->name = name;
+  toAdd->color = 0;
+
+  toAdd->toString = print;
+  toAdd->free = free;
+  toAdd->search = search;
+
+  toAdd->left = NULL;
+  toAdd->right = NULL;
+
+  CRO_exposeTypeInner(s, toAdd);
 }
 
 void CRO_exposeArguments (CRO_State *s, int argc, char **argv) {
@@ -69,7 +121,7 @@ void CRO_exposeArguments (CRO_State *s, int argc, char **argv) {
   array.type = CRO_Array;
   array.value.array = (CRO_Value*)malloc(argc + 1 * sizeof(CRO_Value));
   array.arraySize = argc + 1;
-  array.allotok = CRO_malloc(s, array.value.array);
+  array.allotok = CRO_malloc(s, array.value.array, free);
 
   /* Convert the arguments to CRO_Value */
   for (x = 0; x <= argc; x++) {
@@ -83,7 +135,7 @@ void CRO_exposeArguments (CRO_State *s, int argc, char **argv) {
   }
 
   /* Set constant */
-  array.constant = 1;
+  array.flags = CRO_FLAG_CONSTANT | CRO_FLAG_SEARCH;
 
   var.value = array;
   var.hash = CRO_genHash("ARGS");
@@ -104,8 +156,25 @@ void CRO_exposeArguments (CRO_State *s, int argc, char **argv) {
 
 }
 
+static CRO_Type *CRO_getType(CRO_State *s, CRO_TypeDescriptor t) {
+  CRO_Type *r;
+  r = s->datatypes;
+
+  while(1) {
+    if (t == r->hash) {
+      return r;
+    }
+    else if (t > r->hash) {
+      r = r->right;
+    }
+    else {
+      r = r->left;
+    }
+  }
+}
+
 /* TODO: Replace with a standard toString function */
-void CRO_printStd (CRO_Value v) {
+char* CRO_printStd (CRO_Value v) {
     if (v.type == CRO_Undefined) {
       CRO_setColor(YELLOW);
       printf("Undefined\n");
@@ -149,6 +218,32 @@ void CRO_printStd (CRO_Value v) {
     }
 
   CRO_setColor(RESET);
+  return "Working on it!";
+}
+
+unsigned char CRO_searchStd (CRO_State *s, CRO_Value v, allotok_t t) {
+  if (v.type == CRO_Array) {
+    int i;
+    for (i = 0; i < v.arraySize; i++) {
+      if (v.value.array[i].allotok == t) {
+        return 1;
+      }
+      else if (v.value.array[i].flags & CRO_FLAG_SEARCH) {
+        CRO_Type *typ;
+        typ = CRO_getType(s, v.type);
+        return typ->search(s, v.value.array[i], t);
+      }
+    }
+    return 0;
+  }
+  else if (v.type == CRO_Struct) {
+    return 1;
+  }
+  return 0;
+}
+
+void CRO_freeFile (void* v) {
+  fclose((FILE*)v);
 }
 
 CRO_State *CRO_createState (void) {
@@ -212,6 +307,21 @@ CRO_State *CRO_createState (void) {
     CRO_error(s, "Failed to allocate space for fileDescriptors");
     exit(1);
   }
+
+  s->datatypes = NULL;
+
+
+  CRO_exposeType(s, CRO_Undefined, "Undefined", CRO_printStd);
+  CRO_exposeType(s, CRO_Number, "Number", CRO_printStd);
+  CRO_exposeType(s, CRO_Bool, "Bool", CRO_printStd);
+  CRO_exposeType(s, CRO_Function, "Function", CRO_printStd);
+  CRO_exposeGCType(s, CRO_LocalFunction, "Function", CRO_printStd, free, NULL);
+  CRO_exposeType(s, CRO_PrimitiveFunction, "Primitive Function", CRO_printStd);
+  CRO_exposeGCType(s, CRO_Array, "Array", CRO_printStd, free, CRO_searchStd);
+  CRO_exposeGCType(s, CRO_String, "String", CRO_printStd, free, NULL);
+  CRO_exposeGCType(s, CRO_Struct, "Struct", CRO_printStd, free, CRO_searchStd);
+  CRO_exposeGCType(s, CRO_FileDescriptor, "File", CRO_printStd, CRO_freeFile, NULL);
+  CRO_exposeGCType(s, CRO_Library, "Library", CRO_printStd, NULL, NULL);
 
   /* Setup those predefined file descriptors */
   CRO_stdin.type = CRO_File;
@@ -361,8 +471,8 @@ void CRO_exposeStandardFunctions (CRO_State *s) {
   CRO_exposeFunction(s, "get-function", CRO_getFunction);
 
   /* Expose standard variables */
-  CRO_eval(s, "(defvar math-PI (const 3.141592653589793))");
-  CRO_eval(s, "(defvar math-π (const 3.141592653589793))");
+  /*CRO_eval(s, "(defvar math-PI (const 3.141592653589793))");
+  CRO_eval(s, "(defvar math-π (const 3.141592653589793))");*/
 }
 
 void CRO_freeState (CRO_State *s) {
@@ -378,7 +488,7 @@ void CRO_freeState (CRO_State *s) {
   /* Free our allocated memory */
   for (i = 0; i < s->allocptr; i++) {
     if (s->allocations[i].allocated)
-      free(s->allocations[i].memory);
+      s->allocations[i].free(s->allocations[i].memory);
   }
   free(s->allocations);
 
@@ -414,7 +524,7 @@ void CRO_exposeFunction (CRO_State *s, const char *name, CRO_Value (*func)(CRO_S
   /* Create our function value */
   vn.type = CRO_Function;
   vn.value.function = func;
-  vn.constant = 1;
+  vn.flags = CRO_FLAG_CONSTANT;
 
   /* Create the variable to hold it */
   var.hash = CRO_genHash(name);
@@ -444,7 +554,7 @@ void CRO_exposePrimitiveFunction (CRO_State *s, const char *name, CRO_Value (*fu
   /* Create our function value */
   vn.type = CRO_PrimitiveFunction;
   vn.value.primitiveFunction = func;
-  vn.constant = 1;
+  vn.flags = CRO_FLAG_CONSTANT;
 
   /* Create the variable to hold it */
   var.hash = CRO_genHash(name);
@@ -631,7 +741,7 @@ static char CRO_isNumber (char *text) {
   return lastCharReal;
 }
 
-allotok_t CRO_malloc (CRO_State *s, void *memory) {
+allotok_t CRO_malloc (CRO_State *s, void *memory, CRO_FreeData_Function *free) {
   allotok_t memtok;
 
   memtok = (allotok_t)memory;
@@ -650,9 +760,10 @@ allotok_t CRO_malloc (CRO_State *s, void *memory) {
   s->allocations[s->allocptr].memory = memory;
   s->allocations[s->allocptr].allotok = memtok;
   s->allocations[s->allocptr].allocated = 1;
+  s->allocations[s->allocptr].free = free;
 
   #ifdef CROWLANG_GC_DEBUG
-  printf("[GC Debug]\t Allocated %x at %d [%ld]\n", memory, s->allocptr, memtok);
+  printf("[GC Debug]\t Allocated %x [%c] at %d [%ld]\n", memory, ((char*)memory)[0], s->allocptr, memtok);
   #endif
 
   s->allocptr++;
@@ -675,22 +786,11 @@ char *CRO_cloneStr (const char *str) {
   memcpy(ret, str, len);
   ret[len] = 0;
   return ret;
+
 }
 
-static int CRO_GC_Inner (CRO_State *s, CRO_Value arr, allotok_t atok) {
-  int vaptr;
-  for (vaptr = 0; vaptr < arr.arraySize; vaptr++) {
 
-    if (atok == arr.value.array[vaptr].allotok) {
-      return 1;
-    }
-
-    if (arr.value.array[vaptr].type == CRO_Array || arr.value.array[vaptr].type == CRO_Struct) {
-        return CRO_GC_Inner(s, arr.value.array[vaptr], atok);
-    }
-  }
-  return 0;
-}
+#ifndef CROWLANG_DISABLE_GC
 
 void CRO_GC (CRO_State *s) {
   unsigned int aptr, cptr, found;
@@ -761,8 +861,10 @@ void CRO_GC (CRO_State *s) {
             found = 1;
             break;
           }
-          else if (scope->variables[vptr].value.type == CRO_Array || scope->variables[vptr].value.type == CRO_Struct) {
-            found = CRO_GC_Inner(s, scope->variables[vptr].value, s->allocations[aptr].allotok);
+          else if (scope->variables[vptr].value.flags & CRO_FLAG_SEARCH) {
+            CRO_Type *t;
+            t = CRO_getType(s, scope->variables[vptr].value.type);
+            found = t->search(s, scope->variables[vptr].value, s->allocations[aptr].allotok);
           }
         }
       }
@@ -782,7 +884,12 @@ void CRO_GC (CRO_State *s) {
           s->allocations[s->allocptr - 1] = s->allocations[aptr];
           s->allocations[aptr] = tmp;
 
-          free(s->allocations[s->allocptr - 1].memory);
+          /* Free the memory how it wants to be free'd */
+          if (s->allocations[s->allocptr - 1].free == NULL) {
+            printf("Error: Free function not given to allocation so we are falling back to standard free\n");
+            free(s->allocations[s->allocptr - 1].memory);
+          }
+          s->allocations[s->allocptr - 1].free(s->allocations[s->allocptr - 1].memory);
         }
 
         s->allocptr--;
@@ -797,46 +904,10 @@ void CRO_GC (CRO_State *s) {
   }
 
   #ifdef CROWLANG_GC_DEBUG
-  printf("[GC Debug] GC Finished, running FDGC\n");
+  printf("[GC Debug] GC Finished\n");
   #endif
-
-  /* Look for open file descriptors */
-  for (aptr = 3; aptr < s->fdptr; aptr++) {
-    if (s->fileDescriptors[aptr].type != CRO_None) {
-      int found;
-      found = 0;
-
-      /* FIXME: Remove this in favor of custom free commands for FileDescriptor type */
-      /*for (vptr = 0; vptr < s->vptr; vptr++) {
-        if (s->variables[vptr].value.type == CRO_FileDescriptor && aptr == s->variables[vptr].value.value.integer) {
-
-          found = 1;
-          break;
-        }
-        else if (s->variables[vptr].value.type == CRO_Array || s->variables[vptr].value.type == CRO_Struct) {
-          CRO_Value arr = s->variables[vptr].value;
-          int vaptr;
-
-          for (vaptr = 0; vaptr < arr.arraySize; vaptr++) {
-            if (s->variables[vptr].value.type == CRO_FileDescriptor && aptr == s->variables[vptr].value.value.integer) {
-              found = 1;
-              break;
-            }
-          }
-        }
-      }*/
-      found = 1;
-      if (!found) {
-        #ifdef CROWLANG_GC_DEBUG
-        printf("Closing file descriptor %d\n", aptr);
-        #endif
-
-        fclose(s->fileDescriptors[aptr].file);
-        s->fileDescriptors[aptr].type = CRO_None;
-      }
-    }
-  }
 }
+#endif
 
 CRO_Value CRO_innerEval(CRO_State *s, char *src);
 
@@ -940,7 +1011,7 @@ CRO_Value CRO_callFunction (CRO_State *s, CRO_Value func, int argc, CRO_Value *a
     x++;
 
     argsconstV.type = CRO_Array;
-    argsconstV.constant = 1;
+    argsconstV.flags = CRO_FLAG_CONSTANT | CRO_FLAG_SEARCH;
     argsconstV.value.array = &argv[1];
     argsconstV.arraySize = argc;
 
@@ -1193,7 +1264,7 @@ CRO_Value CRO_innerEval(CRO_State *s, char *src) {
     }
     str[strptr] = 0;
 
-    tok = CRO_malloc(s, (void*)str);
+    tok = CRO_malloc(s, (void*)str, free);
     v.type = CRO_String;
     v.value.string = str;
 
@@ -1202,7 +1273,7 @@ CRO_Value CRO_innerEval(CRO_State *s, char *src) {
     #endif
 
     v.allotok = tok;
-    v.constant = 0;
+    v.flags = CRO_FLAG_NONE;
 
     return v;
   }

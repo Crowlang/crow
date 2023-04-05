@@ -285,7 +285,7 @@ int main (int argc, char *argv[]) {
           ptr = 0;
           lsp = 1;
 
-#ifndef CROW_DISABLE_GC
+#ifndef CROWLANG_DISABLE_GC
           CRO_GC(s);
 #endif
 

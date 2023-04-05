@@ -23,12 +23,34 @@
 
 typedef unsigned long hash_t;
 
-struct CRO_value;
+struct CRO_Value;
+struct CRO_State;
 
 typedef unsigned long allotok_t;
 
+typedef hash_t CRO_TypeDescriptor;
+
+typedef char* (CRO_ToString_Function)(struct CRO_Value v);
+typedef void (CRO_FreeData_Function)(void*);
+typedef unsigned char (CRO_Search_Function)(struct CRO_State* s, struct CRO_Value v, allotok_t t);
+
+typedef struct CRO_Type {
+  CRO_TypeDescriptor hash;
+
+  const char *name;
+  CRO_ToString_Function *toString;
+  CRO_FreeData_Function *free;
+  CRO_Search_Function *search;
+
+  unsigned char color;
+
+  struct CRO_Type* left;
+  struct CRO_Type* right;
+} CRO_Type;
+
 typedef struct CRO_Allocation {
   char allocated;
+  CRO_FreeData_Function *free;
   void *memory;
   allotok_t allotok;
 } CRO_Allocation;
@@ -67,25 +89,22 @@ typedef struct CRO_State {
   char exitCode;
   char exitContext;
   int gctime;
+
+  CRO_Type *datatypes;
+  unsigned int dtptr;
+  unsigned int dtsize;
 } CRO_State;
 
 #define CRO_BUFFER_SIZE 64
 #define CRO_GC_TIMER 64
 
-#ifndef CRO_GC_OLD
-  #define CRO_callGC(s) if(s->gctime++ >= CRO_GC_TIMER) {CRO_GC(s);s->gctime = 0;}
+#ifdef CRO_GC_OLD
+  #define CRO_callGC(s) CRO_GC(s);
 #elif defined(CROWLANG_DISABLE_GC)
   #define CRO_callGC(s)
 #else
-  #define CRO_callGC(s) CRO_GC(s);
+  #define CRO_callGC(s) if(s->gctime++ >= CRO_GC_TIMER) {CRO_GC(s);s->gctime = 0;}
 #endif
-
-typedef unsigned int CRO_TypeDescriptor;
-
-typedef struct {
-  CRO_TypeDescriptor type;
-
-} CRO_TypeInformation;
 
 #define CRO_Undefined         3063370097
 #define CRO_Number            2832123592
@@ -182,14 +201,14 @@ typedef struct {
 #define CRO_toNone(v) v.type = CRO_Undefined; v.value.number = 0; v.value.string = NULL; v.value.function = NULL; v.allotok = 0; v.constant = 0;
 #define CRO_toSkip(v) v.type = CRO_Skip; v.value.number = 0; v.value.string = NULL; v.value.function = NULL; v.allotok = 0; v.constant = 0;
 #define CRO_toBoolean(v, x) v.type = CRO_Bool; v.value.number = 0; v.value.string = NULL; v.value.function = NULL; v.allotok = 0; v.value.integer = x; v.constant = 0;
-#define CRO_toString(s, v, x) v.type = CRO_String; v.value.number = 0; v.value.string = x; v.value.function = NULL; v.allotok = CRO_malloc(s, x); v.value.integer = 0; v.constant = 0;
+#define CRO_toString(s, v, x) v.type = CRO_String; v.value.number = 0; v.value.string = x; v.value.function = NULL; v.allotok = CRO_malloc(s, x, free); v.value.integer = 0; v.constant = 0;
 */
 
-#define CRO_toNumber(v, x) v.type = CRO_Number; v.value.number = x; v.allotok = 0; v.constant = 0;
-#define CRO_toNone(v) v.type = CRO_Undefined; v.allotok = 0; v.constant = 0;
-#define CRO_toBoolean(v, x) v.type = CRO_Bool; v.allotok = 0; v.value.integer = x; v.constant = 0;
-#define CRO_toString(s, v, x) v.type = CRO_String; v.value.string = x; v.allotok = CRO_malloc(s, x); v.constant = 0;
-#define CRO_toPointerType(v, t, x) v.type = t; v.value.pointer = (void*)x; v.allotok = 0; v.constant = 0;
+#define CRO_toNumber(v, x) v.type = CRO_Number; v.value.number = x; v.allotok = 0; v.flags = 0;
+#define CRO_toNone(v) v.type = CRO_Undefined; v.allotok = 0; v.flags = 0;
+#define CRO_toBoolean(v, x) v.type = CRO_Bool; v.allotok = 0; v.value.integer = x; v.flags = 0;
+#define CRO_toString(s, v, x) v.type = CRO_String; v.value.string = x; v.allotok = CRO_malloc(s, x, free); v.flags = 0;
+#define CRO_toPointerType(v, t, x) v.type = t; v.value.pointer = (void*)x; v.allotok = 0; v.flags = 0;
 
 /*#define CRO_error(x) CRO_setColor(RED);printf("ERROR: "); x; CRO_setColor(RESET); return CRO_toNone();*/
 
@@ -235,9 +254,13 @@ typedef struct  {
 } CRO_InnerValue;
 #endif
 
+#define CRO_FLAG_NONE 0
+#define CRO_FLAG_CONSTANT 1
+#define CRO_FLAG_SEARCH 2
+
 typedef struct CRO_Value {
   CRO_TypeDescriptor type;
-  char constant;
+  unsigned char flags;
 
   CRO_InnerValue value;
 

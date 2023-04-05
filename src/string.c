@@ -390,7 +390,7 @@ CRO_Value CRO_split (CRO_State *s, int argc, CRO_Value *argv) {
         /* Set up our values */
         stringLen = strlen(string.value.string);
         delimLen = strlen(delim.value.string);
-        
+
         arrayPtr = 0;
         sbPtr = 0;
         
@@ -467,6 +467,7 @@ CRO_Value CRO_split (CRO_State *s, int argc, CRO_Value *argv) {
         }
         
         ret.type = CRO_Array;
+        ret.flags = CRO_FLAG_SEARCH;
         ret.allotok = CRO_malloc(s, array, free);
         ret.arraySize = arrayPtr;
         ret.type = CRO_Array;

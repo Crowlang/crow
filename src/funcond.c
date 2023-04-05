@@ -531,12 +531,8 @@ CRO_Value CRO_each (CRO_State *s, int argc, CRO_Value *argv) {
             
             break;
           }
-          
-          
-          CRO_callGC(s);
         }
         free(argz);
-        
       }
       else if (func.type == CRO_PrimitiveFunction) {
         char *err;
@@ -624,7 +620,6 @@ CRO_Value CRO_eachWithIterator (CRO_State *s, int argc, CRO_Value *argv) {
             break;
           }
           
-          CRO_callGC(s);
         }
       }
       else if (func.type == CRO_PrimitiveFunction) {

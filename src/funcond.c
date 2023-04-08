@@ -517,11 +517,17 @@ CRO_Value CRO_each (CRO_State *s, int argc, CRO_Value *argv) {
       CRO_toNone(argz[0]);
       
       if (func.type == CRO_Function || func.type == CRO_LocalFunction) {
+
+        /* Toggle on that this memory is in use and shouldn't be free'd by the GC*/
+        CRO_toggleMemoryUse(s, array);
+
         for (index = 0; index < array.arraySize; index++) {
           /* Get the value of the item in the array and set it to the var */
           itemV = array.value.array[index];
           
           argz[1] = itemV;
+          
+          CRO_callGC(s);
           ret = CRO_callFunction(s, func, 1, argz, 0, func, 1);
           
           if (s->exitCode >= s->exitContext) {
@@ -531,7 +537,11 @@ CRO_Value CRO_each (CRO_State *s, int argc, CRO_Value *argv) {
             
             break;
           }
+
         }
+
+        /* Now we can free it if it isn't connected to anything*/
+        CRO_toggleMemoryUse(s, array);
         free(argz);
       }
       else if (func.type == CRO_PrimitiveFunction) {

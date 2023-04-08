@@ -27,6 +27,7 @@ void CRO_exposeVariable(CRO_State *s, const char *name, CRO_Value v);
 char *CRO_cloneStr(const char *str);
 
 allotok_t CRO_malloc(CRO_State *s, void *memory, CRO_FreeData_Function *free);
+void CRO_toggleMemoryUse (CRO_State *s, CRO_Value v);
 void CRO_GC(CRO_State *s);
 
 void CRO_freeFile (void* v);

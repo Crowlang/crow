@@ -94,7 +94,7 @@ void CRO_exposeType (CRO_State *s, CRO_TypeDescriptor type, const char* name, CR
   CRO_exposeTypeInner(s, toAdd);
 }
 
-void CRO_exposeGCType (CRO_State *s, CRO_TypeDescriptor type, const char* name, CRO_ToString_Function *print, CRO_FreeData_Function *free, CRO_Search_Function *search){
+void CRO_exposeGCType (CRO_State *s, CRO_TypeDescriptor type, const char* name, CRO_ToString_Function *print, CRO_FreeData_Function *free, CRO_Search_Function *search, CRO_ToggleUse_Function *use){
   CRO_Type *toAdd;
 
   toAdd = (CRO_Type*) malloc(sizeof(CRO_Type));
@@ -105,6 +105,7 @@ void CRO_exposeGCType (CRO_State *s, CRO_TypeDescriptor type, const char* name, 
   toAdd->toString = print;
   toAdd->free = free;
   toAdd->search = search;
+  toAdd->toggleUse = use;
 
   toAdd->left = NULL;
   toAdd->right = NULL;
@@ -221,6 +222,21 @@ char* CRO_printStd (CRO_Value v) {
   return "Working on it!";
 }
 
+void CRO_toggleMemoryUse (CRO_State *s, CRO_Value v) {
+  unsigned int aptr = 0;
+  for (aptr = 0; aptr < s->allocptr; aptr++) {
+    if (s->allocations[aptr].allotok == v.allotok) {
+      s->allocations[aptr].flags ^= CRO_ALLOCFLAG_INUSE;
+    }
+  }
+
+  if (v.flags & CRO_FLAG_SEARCH) {
+    CRO_Type *t;
+    t = CRO_getType(s, v.type);
+    t->toggleUse(s, v);
+  }
+}
+
 unsigned char CRO_searchStd (CRO_State *s, CRO_Value v, allotok_t t) {
   if (v.type == CRO_Array) {
     int i;
@@ -242,15 +258,28 @@ unsigned char CRO_searchStd (CRO_State *s, CRO_Value v, allotok_t t) {
   return 0;
 }
 
+void CRO_stdToggleUse (CRO_State *s, CRO_Value v) {
+  if (v.type == CRO_Array) {
+    int i;
+    for (i = 0; i < v.arraySize; i++) {
+      if (v.value.array[i].allotok) {
+        CRO_toggleMemoryUse(s, v.value.array[i]);
+      }
+      else if (v.value.array[i].flags & CRO_FLAG_SEARCH) {
+        CRO_Type *typ;
+        typ = CRO_getType(s, v.type);
+        typ->toggleUse(s, v.value.array[i]);
+      }
+    }
+  }
+}
+
 void CRO_freeFile (void* v) {
   fclose((FILE*)v);
 }
 
 CRO_State *CRO_createState (void) {
   CRO_State *s;
-
-  /* These File descriptors are opened by default */
-  CRO_FD CRO_stdin, CRO_stdout, CRO_stderr;
 
   s = (CRO_State*)malloc(sizeof(CRO_State));
 
@@ -295,18 +324,9 @@ CRO_State *CRO_createState (void) {
     return s;
   }
 
-  s->fileDescriptors = (CRO_FD*)malloc(CRO_BUFFER_SIZE * sizeof(CRO_FD));
-  s->fdptr = 0;
-  s->fdsize = CRO_BUFFER_SIZE;
-
   s->libraries = (void**)malloc(CRO_BUFFER_SIZE * sizeof(void*));
   s->libptr = 0;
   s->libsize = CRO_BUFFER_SIZE;
-
-  if (s->fileDescriptors == NULL) {
-    CRO_error(s, "Failed to allocate space for fileDescriptors");
-    exit(1);
-  }
 
   s->datatypes = NULL;
 
@@ -315,33 +335,13 @@ CRO_State *CRO_createState (void) {
   CRO_exposeType(s, CRO_Number, "Number", CRO_printStd);
   CRO_exposeType(s, CRO_Bool, "Bool", CRO_printStd);
   CRO_exposeType(s, CRO_Function, "Function", CRO_printStd);
-  CRO_exposeGCType(s, CRO_LocalFunction, "Function", CRO_printStd, free, NULL);
+  CRO_exposeGCType(s, CRO_LocalFunction, "Function", CRO_printStd, free, NULL, NULL);
   CRO_exposeType(s, CRO_PrimitiveFunction, "Primitive Function", CRO_printStd);
-  CRO_exposeGCType(s, CRO_Array, "Array", CRO_printStd, free, CRO_searchStd);
-  CRO_exposeGCType(s, CRO_String, "String", CRO_printStd, free, NULL);
-  CRO_exposeGCType(s, CRO_Struct, "Struct", CRO_printStd, free, CRO_searchStd);
-  CRO_exposeGCType(s, CRO_FileDescriptor, "File", CRO_printStd, CRO_freeFile, NULL);
-  CRO_exposeGCType(s, CRO_Library, "Library", CRO_printStd, NULL, NULL);
-
-  /* Setup those predefined file descriptors */
-  CRO_stdin.type = CRO_File;
-  CRO_stdin.file = stdin;
-  CRO_stdin.socket = 0;
-
-  CRO_stdout.type = CRO_File;
-  CRO_stdout.file = stdout;
-  CRO_stdout.socket = 0;
-
-  CRO_stderr.type = CRO_File;
-  CRO_stderr.file = stderr;
-  CRO_stderr.socket = 0;
-
-  /* Add them to the table */
-  s->fileDescriptors[0] = CRO_stdin;
-  s->fileDescriptors[1] = CRO_stdout;
-  s->fileDescriptors[2] = CRO_stderr;
-
-  s->fdptr = 3;
+  CRO_exposeGCType(s, CRO_Array, "Array", CRO_printStd, free, CRO_searchStd, CRO_stdToggleUse);
+  CRO_exposeGCType(s, CRO_String, "String", CRO_printStd, free, NULL, NULL);
+  CRO_exposeGCType(s, CRO_Struct, "Struct", CRO_printStd, free, CRO_searchStd, CRO_stdToggleUse);
+  CRO_exposeGCType(s, CRO_FileDescriptor, "File", CRO_printStd, CRO_freeFile, NULL, NULL);
+  CRO_exposeGCType(s, CRO_Library, "Library", CRO_printStd, NULL, NULL, NULL);
 
   /* Set our exit code, we will periodically check to make sure this isnt equal
    * to the exit context, if it is, we will break out of whatever we are doing
@@ -487,16 +487,10 @@ void CRO_freeState (CRO_State *s) {
 
   /* Free our allocated memory */
   for (i = 0; i < s->allocptr; i++) {
-    if (s->allocations[i].allocated)
+    if (s->allocations[i].flags & CRO_ALLOCFLAG_ALLOCATED)
       s->allocations[i].free(s->allocations[i].memory);
   }
   free(s->allocations);
-
-  /* Close all open file descriptors */
-  for (i = 3; i < s->fdptr; i++) {
-    fclose(s->fileDescriptors[i].file);
-  }
-  free(s->fileDescriptors);
 
   free(s);
 }
@@ -759,7 +753,7 @@ allotok_t CRO_malloc (CRO_State *s, void *memory, CRO_FreeData_Function *free) {
 
   s->allocations[s->allocptr].memory = memory;
   s->allocations[s->allocptr].allotok = memtok;
-  s->allocations[s->allocptr].allocated = 1;
+  s->allocations[s->allocptr].flags = CRO_ALLOCFLAG_ALLOCATED;
   s->allocations[s->allocptr].free = free;
 
   #ifdef CROWLANG_GC_DEBUG
@@ -788,7 +782,6 @@ char *CRO_cloneStr (const char *str) {
   return ret;
 
 }
-
 
 #ifndef CROWLANG_DISABLE_GC
 
@@ -845,7 +838,7 @@ void CRO_GC (CRO_State *s) {
 
   /* Now, look for open memory allocations */
   for (aptr = 0; aptr < s->allocptr; aptr++) {
-    if (s->allocations[aptr].allocated) {
+    if (s->allocations[aptr].flags & CRO_ALLOCFLAG_ALLOCATED && !(s->allocations[aptr].flags & CRO_ALLOCFLAG_INUSE)) {
       found = 0;
 
       #ifdef CROWLANG_GC_DEBUG
@@ -876,7 +869,7 @@ void CRO_GC (CRO_State *s) {
         #endif
 
         if (s->allocptr == 1) {
-          free(s->allocations[aptr].memory);
+          s->allocations[aptr].free(s->allocations[aptr].memory);
         }
         else {
           CRO_Allocation tmp;
@@ -901,6 +894,12 @@ void CRO_GC (CRO_State *s) {
       }
       #endif
     }
+#ifdef CROWLANG_GC_DEBUG
+    else if (s->allocations[aptr].flags & CRO_ALLOCFLAG_INUSE) {
+
+      printf("[GC Debug] Allocation %x is in use right now and can't be free'd\n", s->allocations[aptr].memory);
+    }
+#endif
   }
 
   #ifdef CROWLANG_GC_DEBUG

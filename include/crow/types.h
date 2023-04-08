@@ -33,6 +33,7 @@ typedef hash_t CRO_TypeDescriptor;
 typedef char* (CRO_ToString_Function)(struct CRO_Value v);
 typedef void (CRO_FreeData_Function)(void*);
 typedef unsigned char (CRO_Search_Function)(struct CRO_State* s, struct CRO_Value v, allotok_t t);
+typedef void (CRO_ToggleUse_Function)(struct CRO_State* s, struct CRO_Value v);
 
 typedef struct CRO_Type {
   CRO_TypeDescriptor hash;
@@ -41,6 +42,7 @@ typedef struct CRO_Type {
   CRO_ToString_Function *toString;
   CRO_FreeData_Function *free;
   CRO_Search_Function *search;
+  CRO_ToggleUse_Function *toggleUse;
 
   unsigned char color;
 
@@ -48,8 +50,12 @@ typedef struct CRO_Type {
   struct CRO_Type* right;
 } CRO_Type;
 
+#define CRO_ALLOCFLAG_NONE 0
+#define CRO_ALLOCFLAG_ALLOCATED 1
+#define CRO_ALLOCFLAG_INUSE 2
+
 typedef struct CRO_Allocation {
-  char allocated;
+  unsigned char flags;
   CRO_FreeData_Function *free;
   void *memory;
   allotok_t allotok;
@@ -76,10 +82,6 @@ typedef struct CRO_State {
   unsigned int allocptr;
   unsigned int asize;
 
-  CRO_FD *fileDescriptors;
-  unsigned int fdptr;
-  unsigned int fdsize;
-
   void **libraries;
   unsigned int libptr;
   unsigned int libsize;
@@ -97,6 +99,8 @@ typedef struct CRO_State {
 
 #define CRO_BUFFER_SIZE 64
 #define CRO_GC_TIMER 64
+
+#define CRO_GC_OLD 1
 
 #ifdef CRO_GC_OLD
   #define CRO_callGC(s) CRO_GC(s);

@@ -109,7 +109,6 @@ CRO_Value CRO_getln (CRO_State *s, int argc, CRO_Value *argv) {
 
 CRO_Value CRO_open (CRO_State *s, int argc, CRO_Value *argv) {
   CRO_Value file, mode, ret;
-  CRO_FD fd;
   char *modeStr;
 
   file = argv[1];
@@ -126,41 +125,9 @@ CRO_Value CRO_open (CRO_State *s, int argc, CRO_Value *argv) {
   }
   
   if (file.type == CRO_String) {
-    unsigned int x;
-    
-    fd.type = CRO_File;
-    fd.file = fopen(file.value.string, modeStr);
-    
-    
-    for (x = 3; x < s->fdptr; x++) {
-      if (s->fileDescriptors[x].type == CRO_None) {
-        s->fileDescriptors[x] = fd;
-        ret.type = CRO_FileDescriptor;
-        ret.value.integer = x;
-        return ret;
-      }
-    }
-    
-    s->fileDescriptors[s->fdptr] = fd;
-    
-    s->fdptr++;
-    if (s->fdptr >= s->fdsize) {
-      s->fdsize *= 2;
-      s->fileDescriptors = (CRO_FD*)realloc(s->fileDescriptors, s->fdsize * sizeof(CRO_FD));
-      
-      if (s->fileDescriptors == NULL) {
-        printf("Cannot reallocate file descriptors!\n");
-        exit(1);
-      }
-      
-      #ifdef CROWLANG_ALLOC_DEBUG
-        printf("[Alloc Debug]\t FileDescriptors size increased to %d\n", s->asize);
-      #endif
-    }
-    
+    ret.value.pointer = fopen(file.value.string, modeStr);
     ret.type = CRO_FileDescriptor;
-    ret.value.pointer = fd.file;
-    ret.allotok = CRO_malloc(s, fd.file, CRO_freeFile);
+    ret.allotok = CRO_malloc(s, ret.value.pointer, CRO_freeFile);
     return ret;
   }
   
@@ -169,7 +136,6 @@ CRO_Value CRO_open (CRO_State *s, int argc, CRO_Value *argv) {
 
 CRO_Value CRO_read (CRO_State *s, int argc, CRO_Value *argv) {
   CRO_Value file, ret;
-  CRO_FD fd;
   
   if (argc == 1) {
     file = argv[1];
@@ -228,56 +194,44 @@ CRO_Value CRO_read (CRO_State *s, int argc, CRO_Value *argv) {
       bsize = CRO_BUFFER_SIZE;
       chread = 0;
       size = 0;
-      
-      fd = s->fileDescriptors[file.value.integer];
-      
-      if (fd.type == CRO_File) {
-        while ((c = fgetc(fd.file)) != EOF) {
-          
-          /* Make sure to account for UTF-8 characters, which may be multiple 
-           * bytes large */
-          if (size == 0) {
-            if (c >= 240) {
-              size = 4;
-            }
-            else if (c >= 224) {
-              size = 3;
-            }
-            else if (c >= 192) {
-              size = 2;
-            }
-            else {
-              size = 1;
-            }
+
+      while ((c = fgetc((FILE*)file.value.pointer)) != EOF) {
+
+        /* Make sure to account for UTF-8 characters, which may be multiple
+         * bytes large */
+        if (size == 0) {
+          if (c >= 240) {
+            size = 4;
           }
-          
-          /* If we are done reading the UTF-8 character, increment the counter
-           * of characters we have read by 1 */
-          if (--size == 0) {
-            chread++;
+          else if (c >= 224) {
+            size = 3;
           }
-          
-          body[bptr++] = c;
-          
-          if (bptr >= bsize) {
-            bsize *= 2;
-            body = realloc(body, bsize * sizeof(char));
+          else if (c >= 192) {
+            size = 2;
           }
-          
-          if (chread == amount.value.number) {
-            break;
+          else {
+            size = 1;
           }
         }
+
+        /* If we are done reading the UTF-8 character, increment the counter
+         * of characters we have read by 1 */
+        if (--size == 0) {
+          chread++;
+        }
+
+        body[bptr++] = c;
+
+        if (bptr >= bsize) {
+          bsize *= 2;
+          body = realloc(body, bsize * sizeof(char));
+        }
+
+        if (chread == amount.value.number) {
+          break;
+        }
       }
-      else {
-        char *err;
-        err = malloc(128 * sizeof(char));
-        
-        sprintf(err, "(%s): Unsupported file type", argv[0].value.string);
-        ret = CRO_error(s, err);
-        
-        return ret;
-      }
+
       body[bptr] = 0;
       
       CRO_toString(s, ret, body);
@@ -375,7 +329,6 @@ CRO_Value CRO_write (CRO_State *s, int argc, CRO_Value *argv) {
 }
 
 CRO_Value CRO_writeLine (CRO_State *s, int argc, CRO_Value *argv) {
-  CRO_FD file;
   CRO_Value fileValue;
 
   /* Get our file descirptor */
@@ -385,16 +338,13 @@ CRO_Value CRO_writeLine (CRO_State *s, int argc, CRO_Value *argv) {
   if (fileValue.type == CRO_FileDescriptor) {
     CRO_Value writeValue;
     const char *stringValue;
-    
-    file = s->fileDescriptors[fileValue.value.integer];
+
     writeValue = argv[2];
     stringValue = writeValue.value.string;
-    
-    /* TODO: Make this work for other types of CRO_File */
-    if (file.type == CRO_File) {
-      fwrite(stringValue, 1, strlen(stringValue), file.file);
-      fwrite("\n", 1, 1, file.file);
-    }
+
+    fwrite(stringValue, 1, strlen(stringValue), (FILE*)fileValue.value.pointer);
+    fwrite("\n", 1, 1, (FILE*)fileValue.value.pointer);
+
     return writeValue;
   }
   CRO_toNone(fileValue);
@@ -411,29 +361,9 @@ CRO_Value CRO_eof (CRO_State *s, int argc, CRO_Value *argv) {
     
     /* Make sure we actually have a file */
     if (fileValue.type == CRO_FileDescriptor) {
-      CRO_FD file;
-      file = s->fileDescriptors[fileValue.value.integer];
-      
-      /* If we are reading a file, we just call feof */
-      if (file.type == CRO_File) {
-        if (feof(file.file)) {
-          CRO_toBoolean(r, 1);
-        }
-        else {
-          CRO_toBoolean(r, 0);
-        }
+      CRO_toBoolean(r, feof((FILE*)fileValue.value.pointer));
         
         return r;
-      }
-      else {
-        char *err;
-        err = malloc(128 * sizeof(char));
-        
-        sprintf(err, "(%s): File type not supported", argv[0].value.string);
-        r = CRO_error(s, err);
-        
-        return r;
-      }
     }
     else {
       char *err;
@@ -458,7 +388,6 @@ CRO_Value CRO_eof (CRO_State *s, int argc, CRO_Value *argv) {
 
 /* FIXME: Remove this and add a (flush) function in its place */
 CRO_Value CRO_close (CRO_State *s, int argc, CRO_Value *argv) {
-  CRO_FD file;
   CRO_Value fileValue, r;
   
   CRO_toNone(r);
@@ -467,9 +396,7 @@ CRO_Value CRO_close (CRO_State *s, int argc, CRO_Value *argv) {
     fileValue = argv[1];
     
     if (fileValue.type == CRO_FileDescriptor) {
-      file = s->fileDescriptors[fileValue.value.integer];
-      file.type = CRO_None;
-      fclose(file.file);
+
     }
   }
   

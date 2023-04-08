@@ -100,9 +100,7 @@ typedef struct CRO_State {
 #define CRO_BUFFER_SIZE 64
 #define CRO_GC_TIMER 64
 
-#define CRO_GC_OLD 1
-
-#ifdef CRO_GC_OLD
+#ifdef CROWLANG_GC_OLD
   #define CRO_callGC(s) CRO_GC(s);
 #elif defined(CROWLANG_DISABLE_GC)
   #define CRO_callGC(s)

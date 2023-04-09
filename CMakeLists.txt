@@ -59,7 +59,10 @@ else()
 endif()
 
 target_include_directories(crow PUBLIC include/)
-target_link_libraries(crow m)
+
+if((${CMAKE_CXX_COMPILER_ID} MATCHES "GNU") OR (${CMAKE_CXX_COMPILER_ID} MATCHES "Clang"))
+  target_link_libraries(crow m)
+endif()
 
 get_directory_property(submodule PARENT_DIRECTORY)
 if(submodule)

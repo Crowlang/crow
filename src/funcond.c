@@ -521,6 +521,10 @@ CRO_Value CRO_each (CRO_State *s, int argc, CRO_Value *argv) {
         /* Toggle on that this memory is in use and shouldn't be free'd by the GC*/
         CRO_toggleMemoryUse(s, array);
 
+        /* Make sure the function also doesn't get unloaded, this GC really sucks */
+        if (func.type == CRO_LocalFunction)
+          CRO_toggleMemoryUse(s, func);
+
         for (index = 0; index < array.arraySize; index++) {
           /* Get the value of the item in the array and set it to the var */
           itemV = array.value.array[index];
@@ -537,11 +541,15 @@ CRO_Value CRO_each (CRO_State *s, int argc, CRO_Value *argv) {
             
             break;
           }
-
         }
 
         /* Now we can free it if it isn't connected to anything*/
         CRO_toggleMemoryUse(s, array);
+
+        /* We can undo this too */
+        if (func.type == CRO_LocalFunction)
+          CRO_toggleMemoryUse(s, func);
+
         free(argz);
       }
       else if (func.type == CRO_PrimitiveFunction) {
@@ -609,6 +617,13 @@ CRO_Value CRO_eachWithIterator (CRO_State *s, int argc, CRO_Value *argv) {
       
       CRO_toNone(callArgs[0])
       if (func.type == CRO_Function || func.type == CRO_LocalFunction) {
+
+        CRO_toggleMemoryUse(s, array);
+
+        /* Make sure the function also doesn't get unloaded, this GC really sucks */
+        if (func.type == CRO_LocalFunction)
+          CRO_toggleMemoryUse(s, func);
+
         for (index = 0; index < array.arraySize; index++) {
           
           CRO_toNumber(counter, index);
@@ -619,6 +634,8 @@ CRO_Value CRO_eachWithIterator (CRO_State *s, int argc, CRO_Value *argv) {
           callArgs[1] = item;
           callArgs[2] = counter;
           
+          CRO_callGC(s);
+
           /* Now execute it with the variable in place */
           ret = CRO_callFunction(s, func, 2, callArgs, 0, func, 1);
           
@@ -631,6 +648,11 @@ CRO_Value CRO_eachWithIterator (CRO_State *s, int argc, CRO_Value *argv) {
           }
           
         }
+        
+        CRO_toggleMemoryUse(s, array);
+        if (func.type == CRO_LocalFunction)
+          CRO_toggleMemoryUse(s, func);
+
       }
       else if (func.type == CRO_PrimitiveFunction) {
         char *err;
@@ -689,9 +711,9 @@ CRO_Value CRO_while (CRO_State *s, int argc, char **argv) {
         
         break;
       }
-      
-      cond = CRO_innerEval(s, argv[1]);
+
       CRO_callGC(s);
+      cond = CRO_innerEval(s, argv[1]);
     }
   }
   else {

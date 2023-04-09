@@ -75,7 +75,7 @@ typedef struct CRO_State {
   struct CRO_Closure **closures;
   unsigned int cptr;
   unsigned int csize;
-  
+
   struct CRO_Closure *scope;
 
   CRO_Allocation *allocations;
@@ -108,17 +108,17 @@ typedef struct CRO_State {
   #define CRO_callGC(s) if(s->gctime++ >= CRO_GC_TIMER) {CRO_GC(s);s->gctime = 0;}
 #endif
 
-#define CRO_Undefined         3063370097
-#define CRO_Number            2832123592
-#define CRO_Bool              2916547113
-#define CRO_Function          1928887191
-#define CRO_LocalFunction      359404548
-#define CRO_PrimitiveFunction 1729842432
-#define CRO_Array              217815802
-#define CRO_String            2974501776
-#define CRO_Struct            2974512980
-#define CRO_FileDescriptor     449640074
-#define CRO_Library           4063209756
+#define CRO_Undefined         3063370097u
+#define CRO_Number            2832123592u
+#define CRO_Bool              2916547113u
+#define CRO_Function          1928887191u
+#define CRO_LocalFunction      359404548u
+#define CRO_PrimitiveFunction 1729842432u
+#define CRO_Array              217815802u
+#define CRO_String            2974501776u
+#define CRO_Struct            2974512980u
+#define CRO_FileDescriptor     449640074u
+#define CRO_Library           4063209756u
 
 #define CRO_FLAG_None       0
 #define CRO_FLAG_NoVarError 1
@@ -269,7 +269,7 @@ typedef struct CRO_Value {
   int arraySize;
 
   allotok_t allotok;
-  
+
   /* TODO: This is only needed for functions, maybe move it into the union*/
   struct CRO_Closure *functionClosure;
 } CRO_Value;
@@ -277,7 +277,7 @@ typedef struct CRO_Value {
 typedef struct CRO_Variable {
   hash_t hash;
   CRO_Value value;
-  
+
   struct CRO_Variable *left;
   struct CRO_Variable *right;
 } CRO_Variable;
@@ -285,7 +285,7 @@ typedef struct CRO_Variable {
 typedef struct CRO_Closure {
   struct CRO_Closure *depends;
   unsigned char active;
-  
+
   CRO_Variable *variables;
   unsigned int vptr;
   unsigned int vsize;

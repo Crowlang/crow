@@ -30,7 +30,7 @@ CRO_Value defVar (CRO_State *s, int argc, char **argv) {
   }
   scope = s->scope;
   vhash = CRO_genHash(name);
-
+  
   for (;x < scope->vptr; x++) {
     if (vhash == scope->variables[x].hash) {
       printf("Error: Variable exists\n");

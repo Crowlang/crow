@@ -532,7 +532,7 @@ CRO_Value CRO_each (CRO_State *s, int argc, CRO_Value *argv) {
           argz[1] = itemV;
           
           CRO_callGC(s);
-          ret = CRO_callFunction(s, func, 1, argz, 0, func, 1);
+          ret = CRO_callFunction(s, func, 1, argz);
           
           if (s->exitCode >= s->exitContext) {
             if (s->exitCode == s->exitContext) {
@@ -637,7 +637,7 @@ CRO_Value CRO_eachWithIterator (CRO_State *s, int argc, CRO_Value *argv) {
           CRO_callGC(s);
 
           /* Now execute it with the variable in place */
-          ret = CRO_callFunction(s, func, 2, callArgs, 0, func, 1);
+          ret = CRO_callFunction(s, func, 2, callArgs);
           
           if (s->exitCode >= s->exitContext) {
             if (s->exitCode == s->exitContext) {
@@ -811,7 +811,7 @@ CRO_Value CRO_doTimes (CRO_State *s, int argc, CRO_Value *argv) {
         timesToCall = times.value.number;
 
         for (i = 0; i < timesToCall; i++)
-          v = CRO_callFunction(s, func, 0, NULL, 0, func, 0);
+          v = CRO_callFunction(s, func, 0, NULL);
       }
       else {
         CRO_toNone(v);

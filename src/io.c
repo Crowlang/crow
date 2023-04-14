@@ -75,6 +75,9 @@ CRO_Value CRO_getln (CRO_State *s, int argc, CRO_Value *argv) {
   line = (char*)malloc(CRO_BUFFER_SIZE * sizeof(char));
   size = CRO_BUFFER_SIZE;
   lptr = 0;
+  fflush(stdout);
+  fflush(stdin);
+  fflush(stderr);
 
   while ((c = fgetc(stdin)) != EOF) {
     /* We got a new line, so we have read the entire line */
@@ -93,11 +96,13 @@ CRO_Value CRO_getln (CRO_State *s, int argc, CRO_Value *argv) {
   }
   
   if (lptr > 0 || c != EOF) {
+
     line[lptr] = 0;
     ret.type = CRO_String;
     ret.value.string = line;
     ret.flags = CRO_FLAG_NONE;
     ret.allotok = CRO_malloc(s, line, free);
+    return ret;
   }
   else {
     free(line);

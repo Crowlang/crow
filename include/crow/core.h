@@ -17,7 +17,7 @@ CRO_Closure *CRO_createClosure (CRO_State *s);
 
 char* CRO_printStd(CRO_Value v);
 
-CRO_Value CRO_callFunction(CRO_State *s, CRO_Value func, int argc, CRO_Value *argv, int isStruct, CRO_Value str, char subroutineCall);
+CRO_Value CRO_callFunction(CRO_State *s, CRO_Value func, int argc, CRO_Value *argv);
 
 hash_t CRO_genHash(const char *name);
 void CRO_exposeFunction(CRO_State *s, const char *name, CRO_Value (*func)(CRO_State *s, int argc, CRO_Value *argv));

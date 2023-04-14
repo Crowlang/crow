@@ -910,8 +910,8 @@ void CRO_GC (CRO_State *s) {
 
 CRO_Value CRO_innerEval(CRO_State *s, char *src);
 
-CRO_Value CRO_callFunction (CRO_State *s, CRO_Value func, int argc, CRO_Value *argv, int isStruct, CRO_Value str, char subroutineCall) {
-  CRO_Value v;
+CRO_Value CRO_callFunction (CRO_State *s, CRO_Value func, int argc, CRO_Value *argv) {
+  CRO_Value v, str;
   int x;
 
   char lastExitContext;
@@ -1027,28 +1027,10 @@ CRO_Value CRO_callFunction (CRO_State *s, CRO_Value func, int argc, CRO_Value *a
       #endif
     }
 
-    /* So... found out the hard way 'this' has to be set ABSOLUTELY last just
-     * in case another 'this' is being passed as an arguement, this makes
-     * literally everything bad... but there isn't much i can do about it now */
-    if (isStruct) {
-      CRO_Variable this;
-      this.hash = CRO_genHash("this");
-
-#ifdef CROWLANG_VAR_DEBUG
-      printf("Defined variable %ld in block %d\n", this.hash, s->block);
-#endif
-
-      this.value = str;
-
-      scope->variables[scope->vptr] = this;
-      scope->vptr++;
-      if (scope->vptr >= scope->vsize) {
-        scope->vsize *= 2;
-        scope->variables = (CRO_Variable*)realloc(scope->variables, scope->vsize * sizeof(CRO_Variable));
-        #ifdef CROWLANG_ALLOC_DEBUG
-        printf("[Alloc Debug]\t Variables size increased to %d\n", scope->vsize);
-        #endif
-      }
+    /* Expose the 'this' argument for structures so that the function can access
+     * the underlying class */
+    if (argv[0].type == CRO_Struct) {
+      CRO_exposeVariable(s, "this", argv[0]);
     }
 
     v = CRO_eval(s, &funcbody[x]);
@@ -1137,9 +1119,6 @@ CRO_Value CRO_innerEval(CRO_State *s, char *src) {
       return v;
     }
 
-     /* ARGV[0] is the name of the struct, so set it here */
-     CRO_toString(s, argv[0], fname);
-
     /* Collect our arguments here */
     s->block++;
     while (!end) {
@@ -1165,7 +1144,8 @@ CRO_Value CRO_innerEval(CRO_State *s, char *src) {
     s->block--;
 
     if (func.type == CRO_Function || func.type == CRO_LocalFunction) {
-      v = CRO_callFunction(s, func, argc, argv, 0, func, 0);
+      CRO_toString(s, argv[0], fname);
+      v = CRO_callFunction(s, func, argc, argv);
 
       free(argv);
 
@@ -1175,8 +1155,7 @@ CRO_Value CRO_innerEval(CRO_State *s, char *src) {
     else if (func.type == CRO_Struct) {
       int x, found = 0;
       CRO_Value caller;
-
-     for (x = 0; x < func.arraySize; x+= 2) {
+      for (x = 0; x < func.arraySize; x+= 2) {
         /* Search the structure for a value with the same name as the second arg (the method being called on the object */
         if (strcmp(methodName, func.value.array[x].value.string) == 0) {
           found = 1;
@@ -1190,7 +1169,8 @@ CRO_Value CRO_innerEval(CRO_State *s, char *src) {
         printf("Not found\n");
       }
       else {
-        v = CRO_callFunction(s, caller, argc - 1, &argv[1], 1, func, 0);
+        argv[0] = func;
+        v = CRO_callFunction(s, caller, argc, argv);
 
         free(argv);
         free(methodName);

@@ -465,6 +465,9 @@ CRO_Value CRO_split (CRO_State *s, int argc, CRO_Value *argv) {
             array = (CRO_Value*)realloc(array, arraySize * sizeof(CRO_Value));
           }
         }
+        else {
+          free(stringBuffer);
+        }
         
         ret.type = CRO_Array;
         ret.flags = CRO_FLAG_SEARCH;

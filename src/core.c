@@ -161,7 +161,7 @@ static CRO_Type *CRO_getType(CRO_State *s, CRO_TypeDescriptor t) {
   CRO_Type *r;
   r = s->datatypes;
 
-  while(1) {
+  while(r != NULL) {
     if (t == r->hash) {
       return r;
     }
@@ -172,6 +172,8 @@ static CRO_Type *CRO_getType(CRO_State *s, CRO_TypeDescriptor t) {
       r = r->left;
     }
   }
+  printf("Error: datatype %lu not found\n", t);
+  return NULL;
 }
 
 /* TODO: Replace with a standard toString function */
@@ -475,6 +477,18 @@ void CRO_exposeStandardFunctions (CRO_State *s) {
   CRO_eval(s, "(defvar math-π (const 3.141592653589793))");*/
 }
 
+static void CRO_freeTypes (CRO_Type* t) {
+  if (t->left != NULL) {
+    CRO_freeTypes(t->left);
+  }
+
+  if (t->right != NULL) {
+    CRO_freeTypes(t->right);
+  }
+
+  free(t);
+}
+
 void CRO_freeState (CRO_State *s) {
   unsigned int i;
 
@@ -482,8 +496,12 @@ void CRO_freeState (CRO_State *s) {
   /* FIXME: Reenable this for closures after testing */
   for(i = 0; i < s->cptr; i++){
     free(s->closures[i]->variables);
+    free(s->closures[i]);
   }
   free(s->closures);
+
+  /* TODO: Close all libraries */
+  free(s->libraries);
 
   /* Free our allocated memory */
   for (i = 0; i < s->allocptr; i++) {
@@ -491,6 +509,8 @@ void CRO_freeState (CRO_State *s) {
       s->allocations[i].free(s->allocations[i].memory);
   }
   free(s->allocations);
+
+  CRO_freeTypes(s->datatypes);
 
   free(s);
 }
@@ -528,7 +548,7 @@ void CRO_exposeFunction (CRO_State *s, const char *name, CRO_Value (*func)(CRO_S
   scope = s->scope;
 
   /* Finally add it to the variables */
-  scope->variables[scope->vptr++] = var;
+  scope->variables[scope->vptr] = var;
 
   scope->vptr++;
   if (scope->vptr >= scope->vsize) {
@@ -558,7 +578,7 @@ void CRO_exposePrimitiveFunction (CRO_State *s, const char *name, CRO_Value (*fu
   scope = s->scope;
 
   /* Finally add it to the variables */
-  scope->variables[scope->vptr++] = var;
+  scope->variables[scope->vptr] = var;
 
   scope->vptr++;
   if (scope->vptr >= scope->vsize) {
@@ -575,7 +595,7 @@ CRO_Closure *CRO_createClosure (CRO_State *s) {
   CRO_Variable *variables;
   
   c = (CRO_Closure*)malloc(sizeof(CRO_Closure));
-  
+
   c->vptr = 0;
   c->vsize = CRO_BUFFER_SIZE;
   
@@ -802,7 +822,6 @@ void CRO_GC (CRO_State *s) {
       found = 0;
       for (chkptr = 0; found == 0 && chkptr < s->cptr; chkptr++) {
         if (s->closures[chkptr]->depends == s->closures[cptr]) {
-          printf("Found depends\n");
           found = 1;
           break;
         }
@@ -911,7 +930,7 @@ void CRO_GC (CRO_State *s) {
 CRO_Value CRO_innerEval(CRO_State *s, char *src);
 
 CRO_Value CRO_callFunction (CRO_State *s, CRO_Value func, int argc, CRO_Value *argv) {
-  CRO_Value v, str;
+  CRO_Value v;
   int x;
 
   char lastExitContext;
@@ -926,6 +945,7 @@ CRO_Value CRO_callFunction (CRO_State *s, CRO_Value func, int argc, CRO_Value *a
     char *funcbody, *varname;
     int varnameptr, varcount, varnamesize;
     CRO_Variable argsconst;
+    CRO_Variable *argsRef;
     CRO_Value argsconstV;
     CRO_Closure *lastScope, *scope;
 
@@ -1018,6 +1038,7 @@ CRO_Value CRO_callFunction (CRO_State *s, CRO_Value func, int argc, CRO_Value *a
     argsconst.hash = CRO_genHash("ARGS");
 
     scope->variables[scope->vptr] = argsconst;
+    argsRef = &scope->variables[scope->vptr];
     scope->vptr++;
     if (scope->vptr >= scope->vsize) {
       scope->vsize *= 2;
@@ -1038,6 +1059,11 @@ CRO_Value CRO_callFunction (CRO_State *s, CRO_Value func, int argc, CRO_Value *a
     scope->active = 0;
     s->scope = lastScope;
 
+    /* Remove the search flag so we don't search dead memory */
+    /* The argv variable should be free'd after this */
+    /* This is a band-aid fix and I know it lol */
+    (*argsRef).value.flags = CRO_FLAG_CONSTANT;
+
 #ifdef CROWLANG_SCOPE_DEBUG
   printf("Scope is now %x (downgraded from %x)\n", s->scope, scope);
 #endif
@@ -1057,8 +1083,8 @@ CRO_Value CRO_callFunction (CRO_State *s, CRO_Value func, int argc, CRO_Value *a
 
 CRO_Value CRO_innerEval(CRO_State *s, char *src) {
   CRO_Value v;
-
   int ptr = 0;
+
   if (src == NULL) {
     raise(SIGINT);
   }
@@ -1087,10 +1113,13 @@ CRO_Value CRO_innerEval(CRO_State *s, char *src) {
     }
 
     if (func.type == CRO_PrimitiveFunction) {
-      char **argv;
+      char **primargv;
 
-      argv = (char**)malloc(64 * sizeof(char*));
-      argv[0] = fname;
+      /* We don't need this anymore since we will make a new one here */
+      free(argv);
+
+      primargv = (char**)malloc(64 * sizeof(char*));
+      primargv[0] = fname;
 
       while (!end) {
         /* TODO: Maybe make getWord use a buffer we supply, would cut down on allocations */
@@ -1098,7 +1127,7 @@ CRO_Value CRO_innerEval(CRO_State *s, char *src) {
 
 
         if (word[0] != 0) {
-          argv[1 + argc] =  word;
+          primargv[1 + argc] =  word;
 
           /* Maybe try to optimize this out */
           if (s->exitCode >= CRO_ErrorCode) {
@@ -1110,12 +1139,12 @@ CRO_Value CRO_innerEval(CRO_State *s, char *src) {
         }
       }
 
-      v = func.value.primitiveFunction(s, argc, argv);
+      v = func.value.primitiveFunction(s, argc, primargv);
 
-      for (; argc > 0; argc--) {
-        free(argv[argc]);
+      for (; argc >= 0; argc--) {
+        free(primargv[argc]);
       }
-      free(argv);
+      free(primargv);
       return v;
     }
 
@@ -1131,6 +1160,7 @@ CRO_Value CRO_innerEval(CRO_State *s, char *src) {
         /* Maybe try to optimize this out */
         if (s->exitCode >= CRO_ErrorCode) {
           CRO_toNone(v);
+          free(argv);
           return v;
         }
 
@@ -1146,9 +1176,7 @@ CRO_Value CRO_innerEval(CRO_State *s, char *src) {
     if (func.type == CRO_Function || func.type == CRO_LocalFunction) {
       CRO_toString(s, argv[0], fname);
       v = CRO_callFunction(s, func, argc, argv);
-
       free(argv);
-
       return v;
     }
     /* We have a call to a function in an object */
@@ -1174,11 +1202,10 @@ CRO_Value CRO_innerEval(CRO_State *s, char *src) {
 
         free(argv);
         free(methodName);
-        free(fname);
 
         return v;
       }
-
+      free(argv);
     }
 
     free(argv);

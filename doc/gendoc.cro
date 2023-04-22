@@ -1,0 +1,20 @@
+;; Generate markdown documentation from the documentation written in the header
+;; files of the Crow interpreter.
+
+(defvar indoc false)
+
+(defvar files-to-read (array
+	"../include/crow/data.h"
+	"../include/crow/funcond.h"
+	"../include/crow/math.h"
+	"../include/crow/io.h"
+	"../include/crow/string.h"
+	"../include/crow/system.h"
+))
+
+
+(each files-to-read (func (fname) 
+	(each (split (read (open fname "r")) "\n") (func (line)
+		(if 	(starts-with line "/**") (set indoc true)
+			(&& (starts-with line "*/") indoc) ({ (println "\n---\n") (set indoc false))
+			indoc (println line))))))

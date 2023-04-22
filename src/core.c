@@ -1050,7 +1050,7 @@ CRO_Value CRO_callFunction (CRO_State *s, CRO_Value func, int argc, CRO_Value *a
 
     /* Expose the 'this' argument for structures so that the function can access
      * the underlying class */
-    if (argv[0].type == CRO_Struct) {
+    if (argv != NULL && argv[0].type == CRO_Struct) {
       CRO_exposeVariable(s, "this", argv[0]);
     }
 

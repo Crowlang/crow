@@ -810,8 +810,14 @@ CRO_Value CRO_doTimes (CRO_State *s, int argc, CRO_Value *argv) {
 
         timesToCall = times.value.number;
 
+        if (func.type == CRO_LocalFunction)
+          CRO_toggleMemoryUse(s, func);
+
         for (i = 0; i < timesToCall; i++)
           v = CRO_callFunction(s, func, 0, NULL);
+
+        if (func.type == CRO_LocalFunction)
+          CRO_toggleMemoryUse(s, func);
       }
       else {
         CRO_toNone(v);

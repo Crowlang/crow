@@ -381,7 +381,7 @@ The `arccos` function returns the arccosine of the input number as a number in r
 (arccos 1) ;; returns 0
 (arccos 0) ;; returns pi/2
 ```
-*/
+*/
 CRO_Value CRO_arccos(CRO_State *s, int argc, CRO_Value *argv);
 
 /**

@@ -11,7 +11,8 @@
 #if defined(CROW_PLATFORM_UNIX)
   #include <dirent.h>
 #elif defined(CROW_PLATFORM_WIN32)
-  
+  #include <Windows.h>
+  #pragma comment(lib, "User32.lib")
 #endif
 
 CRO_Value CRO_import (CRO_State *s, int argc, CRO_Value *argv) {
@@ -475,9 +476,64 @@ CRO_Value CRO_dir (CRO_State *s, int argc, CRO_Value *argv) {
     closedir(dir);
     return ret;
   }
-  #elif defined(CROW_PLATFORM_WINDOWS)
+  #elif defined(CROW_PLATFORM_WIN32)
   if (argc == 1) {
+    CRO_Value dirstr, *array;
+    int arrayPtr, arraySize;
+    WIN32_FIND_DATA ffd;
+    HANDLE hand = INVALID_HANDLE_VALUE;
+    char *appendedString;
+
+    dirstr = argv[1];
+
+    if (dirstr.type != CRO_String) {
+      printf("Error\n");
+      return ret;
+    }
+
+    appendedString = (char*)malloc((strlen(dirstr.value.string) + 4) * sizeof(char));
+    strcpy(appendedString, dirstr.value.string);
+    strcpy(&appendedString[strlen(dirstr.value.string)], "\\*");
+
+    arraySize = CRO_BUFFER_SIZE;
+    arrayPtr = 0;
+    array = malloc(arraySize * sizeof(CRO_Value));
+
+    /* Get the first file handle */
+    hand = FindFirstFile(appendedString, &ffd);
+
+    /* We no longer need appendedString */
+    free(appendedString);
+
+    if (INVALID_HANDLE_VALUE == hand) {
+      printf("Error\n");
+      CRO_toNone(ret);
+      return ret;
+    }
+
+    /* Loop through every file and add it to the array */
+    do {
+      CRO_Value str;
+      
+      CRO_toString(s, str, CRO_cloneStr(ffd.cFileName));
+      array[arrayPtr++] = str;
+      if (arrayPtr >= arraySize) {
+        arraySize *= 2;
+        array = (CRO_Value*)realloc(array, arraySize * sizeof(CRO_Value));
+      }
+      
+
+
+    } while (FindNextFile(hand, &ffd) != 0);
     
+    FindClose(hand);
+
+    ret.type = CRO_Array;
+    ret.value.array = array;
+    ret.arraySize = arrayPtr;
+    ret.allotok = CRO_malloc(s, array, free);
+
+    return ret;
   }
   #else
   if (0) {

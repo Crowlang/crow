@@ -9,6 +9,8 @@
 
 #if defined(CROW_PLATFORM_UNIX)
 #include <dlfcn.h>
+#elif defined(CROW_PLATFORM_WIN32)
+#include <Windows.h>
 #endif
 
 CRO_Value CRO_sh (CRO_State *s, int argc, CRO_Value *argv) {
@@ -159,6 +161,23 @@ CRO_Value CRO_loadLibrary (CRO_State *s, int argc, CRO_Value *argv) {
         CRO_toNone(ret);
         return ret;
       }
+#elif defined(CROW_PLATFORM_WIN32)
+      HINSTANCE* lib;
+
+      lib = malloc(sizeof(HINSTANCE));
+
+      (*lib) = LoadLibrary(argv[1].value.string);
+
+      if (!lib) {
+        CRO_toNone(ret);
+        return ret;
+      }
+      else {
+        s->libraries[s->libptr++] = (void*)lib;
+        CRO_toPointerType(ret, CRO_Library, lib);
+
+        return ret;
+      }
 #endif
     }
   }
@@ -188,6 +207,28 @@ CRO_Value CRO_getFunction (CRO_State *s, int argc, CRO_Value *argv) {
           CRO_toNone(ret);
           return ret;
         }
+#elif defined(CROW_PLATFORM_WIN32)
+        CRO_C_Function* fun;
+        HINSTANCE hin, *hinptr;
+
+        hinptr = (HINSTANCE*)argv[1].value.pointer;
+        hin = *hinptr;
+
+        fun = (CRO_C_Function*)GetProcAddress(hin, argv[2].value.string);
+        
+        if (fun != NULL) {
+          ret.type = CRO_Function;
+          ret.flags = CRO_FLAG_NONE;
+          ret.allotok = 0;
+          ret.value.function = fun;
+
+          return ret;
+        }
+        else {
+          CRO_toNone(ret);
+          return ret;
+        }
+
 #endif
       }
       else {

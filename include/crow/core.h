@@ -8,6 +8,8 @@ extern char *errorMsg;
 
 extern void (*CRO_printValue[64])(CRO_Value);
 
+char *getWord(char* src, int* ptr, int* end);
+
 CRO_State *CRO_createState(void);
 void CRO_exposeStandardFunctions(CRO_State *s);
 void CRO_exposeArguments (CRO_State *s, int argc, char **argv);

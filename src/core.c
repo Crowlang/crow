@@ -442,6 +442,8 @@ void CRO_exposeStandardFunctions (CRO_State *s) {
   CRO_exposeFunction(s, "<", CRO_lessThan);
   CRO_exposePrimitiveFunction(s, "defined", CRO_defined);
   CRO_exposePrimitiveFunction(s, "if", CRO_if);
+  CRO_exposePrimitiveFunction(s, "when", CRO_when);
+  CRO_exposePrimitiveFunction(s, "cond", CRO_cond);
   CRO_exposeFunction(s, "!", CRO_not);
   CRO_exposeFunction(s, "not", CRO_not);
   CRO_exposeFunction(s, "each", CRO_each);
@@ -636,7 +638,7 @@ void CRO_exposeVariable (CRO_State *s, const char *name, CRO_Value v) {
 
 }
 
-static char *getWord (char *src, int *ptr, int *end) {
+char *getWord (char *src, int *ptr, int *end) {
   char *ret;
   int rptr, size, paren, inQuotes;
 

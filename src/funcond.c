@@ -462,6 +462,80 @@ CRO_Value CRO_if (CRO_State *s, int argc, char **argv) {
   return v;
 }
 
+CRO_Value CRO_when (CRO_State *s, int argc, char **argv) {
+  int x;
+  CRO_Value v, cond;
+
+  if (argc < 2) {
+    printf("Error");
+  }
+
+  cond = CRO_innerEval(s, argv[1]);
+
+  if (cond.type == CRO_Bool) {
+    if (cond.value.integer) {
+      for (x = 2; x <= argc; x++) {
+        v = CRO_innerEval(s, argv[x]);
+      }
+      return v;
+    }
+  }
+  else {
+    printf("Error: not a boolean\n");
+  }
+  CRO_toNone(v);
+  return v;
+}
+
+CRO_Value CRO_cond(CRO_State *s, int argc, char **argv) {
+  int x;
+  CRO_Value v;
+
+  for (x = 1; x <= argc; x++) {
+    if (argv[x][0] == '(') {
+      CRO_Value condition;
+      char* word;
+      int ptr, isEnd;
+
+      ptr = 1;
+      isEnd = 0;
+      word = getWord(argv[x], &ptr, &isEnd);
+      
+      if (x == argc) {
+        if (strcmp(word, "else") == 0) {
+          CRO_toBoolean(condition, 1);
+        }
+        else {
+          condition = CRO_innerEval(s, word);
+        }
+      }
+      else {
+        condition = CRO_innerEval(s, word);
+      }
+
+      free(word);
+      
+      if (condition.type == CRO_Bool) {
+        if (condition.value.integer) {
+          size_t len = strlen(argv[x]);
+          
+          /* Remove the ending ) before executing*/
+          argv[x][len - 1] = 0;
+
+          v = CRO_eval(s, &argv[x][ptr]);
+          return v;
+        }
+      }
+      else {
+        printf("Error\n");
+      }
+      
+    }
+  }
+  CRO_toNone(v);
+  return v;
+}
+
 CRO_Value CRO_not (CRO_State *s, int argc, CRO_Value *argv) {
   CRO_Value ret;
   if (argc == 1) {
@@ -698,20 +772,24 @@ CRO_Value CRO_while (CRO_State *s, int argc, char **argv) {
   lastExitContext = s->exitContext;
   s->exitContext = CRO_BreakCode;
   
-  if (argc == 2) {
+  CRO_toNone(ret);
+
+  if (argc >= 2) {
     cond = CRO_innerEval(s, argv[1]);
     
     while (cond.type == CRO_Bool && cond.value.integer) {
-      ret = CRO_innerEval(s, argv[2]);
-      
-      if (s->exitCode >= s->exitContext) {
-        if (s->exitCode == s->exitContext) {
-          s->exitCode = 0;
-        }
-        
-        break;
-      }
+      int x;
 
+      for (x = 2; x <= argc; x++)
+        ret = CRO_innerEval(s, argv[x]);
+
+        if (s->exitCode >= s->exitContext) {
+          if (s->exitCode == s->exitContext) {
+            s->exitCode = 0;
+          }
+
+          break;
+        }
       CRO_callGC(s);
       cond = CRO_innerEval(s, argv[1]);
     }
@@ -720,7 +798,7 @@ CRO_Value CRO_while (CRO_State *s, int argc, char **argv) {
     char *err;
     err = malloc(128 * sizeof(char));
     
-    sprintf(err, "(%s): Expected 3 arguements. (%d given)", argv[0], argc);
+    sprintf(err, "(%s): Expected at least 2 arguements. (%d given)", argv[0], argc);
     ret = CRO_error(s, err);
     
   }
@@ -736,31 +814,34 @@ CRO_Value CRO_doWhile (CRO_State *s, int argc, char **argv) {
   lastExitContext = s->exitContext;
   s->exitContext = CRO_BreakCode;
   
-  if (argc == 2) {
+  if (argc >= 2) {
     
     
     do {
+      int x;
       
-      ret = CRO_innerEval(s, argv[1]);
-      
-      
-      if (s->exitCode >= s->exitContext) {
-        if (s->exitCode == s->exitContext) {
-          s->exitCode = 0;
+      for (x = 1; x < argc; x++) {
+        ret = CRO_innerEval(s, argv[x]);
+
+
+        if (s->exitCode >= s->exitContext) {
+          if (s->exitCode == s->exitContext) {
+            s->exitCode = 0;
+          }
+
+          break;
         }
-        
-        break;
       }
       CRO_callGC(s);
       
-      cond = CRO_innerEval(s, argv[2]);
+      cond = CRO_innerEval(s, argv[argc]);
     } while(cond.type == CRO_Bool && cond.value.integer);
   }
   else {
     char *err;
     err = malloc(128 * sizeof(char));
     
-    sprintf(err, "(%s): Expected 3 arguements. (%d given)", argv[0], argc);
+    sprintf(err, "(%s): Expected at least 2 arguements. (%d given)", argv[0], argc);
     ret = CRO_error(s, err);
     
   }
@@ -772,21 +853,25 @@ CRO_Value CRO_doWhile (CRO_State *s, int argc, char **argv) {
 CRO_Value CRO_loop (CRO_State *s, int argc, char **argv) {
   CRO_Value ret;
   char lastExitContext;
+  int run = 1;
   
   lastExitContext = s->exitContext;
   s->exitContext = CRO_BreakCode;
   
-  while (1) {
+  while (run) {
+    int x;
     
-    ret = CRO_innerEval(s, argv[1]);
-    
-    if (s->exitCode >= s->exitContext) {
-      if (s->exitCode == s->exitContext) {
-        s->exitCode = 0;
+    for (x = 1; x <= argc; x++) {
+      ret = CRO_innerEval(s, argv[x]);
+
+      if (s->exitCode >= s->exitContext) {
+        if (s->exitCode == s->exitContext) {
+          s->exitCode = 0;
+        }
+        run = 0;
+        break;
       }
-      break;
     }
-    
     
     CRO_callGC(s);
   }

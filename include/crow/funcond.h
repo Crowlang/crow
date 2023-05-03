@@ -323,6 +323,36 @@ Note: The `if` function can be used with any number of pairs of boolean expressi
 CRO_Value CRO_if(CRO_State*s, int argc, char **argv);
 
 /**
+## when
+
+`when: Boolean Expression...`
+
+The `when` function is passed a boolean statement as the first argument and executes the list of expressions if the statement is true.
+
+### Syntax
+`(when condition expression...)`
+
+### Paramates
+- `condition` - a required paramater that specifies a condition as to whether or not the following expressions should run.
+- `expression` - a required parameter(s) that specifies the expression(s) to run if the condition is true.
+
+### Return Value
+The `when` function returns the value of the last expression evaluated in the body.
+
+### Example Usage
+```
+(when (= x 5) 
+  (println "X is 5"))
+
+(when true
+  (println "This always runs"))
+```
+*/
+CRO_Value CRO_when(CRO_State* s, int argc, char** argv);
+
+CRO_Value CRO_cond(CRO_State* s, int argc, char** argv);
+
+/**
 ## ! or not
 
 `!: Boolean -> Boolean`  or  `not: Boolean -> Boolean`

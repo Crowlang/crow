@@ -1382,7 +1382,6 @@ CRO_Value CRO_eval (CRO_State *s, char *src) {
 
       c = src[srcptr++];;
       lsp = 1;
-      state = CC_NONE;
       continue;
     }
 
@@ -1569,7 +1568,6 @@ CRO_Value CRO_evalFile (CRO_State *s, FILE *src) {
 
       c = fgetc(src);
       lsp = 1;
-      state = CC_NONE;
       continue;
     }
 

@@ -94,7 +94,7 @@ int main (int argc, char *argv[]) {
   else {
     FILE *src;
     CRO_Value v;
-    int c, paren, state, lsp, ptr, size, com, le, sc;
+    int c, paren, state, lsp, ptr, size, com, le, sc, fromState;
 
 
     execType = 2;
@@ -106,6 +106,7 @@ int main (int argc, char *argv[]) {
     com = 0;
     paren = 0;
     state = CC_NONE;
+    fromState = CC_NONE;
     lsp = 1;
     le = 0;
     sc = 0;
@@ -205,6 +206,12 @@ int main (int argc, char *argv[]) {
           if (c == '(') {
             paren += 1;
           }
+          /* If we encounter a string, we temporarly set our state to CC_STRING */
+          else if(c == '\"' || c == '\'') {
+            state = CC_STRING;
+            fromState = CC_STATEMENT;
+            sc = c;
+          }
           else if (c == ')') {
             paren -= 1;
 
@@ -250,7 +257,11 @@ int main (int argc, char *argv[]) {
            * ever started the string, then we are at the end of the string and
            * are safe to start executing */
           else if (le == 0 && c == sc) {
-            state = CC_EXEC;
+            /* If we are coming from somewhere */
+            if (fromState != CC_NONE) state = fromState;
+
+            /* Otherwise execute the string */
+            else state = CC_EXEC;
           }
           /* If we have a new line, it will print that way in the console, so
            * we make sure to visually indicate that */
@@ -290,6 +301,7 @@ int main (int argc, char *argv[]) {
 #endif
 
           state = CC_NONE;
+          fromState = CC_NONE;
           printf("%% ");
           fflush(stdout);
         }

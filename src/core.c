@@ -16,6 +16,7 @@
 
 #ifdef CROW_PLATFORM_WIN32
   #include <windows.h>
+
   HANDLE hConsole;
   WORD saved_attributes;
 #endif
@@ -668,7 +669,7 @@ char *getWord (char *src, int *ptr, int *end) {
     /* If we are in quotes ("") we need to parse everything literally */
     if (inQuotes) {
       /* Are we at the end of the string? */
-      if (src[(*ptr)] == '\"') {
+      if ((src[(*ptr)] == '\"' || src[(*ptr)] == '\'') && src[(*ptr) - 1] != '\\') {
         /* Yes, we can safely exit */
         inQuotes = 0;
       }
@@ -694,7 +695,8 @@ char *getWord (char *src, int *ptr, int *end) {
     }
 
     /* We have encountered a string, so make sure we treat it as such */
-    else if (src[(*ptr)] == '\"') {
+    /* Also make sure the string isnt an escape character */
+    else if ((src[(*ptr)] == '\"' || src[(*ptr)] == '\'') && src[(*ptr) - 1] != '\\') {
       inQuotes = 1;
       ret[rptr++] = src[(*ptr)];
     }
@@ -1343,12 +1345,13 @@ CRO_Value CRO_innerEval(CRO_State *s, char *src) {
 
 CRO_Value CRO_eval (CRO_State *s, char *src) {
   CRO_Value v;
-  int c, paren, state, ptr, size, com, lsp, le, sc, srcptr;
+  int c, paren, state, ptr, size, com, lsp, le, sc, srcptr, fromState;
   char *input;
 
   com = 0;
   paren = 0;
   state = CC_NONE;
+  fromState = CC_NONE;
   lsp = 1;
   srcptr = 0;
 
@@ -1438,6 +1441,12 @@ CRO_Value CRO_eval (CRO_State *s, char *src) {
         if (c == '(') {
           paren += 1;
         }
+        /* If we encounter a string, we temporarly set our state to CC_STRING */
+        else if(c == '\"' || c == '\'') {
+          state = CC_STRING;
+          fromState = CC_STATEMENT;
+          sc = c;
+        }
         else if (c == ')') {
           paren -= 1;
 
@@ -1476,7 +1485,11 @@ CRO_Value CRO_eval (CRO_State *s, char *src) {
          * ever started the string, then we are at the end of the string and
          * are safe to start executing */
         else if (le == 0 && c == sc) {
-          state = CC_EXEC;
+          /* If we are coming from somewhere */
+          if (fromState != CC_NONE) state = fromState;
+
+          /* Otherwise execute the string */
+          else state = CC_EXEC;
         }
 
       }
@@ -1501,6 +1514,7 @@ CRO_Value CRO_eval (CRO_State *s, char *src) {
         CRO_callGC(s);
 
         state = CC_NONE;
+        fromState = CC_NONE;
       }
       continue;
 
@@ -1531,12 +1545,13 @@ CRO_Value CRO_eval (CRO_State *s, char *src) {
 
 CRO_Value CRO_evalFile (CRO_State *s, FILE *src) {
   CRO_Value v;
-  int c, paren, state, ptr, size, com, lsp, le, sc;
+  int c, paren, state, ptr, size, com, lsp, le, sc, fromState;
   char *input;
 
   com = 0;
   paren = 0;
   state = CC_NONE;
+  fromState = CC_NONE;
   lsp = 1;
 
   size = CRO_BUFFER_SIZE;
@@ -1624,6 +1639,12 @@ CRO_Value CRO_evalFile (CRO_State *s, FILE *src) {
         if (c == '(') {
           paren += 1;
         }
+        /* If we encounter a string, we temporarly set our state to CC_STRING */
+        else if(c == '\"' || c == '\'') {
+          state = CC_STRING;
+          fromState = CC_STATEMENT;
+          sc = c;
+        }
         else if (c == ')') {
           paren -= 1;
 
@@ -1662,7 +1683,11 @@ CRO_Value CRO_evalFile (CRO_State *s, FILE *src) {
          * ever started the string, then we are at the end of the string and
          * are safe to start executing */
         else if (le == 0 && c == sc) {
-          state = CC_EXEC;
+          /* If we are coming from somewhere */
+          if (fromState != CC_NONE) state = fromState;
+
+          /* Otherwise execute the string */
+          else state = CC_EXEC;
         }
 
       }
@@ -1685,6 +1710,7 @@ CRO_Value CRO_evalFile (CRO_State *s, FILE *src) {
         CRO_callGC(s);
 
         state = CC_NONE;
+        fromState = CC_NONE;
       }
       continue;
 

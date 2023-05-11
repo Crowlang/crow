@@ -433,6 +433,7 @@ void CRO_exposeStandardFunctions (CRO_State *s) {
   CRO_exposePrimitiveFunction(s, "->", CRO_subroutine);
   CRO_exposePrimitiveFunction(s, "block", CRO_block);
   CRO_exposePrimitiveFunction(s, "{", CRO_block);
+  CRO_exposePrimitiveFunction(s, "local", CRO_local);
   CRO_exposeFunction(s, "&&", CRO_andand);
   CRO_exposeFunction(s, "all-true", CRO_andand);
   CRO_exposeFunction(s, "||", CRO_oror);
@@ -1353,6 +1354,8 @@ CRO_Value CRO_eval (CRO_State *s, char *src) {
   state = CC_NONE;
   fromState = CC_NONE;
   lsp = 1;
+  le = 0;
+  sc = 0;
   srcptr = 0;
 
   size = CRO_BUFFER_SIZE;
@@ -1363,7 +1366,6 @@ CRO_Value CRO_eval (CRO_State *s, char *src) {
 
   /* Run for as long as we aren't hitting EOF */
   while (running && c != 0) {
-
     if (com != 2 && c == ';') {
       com++;
     }
@@ -1441,12 +1443,6 @@ CRO_Value CRO_eval (CRO_State *s, char *src) {
         if (c == '(') {
           paren += 1;
         }
-        /* If we encounter a string, we temporarly set our state to CC_STRING */
-        else if(c == '\"' || c == '\'') {
-          state = CC_STRING;
-          fromState = CC_STATEMENT;
-          sc = c;
-        }
         else if (c == ')') {
           paren -= 1;
 
@@ -1454,6 +1450,12 @@ CRO_Value CRO_eval (CRO_State *s, char *src) {
           if (paren == 0) {
             state = CC_EXEC;
           }
+        }
+        /* If we encounter a string, we temporarly set our state to CC_STRING */
+        else if(c == '\"' || c == '\'') {
+          state = CC_STRING;
+          fromState = CC_STATEMENT;
+          sc = c;
         }
       }
       break;
@@ -1552,6 +1554,7 @@ CRO_Value CRO_evalFile (CRO_State *s, FILE *src) {
   paren = 0;
   state = CC_NONE;
   fromState = CC_NONE;
+  le = 0;
   lsp = 1;
 
   size = CRO_BUFFER_SIZE;
@@ -1562,7 +1565,6 @@ CRO_Value CRO_evalFile (CRO_State *s, FILE *src) {
 
   /* Run for as long as we aren't hitting EOF */
   while (running && c != EOF) {
-
     if (com != 2 && c == ';') {
       com++;
     }
@@ -1639,20 +1641,20 @@ CRO_Value CRO_evalFile (CRO_State *s, FILE *src) {
         if (c == '(') {
           paren += 1;
         }
+        else if (c == ')') {
+          paren -= 1;
+          /* If we reached zero, we know we can start executing */
+          if (paren == 0) {
+            state = CC_EXEC;
+          }
+        }
         /* If we encounter a string, we temporarly set our state to CC_STRING */
         else if(c == '\"' || c == '\'') {
           state = CC_STRING;
           fromState = CC_STATEMENT;
           sc = c;
         }
-        else if (c == ')') {
-          paren -= 1;
 
-          /* If we reached zero, we know we can start executing */
-          if (paren == 0) {
-            state = CC_EXEC;
-          }
-        }
       }
       break;
 

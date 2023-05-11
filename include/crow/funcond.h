@@ -30,6 +30,8 @@ CRO_Value CRO_defun(CRO_State *s, int argc, char **argv);
 
 CRO_Value CRO_block(CRO_State *s, int argc, char **argv);
 
+CRO_Value CRO_local (CRO_State *s, int argc, char **argv);
+
 /**
 ## func or =>
 

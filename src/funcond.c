@@ -45,6 +45,53 @@ CRO_Value CRO_block (CRO_State *s, int argc, char**argv) {
   return v;
 }
 
+CRO_Value CRO_local (CRO_State *s, int argc, char **argv) {
+  CRO_Value v;
+
+
+  if (argc >= 2) {
+    CRO_Closure *lastScope, *scope;
+    char *definitions;
+    int x;
+
+    lastScope = s->scope;
+    scope = CRO_createClosure(s);
+    s->scope = scope;
+
+    scope->active = 1;
+    scope->depends = lastScope;
+
+    /* Remove the ( and ) from the front and end of the definiton section */
+    definitions = &argv[1][1];
+    definitions[strlen(definitions) - 1] = 0;
+
+    CRO_eval(s, definitions);
+
+    for (x = 2; x <= argc; x++) {
+
+      v = CRO_eval(s, argv[x]);
+
+      if (s->exitCode >= s->exitContext) {
+        if (s->exitCode == s->exitContext) {
+          s->exitCode = 0;
+        }
+        break;
+      }
+
+    }
+
+    scope->active = 0;
+    s->scope = lastScope;
+
+    return v;
+  }
+  else {
+    printf("Expected at least 2 arguments\n");
+    CRO_toNone(v);
+    return v;
+  }
+}
+
 CRO_Value CRO_func (CRO_State *s, int argc, char **argv) {
   CRO_Value v;
   char *args, *body;
@@ -780,18 +827,19 @@ CRO_Value CRO_while (CRO_State *s, int argc, char **argv) {
     while (cond.type == CRO_Bool && cond.value.integer) {
       int x;
 
-      for (x = 2; x <= argc; x++)
+      for (x = 2; x <= argc; x++) {
         ret = CRO_innerEval(s, argv[x]);
-
+        
         if (s->exitCode >= s->exitContext) {
           if (s->exitCode == s->exitContext) {
             s->exitCode = 0;
           }
-
+          
           break;
         }
-      CRO_callGC(s);
-      cond = CRO_innerEval(s, argv[1]);
+        CRO_callGC(s);
+        cond = CRO_innerEval(s, argv[1]);
+      }
     }
   }
   else {

@@ -30,7 +30,7 @@ typedef unsigned long allotok_t;
 
 typedef hash_t CRO_TypeDescriptor;
 
-typedef char* (CRO_ToString_Function)(struct CRO_Value v);
+typedef char* (CRO_ToString_Function)(struct CRO_State *s, struct CRO_Value v);
 typedef void (CRO_FreeData_Function)(void*);
 typedef unsigned char (CRO_Search_Function)(struct CRO_State* s, struct CRO_Value v, allotok_t t);
 typedef void (CRO_ToggleUse_Function)(struct CRO_State* s, struct CRO_Value v);
@@ -147,24 +147,27 @@ typedef struct CRO_State {
 #ifdef _CROWLANG_USE_COLOR
 
   #ifdef _CROWLANG_USE_VT
+    #define CRO_Color unsigned int
 
-    #define RESET "0"
-    #define BLACK "30"
-    #define RED "31"
-    #define GREEN "32"
-    #define YELLOW "33"
-    #define BLUE "34"
-    #define MAGENTA "35"
-    #define CYAN "36"
-    #define WHITE "37"
+    #define RESET 0
+    #define BLACK 30
+    #define RED 31
+    #define GREEN 32
+    #define YELLOW 33
+    #define BLUE 34
+    #define MAGENTA 35
+    #define CYAN 36
+    #define WHITE 37
 
-    #define GREY "90"
+    #define GREY 90
 
-    #define CRO_setColor(x) printf("\033[%sm", x)
+    #define CRO_setColor(x) printf("\033[%dm", x)
     #define CRO_initColor() ;;
   #elif defined(CROW_PLATFORM_WIN32)
+
+    #define CRO_Color unsigned int
     #define RESET saved_attributes
-    #define BLACK "30"
+    #define BLACK 0
     #define RED FOREGROUND_RED
     #define GREEN FOREGROUND_GREEN
     #define YELLOW FOREGROUND_RED | FOREGROUND_GREEN
@@ -173,7 +176,7 @@ typedef struct CRO_State {
     #define CYAN FOREGROUND_BLUE | FOREGROUND_GREEN
     #define WHITE FOREGROUND_BLUE | FOREGROUND_RED | FOREGROUND_GREEN
 
-    #define GREY "90"
+    #define GREY FOREGROUND_BLUE | FOREGROUND_RED | FOREGROUND_GREEN
 
     #define CRO_initColor() {\
         CONSOLE_SCREEN_BUFFER_INFO consoleInfo;\

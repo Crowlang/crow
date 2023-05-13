@@ -6,7 +6,8 @@
 extern int running;
 extern char *errorMsg;
 
-extern void (*CRO_printValue[64])(CRO_Value);
+void CRO_exposeType (CRO_State *s, CRO_TypeDescriptor type, const char* name, CRO_ToString_Function *print, CRO_Color col);
+void CRO_exposeGCType (CRO_State *s, CRO_TypeDescriptor type, const char* name, CRO_ToString_Function *print, CRO_Color col, CRO_FreeData_Function *free, CRO_Search_Function *search, CRO_ToggleUse_Function *use);
 
 char *getWord(char* src, int* ptr, int* end);
 
@@ -17,7 +18,7 @@ void CRO_freeState(CRO_State *s);
 
 CRO_Closure *CRO_createClosure (CRO_State *s);
 
-char* CRO_printStd(CRO_Value v);
+char* CRO_printStd(CRO_State *s, CRO_Value v);
 
 CRO_Value CRO_callFunction(CRO_State *s, CRO_Value func, int argc, CRO_Value *argv);
 
@@ -31,6 +32,7 @@ char *CRO_cloneStr(const char *str);
 allotok_t CRO_malloc(CRO_State *s, void *memory, CRO_FreeData_Function *free);
 void CRO_toggleMemoryUse (CRO_State *s, CRO_Value v);
 void CRO_GC(CRO_State *s);
+CRO_Type *CRO_getType(CRO_State *s, CRO_TypeDescriptor t);
 
 void CRO_freeFile (void* v);
 

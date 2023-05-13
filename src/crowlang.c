@@ -291,7 +291,16 @@ int main (int argc, char *argv[]) {
             s->exitCode = CRO_None;
           }
 
-          CRO_printStd(v);
+          {
+            CRO_Type *t;
+            char *out;
+            t = CRO_getType(s, v.type);
+            CRO_setColor(t->color);
+            out = t->toString(s, v);
+            puts(out);
+            free(out);
+            CRO_setColor(RESET);
+          }
 
           ptr = 0;
           lsp = 1;

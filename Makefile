@@ -6,7 +6,7 @@ CFLAGS += -I include/
 CFLAGS += -DCROWLANG_PEDANTIC_UTF8 -DCROWLANG_USE_UTF8
 
 # General optimizations for release builds
-CFLAGS += -O2
+#CFLAGS += -O2
 
 # Only enable these if you are building for your system and only your system
 # also only if you are using gcc

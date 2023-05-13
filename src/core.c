@@ -42,10 +42,6 @@ void CRO_printError (void) {
   return;
 }
 
-void (*CRO_printValue[64])(CRO_Value);
-void (*CRO_freeValue[64])(CRO_Value);
-unsigned int PVptr = 2;
-
 static void CRO_exposeTypeInner (CRO_State *s, CRO_Type *toAdd) {
   CRO_Type *t;
 
@@ -77,17 +73,22 @@ static void CRO_exposeTypeInner (CRO_State *s, CRO_Type *toAdd) {
   }
 }
 
-void CRO_exposeType (CRO_State *s, CRO_TypeDescriptor type, const char* name, CRO_ToString_Function *print) {
+void CRO_exposeType (CRO_State *s, CRO_TypeDescriptor type, const char* name, CRO_ToString_Function *print, CRO_Color col) {
   CRO_Type *toAdd;
 
+  /* Allocate our new type */
   toAdd = (CRO_Type*) malloc(sizeof(CRO_Type));
+
+  /* Add the hash of the type, the name of the type as a string, and the color to color it when its printed */
   toAdd->hash = type;
   toAdd->name = name;
-  toAdd->color = 0;
+  toAdd->color = col;
 
+  /* Now add our functions to print, */
   toAdd->toString = print;
   toAdd->free = NULL;
   toAdd->search = NULL;
+  toAdd->toggleUse = NULL;
 
   toAdd->left = NULL;
   toAdd->right = NULL;
@@ -95,13 +96,13 @@ void CRO_exposeType (CRO_State *s, CRO_TypeDescriptor type, const char* name, CR
   CRO_exposeTypeInner(s, toAdd);
 }
 
-void CRO_exposeGCType (CRO_State *s, CRO_TypeDescriptor type, const char* name, CRO_ToString_Function *print, CRO_FreeData_Function *free, CRO_Search_Function *search, CRO_ToggleUse_Function *use){
+void CRO_exposeGCType (CRO_State *s, CRO_TypeDescriptor type, const char* name, CRO_ToString_Function *print, CRO_Color col, CRO_FreeData_Function *free, CRO_Search_Function *search, CRO_ToggleUse_Function *use){
   CRO_Type *toAdd;
 
   toAdd = (CRO_Type*) malloc(sizeof(CRO_Type));
   toAdd->hash = type;
   toAdd->name = name;
-  toAdd->color = 0;
+  toAdd->color = col;
 
   toAdd->toString = print;
   toAdd->free = free;
@@ -158,7 +159,7 @@ void CRO_exposeArguments (CRO_State *s, int argc, char **argv) {
 
 }
 
-static CRO_Type *CRO_getType(CRO_State *s, CRO_TypeDescriptor t) {
+CRO_Type *CRO_getType(CRO_State *s, CRO_TypeDescriptor t) {
   CRO_Type *r;
   r = s->datatypes;
 
@@ -178,51 +179,76 @@ static CRO_Type *CRO_getType(CRO_State *s, CRO_TypeDescriptor t) {
 }
 
 /* TODO: Replace with a standard toString function */
-char* CRO_printStd (CRO_Value v) {
+char* CRO_printStd (CRO_State *s, CRO_Value v) {
     if (v.type == CRO_Undefined) {
-      CRO_setColor(YELLOW);
-      printf("Undefined\n");
+      return strdup("Undefined");
     }
     else if (v.type == CRO_Number) {
-      CRO_setColor(GREEN);
-      printf("%.15g\n", v.value.number);
+      char *ret;
+      ret = malloc(32 * sizeof(char));
+      sprintf(ret, "%.15g", v.value.number);
+      return ret;
     }
     else if (v.type == CRO_Function || v.type == CRO_LocalFunction || v.type == CRO_PrimitiveFunction) {
-      CRO_setColor(CYAN);
-      printf("Function\n");
+      return strdup("Function");
     }
     else if (v.type == CRO_Library) {
-      CRO_setColor(CYAN);
-      printf("Library\n");
+      return strdup("Library");
     }
     else if (v.type == CRO_String) {
-      CRO_setColor(MAGENTA);
-      printf("\"%s\"\n", v.value.string);
+      char *ret;
+      ret = malloc((strlen(v.value.string) + 3) * sizeof(char));
+      sprintf(ret, "\"%s\"", v.value.string);
+      return ret;
     }
     else if (v.type == CRO_Array) {
-      CRO_setColor(MAGENTA);
-      printf("Array []\n");
+      char *ret;
+      size_t retlen;
+      int x;
+
+      retlen = 10;
+      ret = malloc(retlen * sizeof(char));
+      strcat(ret, "(array");
+      /* TODO: Make this faster */
+      for (x = 0; x < v.arraySize; x++) {
+        CRO_Type *t;
+        char *str;
+
+        /* Append a string as a separater */
+        strcat(ret, " ");
+
+        /* Get the type of the value of the array so we know how to print it */
+        t = CRO_getType(s, v.value.array[x].type);
+        str = t->toString(s, v.value.array[x]);
+        retlen += strlen(str) + 1;
+
+        /* Add the new string to the end of the array string */
+        ret = realloc(ret, retlen);
+        strcat(ret, str);
+        free(str);
+      }
+
+      strcat(ret, ")");
+
+      return ret;
+
     }
     else if (v.type == CRO_Struct) {
-      CRO_setColor(MAGENTA);
-      printf("Struct {}\n");
+      return strdup("Struct {}");
     }
     else if (v.type == CRO_FileDescriptor) {
-      CRO_setColor(CYAN);
-      printf("File\n");
+      return strdup("File");
     }
     else if (v.type == CRO_Bool) {
-      CRO_setColor(GREEN);
       if (v.value.integer == 1) {
-        printf("true\n");
+        return strdup("true");
       }
       else {
-        printf("false\n");
+        return strdup("false");
       }
     }
 
-  CRO_setColor(RESET);
-  return "Working on it!";
+  return strdup("Working on it!");
 }
 
 void CRO_toggleMemoryUse (CRO_State *s, CRO_Value v) {
@@ -334,17 +360,17 @@ CRO_State *CRO_createState (void) {
   s->datatypes = NULL;
 
 
-  CRO_exposeType(s, CRO_Undefined, "Undefined", CRO_printStd);
-  CRO_exposeType(s, CRO_Number, "Number", CRO_printStd);
-  CRO_exposeType(s, CRO_Bool, "Bool", CRO_printStd);
-  CRO_exposeType(s, CRO_Function, "Function", CRO_printStd);
-  CRO_exposeGCType(s, CRO_LocalFunction, "Function", CRO_printStd, free, NULL, NULL);
-  CRO_exposeType(s, CRO_PrimitiveFunction, "Primitive Function", CRO_printStd);
-  CRO_exposeGCType(s, CRO_Array, "Array", CRO_printStd, free, CRO_searchStd, CRO_stdToggleUse);
-  CRO_exposeGCType(s, CRO_String, "String", CRO_printStd, free, NULL, NULL);
-  CRO_exposeGCType(s, CRO_Struct, "Struct", CRO_printStd, free, CRO_searchStd, CRO_stdToggleUse);
-  CRO_exposeGCType(s, CRO_FileDescriptor, "File", CRO_printStd, CRO_freeFile, NULL, NULL);
-  CRO_exposeGCType(s, CRO_Library, "Library", CRO_printStd, NULL, NULL, NULL);
+  CRO_exposeType(s, CRO_Undefined, "Undefined", CRO_printStd, YELLOW);
+  CRO_exposeType(s, CRO_Number, "Number", CRO_printStd, GREEN);
+  CRO_exposeType(s, CRO_Bool, "Bool", CRO_printStd, GREEN);
+  CRO_exposeType(s, CRO_Function, "Function", CRO_printStd, CYAN);
+  CRO_exposeGCType(s, CRO_LocalFunction, "Function", CRO_printStd, CYAN, free, NULL, NULL);
+  CRO_exposeType(s, CRO_PrimitiveFunction, "Primitive Function", CRO_printStd, CYAN);
+  CRO_exposeGCType(s, CRO_Array, "Array", CRO_printStd, MAGENTA, free, CRO_searchStd, CRO_stdToggleUse);
+  CRO_exposeGCType(s, CRO_String, "String", CRO_printStd, MAGENTA, free, NULL, NULL);
+  CRO_exposeGCType(s, CRO_Struct, "Struct", CRO_printStd, MAGENTA, free, CRO_searchStd, CRO_stdToggleUse);
+  CRO_exposeGCType(s, CRO_FileDescriptor, "File", CRO_printStd, CYAN, CRO_freeFile, NULL, NULL);
+  CRO_exposeGCType(s, CRO_Library, "Library", CRO_printStd, CYAN, NULL, NULL, NULL);
 
   /* Set our exit code, we will periodically check to make sure this isnt equal
    * to the exit context, if it is, we will break out of whatever we are doing

@@ -20,37 +20,15 @@ CRO_Value CRO_string (CRO_State *s, int argc, CRO_Value *argv) {
     char *innerBuffer;
     
     v = argv[x];
-    
-    if (v.type == CRO_Number) {
-      innerBuffer = malloc(CRO_BUFFER_SIZE * sizeof(char));
-      sprintf(innerBuffer, "%.15g", v.value.number);
-    }
-    else if (v.type == CRO_Function) {
-      innerBuffer = "Function";
-    }
-    else if (v.type == CRO_String) {
+
+    if (v.type == CRO_String) {
       innerBuffer = v.value.string;
     }
-    else if (v.type == CRO_Undefined) {
-      innerBuffer = "Undefined";
-    }
-    else if (v.type == CRO_Array) {
-      innerBuffer = "Array []";
-      /* TODO: Make this print contents of array */
-    }
-    else if (v.type == CRO_Struct) {
-      innerBuffer = "Struct {}";
-    }
-    else if (v.type == CRO_Bool) {
-      if (v.value.integer) {
-        innerBuffer = "true";
-      }
-      else {
-        innerBuffer = "false";
-      }
-    }
     else {
-      innerBuffer = "";
+      CRO_Type *t;
+
+      t = CRO_getType(s, v.type);
+      innerBuffer = t->toString(s, v);
     }
     
     for (y = 0; innerBuffer[y] != 0; y++) {
@@ -62,8 +40,8 @@ CRO_Value CRO_string (CRO_State *s, int argc, CRO_Value *argv) {
         stringValue = realloc(stringValue, stringSize * sizeof(char));
       }
     }
-    
-    if (v.type == CRO_Number) {
+
+    if (v.type != CRO_String) {
       free(innerBuffer);
     }
   }

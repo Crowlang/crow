@@ -204,6 +204,10 @@ char* CRO_printStd (CRO_State *s, CRO_Value v) {
 
       retlen = 10;
       ret = malloc(retlen * sizeof(char));
+
+      /* Make sure the beginning of the return buffer is NULL'd*/
+      ret[0] = 0;
+
       strcat(ret, "(array");
       /* TODO: Make this faster */
       for (x = 0; x < v.arraySize; x++) {

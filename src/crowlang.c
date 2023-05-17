@@ -76,6 +76,8 @@ int main (int argc, char *argv[]) {
 
     v = CRO_evalFile(s, srcfile);
 
+    CRO_cleanUpRefs(v);
+
     if (s->exitCode >= CRO_ExitCode) {
       CRO_printError();
       exit(1);
@@ -302,12 +304,9 @@ int main (int argc, char *argv[]) {
             CRO_setColor(RESET);
           }
 
+          CRO_cleanUpRefs(v);
           ptr = 0;
           lsp = 1;
-
-#ifndef CROWLANG_DISABLE_GC
-          CRO_GC(s);
-#endif
 
           state = CC_NONE;
           fromState = CC_NONE;

@@ -87,8 +87,6 @@ void CRO_exposeType (CRO_State *s, CRO_TypeDescriptor type, const char* name, CR
   /* Now add our functions to print, */
   toAdd->toString = print;
   toAdd->free = NULL;
-  toAdd->search = NULL;
-  toAdd->toggleUse = NULL;
 
   toAdd->left = NULL;
   toAdd->right = NULL;
@@ -96,7 +94,7 @@ void CRO_exposeType (CRO_State *s, CRO_TypeDescriptor type, const char* name, CR
   CRO_exposeTypeInner(s, toAdd);
 }
 
-void CRO_exposeGCType (CRO_State *s, CRO_TypeDescriptor type, const char* name, CRO_ToString_Function *print, CRO_Color col, CRO_FreeData_Function *free, CRO_Search_Function *search, CRO_ToggleUse_Function *use){
+void CRO_exposeGCType (CRO_State *s, CRO_TypeDescriptor type, const char* name, CRO_ToString_Function *print, CRO_Color col, CRO_FreeData_Function *free){
   CRO_Type *toAdd;
 
   toAdd = (CRO_Type*) malloc(sizeof(CRO_Type));
@@ -106,8 +104,6 @@ void CRO_exposeGCType (CRO_State *s, CRO_TypeDescriptor type, const char* name, 
 
   toAdd->toString = print;
   toAdd->free = free;
-  toAdd->search = search;
-  toAdd->toggleUse = use;
 
   toAdd->left = NULL;
   toAdd->right = NULL;
@@ -251,58 +247,6 @@ char* CRO_printStd (CRO_State *s, CRO_Value v) {
   return strdup("Working on it!");
 }
 
-void CRO_toggleMemoryUse (CRO_State *s, CRO_Value v) {
-  unsigned int aptr = 0;
-  for (aptr = 0; aptr < s->allocptr; aptr++) {
-    if (s->allocations[aptr].allotok == v.allotok) {
-      s->allocations[aptr].flags ^= CRO_ALLOCFLAG_INUSE;
-    }
-  }
-
-  if (v.flags & CRO_FLAG_SEARCH) {
-    CRO_Type *t;
-    t = CRO_getType(s, v.type);
-    t->toggleUse(s, v);
-  }
-}
-
-unsigned char CRO_searchStd (CRO_State *s, CRO_Value v, allotok_t t) {
-  if (v.type == CRO_Array) {
-    int i;
-    for (i = 0; i < v.arraySize; i++) {
-      if (v.value.array[i].allotok == t) {
-        return 1;
-      }
-      else if (v.value.array[i].flags & CRO_FLAG_SEARCH) {
-        CRO_Type *typ;
-        typ = CRO_getType(s, v.type);
-        return typ->search(s, v.value.array[i], t);
-      }
-    }
-    return 0;
-  }
-  else if (v.type == CRO_Struct) {
-    return 1;
-  }
-  return 0;
-}
-
-void CRO_stdToggleUse (CRO_State *s, CRO_Value v) {
-  if (v.type == CRO_Array) {
-    int i;
-    for (i = 0; i < v.arraySize; i++) {
-      if (v.value.array[i].allotok) {
-        CRO_toggleMemoryUse(s, v.value.array[i]);
-      }
-      else if (v.value.array[i].flags & CRO_FLAG_SEARCH) {
-        CRO_Type *typ;
-        typ = CRO_getType(s, v.type);
-        typ->toggleUse(s, v.value.array[i]);
-      }
-    }
-  }
-}
-
 void CRO_freeFile (void* v) {
   fclose((FILE*)v);
 }
@@ -332,6 +276,7 @@ CRO_State *CRO_createState (void) {
   s->scope = CRO_createClosure(s);
   s->scope->active = 1;
   s->scope->depends = NULL;
+  CRO_lockClosure(s->scope);
 
 #ifdef CROWLANG_SCOPE_DEBUG
   printf("Global scope is %x\n", s->scope);
@@ -359,18 +304,17 @@ CRO_State *CRO_createState (void) {
 
   s->datatypes = NULL;
 
-
   CRO_exposeType(s, CRO_Undefined, "Undefined", CRO_printStd, YELLOW);
   CRO_exposeType(s, CRO_Number, "Number", CRO_printStd, GREEN);
   CRO_exposeType(s, CRO_Bool, "Bool", CRO_printStd, GREEN);
   CRO_exposeType(s, CRO_Function, "Function", CRO_printStd, CYAN);
-  CRO_exposeGCType(s, CRO_LocalFunction, "Function", CRO_printStd, CYAN, free, NULL, NULL);
+  CRO_exposeGCType(s, CRO_LocalFunction, "Function", CRO_printStd, CYAN, free);
   CRO_exposeType(s, CRO_PrimitiveFunction, "Primitive Function", CRO_printStd, CYAN);
-  CRO_exposeGCType(s, CRO_Array, "Array", CRO_printStd, MAGENTA, free, CRO_searchStd, CRO_stdToggleUse);
-  CRO_exposeGCType(s, CRO_String, "String", CRO_printStd, MAGENTA, free, NULL, NULL);
-  CRO_exposeGCType(s, CRO_Struct, "Struct", CRO_printStd, MAGENTA, free, CRO_searchStd, CRO_stdToggleUse);
-  CRO_exposeGCType(s, CRO_FileDescriptor, "File", CRO_printStd, CYAN, CRO_freeFile, NULL, NULL);
-  CRO_exposeGCType(s, CRO_Library, "Library", CRO_printStd, CYAN, NULL, NULL, NULL);
+  CRO_exposeGCType(s, CRO_Array, "Array", CRO_printStd, MAGENTA, free);
+  CRO_exposeGCType(s, CRO_String, "String", CRO_printStd, MAGENTA, free);
+  CRO_exposeGCType(s, CRO_Struct, "Struct", CRO_printStd, MAGENTA, free);
+  CRO_exposeGCType(s, CRO_FileDescriptor, "File", CRO_printStd, CYAN, CRO_freeFile);
+  CRO_exposeGCType(s, CRO_Library, "Library", CRO_printStd, CYAN, NULL);
 
   /* Set our exit code, we will periodically check to make sure this isnt equal
    * to the exit context, if it is, we will break out of whatever we are doing
@@ -522,12 +466,13 @@ static void CRO_freeTypes (CRO_Type* t) {
 void CRO_freeState (CRO_State *s) {
   unsigned int i;
 
+#ifdef CROWLANG_ALLOCLOCK_DEBUG
+  printf("Cleaning up...\n");
+#endif
+
   /* Free variables */
-  /* FIXME: Reenable this for closures after testing */
-  for(i = 0; i < s->cptr; i++){
-    free(s->closures[i]->variables);
-    free(s->closures[i]);
-  }
+  s->scope->lock = 1;
+  CRO_unlockClosure(s->scope);
   free(s->closures);
 
   /* TODO: Close all libraries */
@@ -599,6 +544,7 @@ void CRO_exposePrimitiveFunction (CRO_State *s, const char *name, CRO_Value (*fu
   vn.type = CRO_PrimitiveFunction;
   vn.value.primitiveFunction = func;
   vn.flags = CRO_FLAG_CONSTANT;
+  vn.allotok = NULL;
 
   /* Create the variable to hold it */
   var.hash = CRO_genHash(name);
@@ -632,6 +578,8 @@ CRO_Closure *CRO_createClosure (CRO_State *s) {
   variables = (CRO_Variable*)malloc(c->vsize * sizeof(CRO_Variable));
   
   c->variables = variables;
+
+  c->lock = 0;
   
   s->closures[s->cptr++] = c;
   if (s->cptr >= s->csize) {
@@ -643,6 +591,48 @@ CRO_Closure *CRO_createClosure (CRO_State *s) {
   }
   
   return c;
+}
+
+void CRO_lockClosure (CRO_Closure *clo) {
+  clo->lock += 1;
+
+#ifdef CROWLANG_CLOSURE_LOCK_DEBUG
+  printf("[CLOSLOCK]\tLocking clsoure %x to %d\n", clo, clo->lock);
+#endif
+
+  if (clo->depends != NULL) {
+    CRO_lockClosure(clo->depends);
+  }
+}
+
+void CRO_unlockClosure (CRO_Closure *clo) {
+  clo->lock -= 1;
+#ifdef CROWLANG_CLOSURE_LOCK_DEBUG
+  printf("[CLOSLOCK]\tUnlocking clsoure %x to %d\n", clo, clo->lock);
+#endif
+
+  if (clo->depends != NULL) {
+    CRO_unlockClosure(clo->depends);
+  }
+
+  if (clo->lock == 0) {
+    unsigned int x = 0;
+
+#ifdef CROWLANG_CLOSURE_LOCK_DEBUG
+    printf("[CLOSLOCK]\tCleaning up closure...\n");
+#endif
+    for (x = 0; x < clo->vptr; x++) {
+      if (clo->variables[x].value.allotok != NULL) {
+        CRO_allocUnlock(clo->variables[x].value);
+      }
+    }
+    free(clo->variables);
+
+#ifdef CROWLANG_CLOSURE_LOCK_DEBUG
+    printf("[CLOSLOCK]\tFree closure %x\n", clo);
+#endif
+    free(clo);
+  }
 }
 
 void CRO_exposeVariable (CRO_State *s, const char *name, CRO_Value v) {
@@ -786,42 +776,79 @@ static char CRO_isNumber (char *text) {
   return lastCharReal;
 }
 
-allotok_t CRO_malloc (CRO_State *s, void *memory, CRO_FreeData_Function *free) {
-  allotok_t memtok;
+CRO_Allocation *CRO_malloc (CRO_State *s, void *memory, CRO_FreeData_Function *free) {
+  CRO_Allocation *ret;
 
-  memtok = (allotok_t)memory;
+  ret = malloc(sizeof(CRO_Allocation));
 
-  #ifdef CROWLANG_GC_DEBUG
-  {
-    int aptr = 0;
-    for (aptr = 0; aptr < s->allocptr; aptr++) {
-      #ifdef CROWLANG_GC_DEBUG
-      printf("[GC Debug]\t %x at %d\n", s->allocations[aptr].memory, aptr);
-      #endif
+  ret->flags = CRO_ALLOCFLAG_ALLOCATED;
+  ret->free = free;
+  ret->memory = memory;
+
+  /* Assume everything is locked because after it is evaluated it will be unlocked */
+  ret->lock = 1;
+
+#ifdef CROWLANG_ALLOCLOCK_DEBUG
+  printf("[ALOCLOCK]\tMemory %x alloclock %d\n", ret->memory, ret->lock);
+#endif
+
+  return ret;
+}
+
+void CRO_allocLock (CRO_Value v) {
+  CRO_Allocation *alloc;
+
+
+  alloc = v.allotok;
+
+  alloc->lock += 1;
+
+  if(v.type == CRO_LocalFunction) {
+    CRO_lockClosure(v.functionClosure);
+  }
+
+#ifdef CROWLANG_ALLOCLOCK_DEBUG
+  printf("[ALOCLOCK]\tMemory %x alloclock %d\n", alloc->memory, alloc->lock);
+#endif
+
+}
+
+void CRO_allocUnlock (CRO_Value v) {
+  CRO_Allocation *alloc;
+
+  alloc = v.allotok;
+  alloc->lock -= 1;
+
+#ifdef CROWLANG_ALLOCLOCK_DEBUG
+  printf("[ALOCLOCK]\tMemory %x (un)alloclock %d\n", alloc->memory, alloc->lock);
+#endif
+
+  if(v.type == CRO_LocalFunction) {
+#ifdef CROWLANG_ALLOCLOCK_DEBUG
+    printf("Killing inactive colusre\n");
+#endif
+    CRO_unlockClosure(v.functionClosure);
+  }
+
+  if (alloc->lock <= 0) {
+
+    /* FIXME: Make this work for user exposed types */
+    if (v.type == CRO_Array || v.type == CRO_Struct) {
+      int x;
+      for (x = 0; x < v.arraySize; x++) {
+        if (v.value.array[x].allotok != NULL) {
+          CRO_allocUnlock(v.value.array[x]);
+        }
+      }
     }
+
+#ifdef CROWLANG_ALLOCLOCK_DEBUG
+    printf("[ALOCLOCK]\tFreeing memory %x\n", alloc->memory);
+#endif
+    alloc->free(alloc->memory);
+    alloc->flags = CRO_ALLOCFLAG_NONE;
+    free(alloc);
   }
-  #endif
-
-  s->allocations[s->allocptr].memory = memory;
-  s->allocations[s->allocptr].allotok = memtok;
-  s->allocations[s->allocptr].flags = CRO_ALLOCFLAG_ALLOCATED;
-  s->allocations[s->allocptr].free = free;
-
-  #ifdef CROWLANG_GC_DEBUG
-  printf("[GC Debug]\t Allocated %x [%c] at %d [%ld]\n", memory, ((char*)memory)[0], s->allocptr, memtok);
-  #endif
-
-  s->allocptr++;
-
-  if (s->allocptr >= s->asize) {
-    s->asize *= 2;
-    s->allocations = (CRO_Allocation*)realloc(s->allocations, s->asize * sizeof(CRO_Allocation));
-    #ifdef CROWLANG_ALLOC_DEBUG
-    printf("[Alloc Debug]\t Allocations size increased to %d\n", s->asize);
-    #endif
-  }
-
-  return memtok;
 }
 
 char *CRO_cloneStr (const char *str) {
@@ -833,130 +860,6 @@ char *CRO_cloneStr (const char *str) {
   return ret;
 
 }
-
-#ifndef CROWLANG_DISABLE_GC
-
-void CRO_GC (CRO_State *s) {
-  unsigned int aptr, cptr, found;
-
-  #ifdef CROWLANG_GC_DEBUG
-  printf("[GC Debug] Starting GC\n");
-  #endif
-  found = 0;
-
-  /* First look for dead closures on which nothing depends */
-  for (cptr = 0; cptr < s->cptr; cptr++) {
-    /* We found an inactive closure, check if we still need it */
-    if (s->closures[cptr]->active == 0) {
-      unsigned int chkptr, vptr;
-
-      found = 0;
-      for (chkptr = 0; found == 0 && chkptr < s->cptr; chkptr++) {
-        if (s->closures[chkptr]->depends == s->closures[cptr]) {
-          found = 1;
-          break;
-        }
-
-        /* Now see if any function depend on it */
-        for (vptr = 0; found == 0 && vptr < s->closures[chkptr]->vptr; vptr++) {
-          if (s->closures[chkptr]->variables[vptr].value.functionClosure == s->closures[cptr]) {
-            found = 1;
-            break;
-          }
-        }
-      }
-
-      if (!found) {
-        CRO_Closure *tmp;
-        tmp = s->closures[s->cptr - 1];
-        s->closures[s->cptr - 1] = s->closures[cptr];
-        s->closures[cptr] = tmp;
-
-#ifdef CROWLANG_GC_DEBUG
-        printf("[GC Debug] Freeing closure %x\n", s->closures[s->cptr - 1]);
-#endif
-
-
-        free(s->closures[s->cptr - 1]->variables);
-        free(s->closures[s->cptr - 1]);
-
-        s->cptr--;
-        cptr--;
-      }
-    }
-  }
-
-  /* Now, look for open memory allocations */
-  for (aptr = 0; aptr < s->allocptr; aptr++) {
-    if (s->allocations[aptr].flags & CRO_ALLOCFLAG_ALLOCATED && !(s->allocations[aptr].flags & CRO_ALLOCFLAG_INUSE)) {
-      found = 0;
-
-      #ifdef CROWLANG_GC_DEBUG
-      printf("[GC Debug] Checking %d\n", aptr);
-      #endif
-
-      for (cptr = 0; found == 0 && cptr < s->cptr; cptr++) {
-        unsigned int vptr;
-        CRO_Closure *scope;
-        scope = s->closures[cptr];
-        for (vptr = 0; vptr < scope->vptr; vptr++) {
-          if (s->allocations[aptr].allotok == scope->variables[vptr].value.allotok) {
-            found = 1;
-            break;
-          }
-          else if (scope->variables[vptr].value.flags & CRO_FLAG_SEARCH) {
-            CRO_Type *t;
-            t = CRO_getType(s, scope->variables[vptr].value.type);
-            found = t->search(s, scope->variables[vptr].value, s->allocations[aptr].allotok);
-          }
-        }
-      }
-
-      if (found == 0) {
-
-        #ifdef CROWLANG_GC_DEBUG
-        printf("[GC Debug] We are good to free %x at %d [%ld]\n", s->allocations[aptr].memory, aptr, s->allocations[aptr].allotok);
-        #endif
-
-        if (s->allocptr == 1) {
-          s->allocations[aptr].free(s->allocations[aptr].memory);
-        }
-        else {
-          CRO_Allocation tmp;
-          tmp = s->allocations[s->allocptr - 1];
-          s->allocations[s->allocptr - 1] = s->allocations[aptr];
-          s->allocations[aptr] = tmp;
-
-          /* Free the memory how it wants to be free'd */
-          if (s->allocations[s->allocptr - 1].free == NULL) {
-            printf("Error: Free function not given to allocation so we are falling back to standard free\n");
-            free(s->allocations[s->allocptr - 1].memory);
-          }
-          s->allocations[s->allocptr - 1].free(s->allocations[s->allocptr - 1].memory);
-        }
-
-        s->allocptr--;
-        aptr--;
-      }
-      #ifdef CROWLANG_GC_DEBUG
-      else {
-        printf("[GC Debug] %x at %d lives to see another day...\n", s->allocations[aptr].memory, aptr);
-      }
-      #endif
-    }
-#ifdef CROWLANG_GC_DEBUG
-    else if (s->allocations[aptr].flags & CRO_ALLOCFLAG_INUSE) {
-
-      printf("[GC Debug] Allocation %x is in use right now and can't be free'd\n", s->allocations[aptr].memory);
-    }
-#endif
-  }
-
-  #ifdef CROWLANG_GC_DEBUG
-  printf("[GC Debug] GC Finished\n");
-  #endif
-}
-#endif
 
 CRO_Value CRO_innerEval(CRO_State *s, char *src);
 
@@ -976,7 +879,6 @@ CRO_Value CRO_callFunction (CRO_State *s, CRO_Value func, int argc, CRO_Value *a
     char *funcbody, *varname;
     int varnameptr, varcount, varnamesize;
     CRO_Variable argsconst;
-    CRO_Variable *argsRef;
     CRO_Value argsconstV;
     CRO_Closure *lastScope, *scope;
 
@@ -985,6 +887,7 @@ CRO_Value CRO_callFunction (CRO_State *s, CRO_Value func, int argc, CRO_Value *a
     s->scope = CRO_createClosure(s);
     s->scope->active = 1;
     s->scope->depends = func.functionClosure;
+    CRO_lockClosure(s->scope);
 
     scope = s->scope;
 
@@ -1018,6 +921,10 @@ CRO_Value CRO_callFunction (CRO_State *s, CRO_Value func, int argc, CRO_Value *a
           /* Set the value to its coresponding ARGV value*/
           /* If there are more args expected than supplied, make them undefined */
           if (varcount <= argc) {
+            if (argv[varcount].allotok != NULL) {
+              CRO_allocLock(argv[varcount]);
+            }
+
             argvv.value = argv[varcount];
           }
           else {
@@ -1064,12 +971,12 @@ CRO_Value CRO_callFunction (CRO_State *s, CRO_Value func, int argc, CRO_Value *a
     argsconstV.flags = CRO_FLAG_CONSTANT | CRO_FLAG_SEARCH;
     argsconstV.value.array = &argv[1];
     argsconstV.arraySize = argc;
+    argsconstV.allotok = NULL;
 
     argsconst.value = argsconstV;
     argsconst.hash = CRO_genHash("ARGS");
 
     scope->variables[scope->vptr] = argsconst;
-    argsRef = &scope->variables[scope->vptr];
     scope->vptr++;
     if (scope->vptr >= scope->vsize) {
       scope->vsize *= 2;
@@ -1088,12 +995,10 @@ CRO_Value CRO_callFunction (CRO_State *s, CRO_Value func, int argc, CRO_Value *a
     v = CRO_eval(s, &funcbody[x]);
 
     scope->active = 0;
-    s->scope = lastScope;
 
-    /* Remove the search flag so we don't search dead memory */
-    /* The argv variable should be free'd after this */
-    /* This is a band-aid fix and I know it lol */
-    (*argsRef).value.flags = CRO_FLAG_CONSTANT;
+    CRO_unlockClosure(scope);
+    
+    s->scope = lastScope;
 
 #ifdef CROWLANG_SCOPE_DEBUG
   printf("Scope is now %x (downgraded from %x)\n", s->scope, scope);
@@ -1109,6 +1014,7 @@ CRO_Value CRO_callFunction (CRO_State *s, CRO_Value func, int argc, CRO_Value *a
   }
 
   s->exitContext = lastExitContext;
+
   return v;
 }
 
@@ -1205,8 +1111,21 @@ CRO_Value CRO_innerEval(CRO_State *s, char *src) {
     s->block--;
 
     if (func.type == CRO_Function || func.type == CRO_LocalFunction) {
-      CRO_toString(s, argv[0], fname);
+      int x = 0;
+      /*CRO_toString(s, argv[0], fname);*/
       v = CRO_callFunction(s, func, argc, argv);
+
+      for(x = 1; x <= argc; x++) {
+        if (argv[x].allotok != NULL) {
+          CRO_allocUnlock(argv[x]);
+        }
+      }
+
+      if (func.type == CRO_LocalFunction) {
+        CRO_allocUnlock(func);
+      }
+
+      free(fname);
       free(argv);
       return v;
     }
@@ -1230,6 +1149,10 @@ CRO_Value CRO_innerEval(CRO_State *s, char *src) {
       else {
         argv[0] = func;
         v = CRO_callFunction(s, caller, argc, argv);
+
+        if (v.allotok != NULL) {
+          CRO_allocLock(v);
+        }
 
         free(argv);
         free(methodName);
@@ -1260,7 +1183,6 @@ CRO_Value CRO_innerEval(CRO_State *s, char *src) {
   else if (src[ptr] == '\"' || src[ptr] == '\'') {
     int strptr, strsize;
     char sc, *str;
-    allotok_t tok;
 
     sc = src[ptr];
     str = malloc(CRO_BUFFER_SIZE * sizeof(char));
@@ -1301,7 +1223,6 @@ CRO_Value CRO_innerEval(CRO_State *s, char *src) {
     }
     str[strptr] = 0;
 
-    tok = CRO_malloc(s, (void*)str, free);
     v.type = CRO_String;
     v.value.string = str;
 
@@ -1309,7 +1230,7 @@ CRO_Value CRO_innerEval(CRO_State *s, char *src) {
     v.arrayCapacity = strsize;
     #endif
 
-    v.allotok = tok;
+    v.allotok = CRO_malloc(s, (void*)str, free);;
     v.flags = CRO_FLAG_NONE;
 
     return v;
@@ -1349,6 +1270,9 @@ CRO_Value CRO_innerEval(CRO_State *s, char *src) {
         for (x = scope->vptr - 1; x >= 0; x--) {
           /* If the variable has the same hash, we have the correct variable reference */
           if(vhash == scope->variables[x].hash) {
+            if (scope->variables[x].value.allotok != NULL) {
+              CRO_allocLock(scope->variables[x].value);
+            }
             return scope->variables[x].value;
           }
         }
@@ -1389,6 +1313,8 @@ CRO_Value CRO_eval (CRO_State *s, char *src) {
   input = (char*)malloc(size * sizeof(char));
 
   c = src[srcptr++];
+
+  CRO_toNone(v);
 
   /* Run for as long as we aren't hitting EOF */
   while (running && c != 0) {
@@ -1526,8 +1452,9 @@ CRO_Value CRO_eval (CRO_State *s, char *src) {
       /* We are executing the command */
       case CC_EXEC: {
         input[ptr] = 0;
-        v = CRO_innerEval(s, input);
 
+        CRO_cleanUpRefs(v);
+        v = CRO_innerEval(s, input);
 
 
         /* Check our exit code */
@@ -1538,8 +1465,6 @@ CRO_Value CRO_eval (CRO_State *s, char *src) {
 
         ptr = 0;
         lsp = 1;
-
-        CRO_callGC(s);
 
         state = CC_NONE;
         fromState = CC_NONE;
@@ -1564,7 +1489,6 @@ CRO_Value CRO_eval (CRO_State *s, char *src) {
     input[ptr] = 0;
 
     v = CRO_innerEval(s, input);
-    CRO_callGC(s);
   }
 
   free(input);
@@ -1588,6 +1512,8 @@ CRO_Value CRO_evalFile (CRO_State *s, FILE *src) {
   input = (char*)malloc(size * sizeof(char));
 
   c = fgetc(src);
+
+  CRO_toNone(v);
 
   /* Run for as long as we aren't hitting EOF */
   while (running && c != EOF) {
@@ -1724,6 +1650,9 @@ CRO_Value CRO_evalFile (CRO_State *s, FILE *src) {
       /* We are executing the command */
       case CC_EXEC: {
         input[ptr] = 0;
+
+        CRO_cleanUpRefs(v);
+
         v = CRO_innerEval(s, input);
 
         /* Check our exit code */
@@ -1734,8 +1663,6 @@ CRO_Value CRO_evalFile (CRO_State *s, FILE *src) {
 
         ptr = 0;
         lsp = 1;
-
-        CRO_callGC(s);
 
         state = CC_NONE;
         fromState = CC_NONE;
@@ -1760,7 +1687,6 @@ CRO_Value CRO_evalFile (CRO_State *s, FILE *src) {
     input[ptr] = 0;
 
     v = CRO_innerEval(s, input);
-    CRO_callGC(s);
   }
 
   free(input);

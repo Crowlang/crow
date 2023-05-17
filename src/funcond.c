@@ -22,8 +22,11 @@ CRO_Value CRO_block (CRO_State *s, int argc, char**argv) {
 
   scope->active = 1;
   scope->depends = lastScope;
+  CRO_lockClosure(s->scope);
 
   for (x = 1; x <= argc; x++) {
+    CRO_cleanUpRefs(v);
+    
     v = CRO_eval(s, argv[x]);
     
     /* If we have an exit code, this code block is OVER */
@@ -37,7 +40,12 @@ CRO_Value CRO_block (CRO_State *s, int argc, char**argv) {
   }
 
   scope->active = 0;
+  if (v.functionClosure != scope) {
+    CRO_unlockClosure(s->scope);
+  }
+  
   s->scope = lastScope;
+
 #ifdef CROWLANG_SCOPE_DEBUG
   printf("Scope is now %x (downgraded from %x)\n", s->scope, scope);
 #endif
@@ -60,6 +68,7 @@ CRO_Value CRO_local (CRO_State *s, int argc, char **argv) {
 
     scope->active = 1;
     scope->depends = lastScope;
+    CRO_lockClosure(lastScope);
 
     /* Remove the ( and ) from the front and end of the definiton section */
     definitions = &argv[1][1];
@@ -82,7 +91,8 @@ CRO_Value CRO_local (CRO_State *s, int argc, char **argv) {
 
     scope->active = 0;
     s->scope = lastScope;
-
+    CRO_unlockClosure(lastScope);
+    
     return v;
   }
   else {
@@ -96,7 +106,6 @@ CRO_Value CRO_func (CRO_State *s, int argc, char **argv) {
   CRO_Value v;
   char *args, *body;
   int arglen, x, bsize, bptr, i;
-  allotok_t allotok;
 
   if (argc < 2) {
     printf("Error (func) requires at least 2 arguements\n");
@@ -157,15 +166,16 @@ CRO_Value CRO_func (CRO_State *s, int argc, char **argv) {
     body[bptr++] = ' ';
   }
   body[bptr - 1] = 0;
-  
-  allotok = CRO_malloc(s, body, free);
 
   v.type = CRO_LocalFunction;
   v.value.function = NULL;
   v.value.string = body;
-  v.allotok = allotok;
-  v.flags = CRO_FLAG_NONE;
   v.functionClosure = s->scope;
+  v.allotok = CRO_malloc(s, body, free);
+
+  CRO_lockClosure(s->scope);
+  v.flags = CRO_FLAG_NONE;
+
   return v;
 
 }
@@ -174,7 +184,6 @@ CRO_Value CRO_subroutine (CRO_State *s, int argc, char **argv) {
   CRO_Value v;
   char *body;
   int x, bsize, bptr, i;
-  allotok_t allotok;
 
   if (argc < 1) {
     printf("Error (subroutine) requires at least 1 arguement\n");
@@ -204,12 +213,11 @@ CRO_Value CRO_subroutine (CRO_State *s, int argc, char **argv) {
   }
   body[bptr - 1] = 0;
   
-  allotok = CRO_malloc(s, body, free);
 
   v.type = CRO_LocalFunction;
   v.value.function = NULL;
   v.value.string = body;
-  v.allotok = allotok;
+  v.allotok = CRO_malloc(s, body, free);;
   v.flags = CRO_FLAG_NONE;
   v.functionClosure = s->scope;
 
@@ -235,6 +243,7 @@ CRO_Value CRO_defun (CRO_State *s, int argc, char **argv) {
     argv[1] = "func";
     
     ret = CRO_func(s, argc - 1, &argv[1]);
+    CRO_allocLock(ret);
     
     /* Now set it back */
     argv[1] = name;
@@ -636,25 +645,28 @@ CRO_Value CRO_each (CRO_State *s, int argc, CRO_Value *argv) {
       
       argz = (CRO_Value*)malloc(2 * sizeof(CRO_Value));
       CRO_toNone(argz[0]);
+      CRO_toNone(ret);
       
       if (func.type == CRO_Function || func.type == CRO_LocalFunction) {
-
-        /* Toggle on that this memory is in use and shouldn't be free'd by the GC*/
-        CRO_toggleMemoryUse(s, array);
-
-        /* Make sure the function also doesn't get unloaded, this GC really sucks */
-        if (func.type == CRO_LocalFunction)
-          CRO_toggleMemoryUse(s, func);
 
         for (index = 0; index < array.arraySize; index++) {
           /* Get the value of the item in the array and set it to the var */
           itemV = array.value.array[index];
           
           argz[1] = itemV;
+
+          if (itemV.allotok != NULL) {
+            CRO_allocLock(itemV);
+          }
           
-          CRO_callGC(s);
+          CRO_cleanUpRefs(ret);
+
           ret = CRO_callFunction(s, func, 1, argz);
-          
+
+          if (itemV.allotok != NULL) {
+            CRO_allocUnlock(itemV);
+          }
+
           if (s->exitCode >= s->exitContext) {
             if (s->exitCode == s->exitContext) {
               s->exitCode = 0;
@@ -663,14 +675,6 @@ CRO_Value CRO_each (CRO_State *s, int argc, CRO_Value *argv) {
             break;
           }
         }
-
-        /* Now we can free it if it isn't connected to anything*/
-        CRO_toggleMemoryUse(s, array);
-
-        /* We can undo this too */
-        if (func.type == CRO_LocalFunction)
-          CRO_toggleMemoryUse(s, func);
-
         free(argz);
       }
       else if (func.type == CRO_PrimitiveFunction) {
@@ -725,7 +729,9 @@ CRO_Value CRO_eachWithIterator (CRO_State *s, int argc, CRO_Value *argv) {
   
   lastExitContext = s->exitContext;
   s->exitContext = CRO_BreakCode;
-  
+
+  CRO_toNone(ret);
+
   if (argc == 2) {
     array = argv[1];
     
@@ -739,12 +745,6 @@ CRO_Value CRO_eachWithIterator (CRO_State *s, int argc, CRO_Value *argv) {
       CRO_toNone(callArgs[0])
       if (func.type == CRO_Function || func.type == CRO_LocalFunction) {
 
-        CRO_toggleMemoryUse(s, array);
-
-        /* Make sure the function also doesn't get unloaded, this GC really sucks */
-        if (func.type == CRO_LocalFunction)
-          CRO_toggleMemoryUse(s, func);
-
         for (index = 0; index < array.arraySize; index++) {
           
           CRO_toNumber(counter, index);
@@ -753,12 +753,20 @@ CRO_Value CRO_eachWithIterator (CRO_State *s, int argc, CRO_Value *argv) {
           item = array.value.array[index];
           
           callArgs[1] = item;
+
+          if (item.allotok != NULL) {
+            CRO_allocLock(item);
+          }
+
           callArgs[2] = counter;
-          
-          CRO_callGC(s);
 
           /* Now execute it with the variable in place */
+          CRO_cleanUpRefs(ret);
           ret = CRO_callFunction(s, func, 2, callArgs);
+
+          if (item.allotok != NULL) {
+            CRO_allocUnlock(item);
+          }
           
           if (s->exitCode >= s->exitContext) {
             if (s->exitCode == s->exitContext) {
@@ -769,10 +777,8 @@ CRO_Value CRO_eachWithIterator (CRO_State *s, int argc, CRO_Value *argv) {
           }
           
         }
-        
-        CRO_toggleMemoryUse(s, array);
-        if (func.type == CRO_LocalFunction)
-          CRO_toggleMemoryUse(s, func);
+
+        free(callArgs);
 
       }
       else if (func.type == CRO_PrimitiveFunction) {
@@ -828,6 +834,8 @@ CRO_Value CRO_while (CRO_State *s, int argc, char **argv) {
       int x;
 
       for (x = 2; x <= argc; x++) {
+
+        CRO_cleanUpRefs(ret);
         ret = CRO_innerEval(s, argv[x]);
         
         if (s->exitCode >= s->exitContext) {
@@ -837,7 +845,7 @@ CRO_Value CRO_while (CRO_State *s, int argc, char **argv) {
           
           break;
         }
-        CRO_callGC(s);
+
         cond = CRO_innerEval(s, argv[1]);
       }
     }
@@ -880,7 +888,9 @@ CRO_Value CRO_doWhile (CRO_State *s, int argc, char **argv) {
           break;
         }
       }
-      CRO_callGC(s);
+      if (ret.allotok != NULL) {
+        CRO_allocUnlock(ret);
+      }
       
       cond = CRO_innerEval(s, argv[argc]);
     } while(cond.type == CRO_Bool && cond.value.integer);
@@ -905,11 +915,14 @@ CRO_Value CRO_loop (CRO_State *s, int argc, char **argv) {
   
   lastExitContext = s->exitContext;
   s->exitContext = CRO_BreakCode;
-  
+
+  CRO_toNone(ret);
+
   while (run) {
     int x;
     
     for (x = 1; x <= argc; x++) {
+      CRO_cleanUpRefs(ret);
       ret = CRO_innerEval(s, argv[x]);
 
       if (s->exitCode >= s->exitContext) {
@@ -920,8 +933,7 @@ CRO_Value CRO_loop (CRO_State *s, int argc, char **argv) {
         break;
       }
     }
-    
-    CRO_callGC(s);
+
   }
   
   s->exitContext = lastExitContext;
@@ -930,7 +942,7 @@ CRO_Value CRO_loop (CRO_State *s, int argc, char **argv) {
 
 CRO_Value CRO_doTimes (CRO_State *s, int argc, CRO_Value *argv) {
   CRO_Value v;
-
+  CRO_toNone(v);
   if (argc == 2) {
     CRO_Value func, times;
 
@@ -944,13 +956,13 @@ CRO_Value CRO_doTimes (CRO_State *s, int argc, CRO_Value *argv) {
         timesToCall = times.value.number;
 
         if (func.type == CRO_LocalFunction)
-          CRO_toggleMemoryUse(s, func);
+          CRO_allocLock(func);
 
-        for (i = 0; i < timesToCall; i++)
+        for (i = 0; i < timesToCall; i++) {
+          CRO_cleanUpRefs(v);
           v = CRO_callFunction(s, func, 0, NULL);
-
-        if (func.type == CRO_LocalFunction)
-          CRO_toggleMemoryUse(s, func);
+        }
+        
       }
       else {
         CRO_toNone(v);

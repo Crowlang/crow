@@ -1,0 +1,44 @@
+(defvar x 0)
+(defvar max 1000000)
+
+(println "=== Counting to " max)
+(println "=== Watch memory usage for memory holes")
+
+(println "=== While")
+(while (< x max)
+	(set x (+ x 1)))
+
+(println x)
+(set x 0)
+(println "=== do-while")
+(do-while
+	(set x (+ x 1))
+(< x max))
+(println x)
+
+(set x 0)
+(println "=== loop")
+
+(loop
+	(set x (+ x 1))
+	(if (= x max) (break)))
+(println x)
+(println "=== do-times")
+
+
+(set x 0)
+(do-times (func () (set x (+ x 1))) max)
+
+(println x)
+
+(println "=== each")
+
+(set x 0)
+(each (make-array max) (func (a i) (set x (+ x 1))))
+(println x)
+
+(println "=== each-with-iterator")
+(set x 0)
+(each-with-iterator (make-array max) (func (a i) (set x (+ x 1))))
+(println x)
+

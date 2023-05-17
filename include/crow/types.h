@@ -41,8 +41,6 @@ typedef struct CRO_Type {
   const char *name;
   CRO_ToString_Function *toString;
   CRO_FreeData_Function *free;
-  CRO_Search_Function *search;
-  CRO_ToggleUse_Function *toggleUse;
 
   unsigned char color;
 
@@ -58,7 +56,7 @@ typedef struct CRO_Allocation {
   unsigned char flags;
   CRO_FreeData_Function *free;
   void *memory;
-  allotok_t allotok;
+  int lock;
 } CRO_Allocation;
 
 #define CRO_None 0
@@ -98,15 +96,8 @@ typedef struct CRO_State {
 } CRO_State;
 
 #define CRO_BUFFER_SIZE 64
-#define CRO_GC_TIMER 64
 
-#ifdef CROWLANG_GC_OLD
-  #define CRO_callGC(s) CRO_GC(s);
-#elif defined(CROWLANG_DISABLE_GC)
-  #define CRO_callGC(s)
-#else
-  #define CRO_callGC(s) if(s->gctime++ >= CRO_GC_TIMER) {CRO_GC(s);s->gctime = 0;}
-#endif
+#define CRO_cleanUpRefs(v)     if(v.allotok != NULL){CRO_allocUnlock(v);}
 
 #define CRO_Undefined         3063370097u
 #define CRO_Number            2832123592u
@@ -124,6 +115,7 @@ typedef struct CRO_State {
 #define CRO_FLAG_NoVarError 1
 
 #define _CROWLANG_USE_COLOR
+
 
 #if defined(__unix) || defined(__MACH__)
   #define CROW_PLATFORM_UNIX
@@ -209,11 +201,11 @@ typedef struct CRO_State {
 #define CRO_toString(s, v, x) v.type = CRO_String; v.value.number = 0; v.value.string = x; v.value.function = NULL; v.allotok = CRO_malloc(s, x, free); v.value.integer = 0; v.constant = 0;
 */
 
-#define CRO_toNumber(v, x) v.type = CRO_Number; v.value.number = x; v.allotok = 0; v.flags = 0;
-#define CRO_toNone(v) v.type = CRO_Undefined; v.allotok = 0; v.flags = 0;
-#define CRO_toBoolean(v, x) v.type = CRO_Bool; v.allotok = 0; v.value.integer = x; v.flags = 0;
+#define CRO_toNumber(v, x) v.type = CRO_Number; v.value.number = x; v.allotok = NULL; v.flags = 0;
+#define CRO_toNone(v) v.type = CRO_Undefined; v.allotok = NULL; v.flags = 0;
+#define CRO_toBoolean(v, x) v.type = CRO_Bool; v.allotok = NULL; v.value.integer = x; v.flags = 0;
 #define CRO_toString(s, v, x) v.type = CRO_String; v.value.string = x; v.allotok = CRO_malloc(s, x, free); v.flags = 0;
-#define CRO_toPointerType(v, t, x) v.type = t; v.value.pointer = (void*)x; v.allotok = 0; v.flags = 0;
+#define CRO_toPointerType(v, t, x) v.type = t; v.value.pointer = (void*)x; v.allotok = NULL; v.flags = 0;
 
 /*#define CRO_error(x) CRO_setColor(RED);printf("ERROR: "); x; CRO_setColor(RESET); return CRO_toNone();*/
 
@@ -271,10 +263,12 @@ typedef struct CRO_Value {
 
   int arraySize;
 
-  allotok_t allotok;
+  CRO_Allocation *allotok;
 
   /* TODO: This is only needed for functions, maybe move it into the union*/
   struct CRO_Closure *functionClosure;
+
+  int uuid;
 } CRO_Value;
 
 typedef struct CRO_Variable {
@@ -292,6 +286,8 @@ typedef struct CRO_Closure {
   CRO_Variable *variables;
   unsigned int vptr;
   unsigned int vsize;
+
+  int lock;
 } CRO_Closure;
 
 #define CRO_globalScope(s) s->closures[0]

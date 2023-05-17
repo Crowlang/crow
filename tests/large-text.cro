@@ -1,0 +1,34 @@
+(println "=== Counting iterences of 'whale' in Moby Dick")
+(println "=== This will use a lot of memory, check that it frees it all")
+
+(defvar book (open "2701-0.txt" "r"))
+
+(defvar contents (read book))
+
+(defvar whale-count 0)
+
+(defvar words (split contents " "))
+
+(println "Length: " (length words))
+
+(println "=== each")
+
+(each-with-iterator words (func (word i) 
+	(if (starts-with word "whale") (set whale-count (+ whale-count 1)))
+))
+
+(println whale-count)
+
+(set whale-count 0)
+
+(println "=== while")
+
+(defvar index 0)
+(defvar len (length words))
+(while (< index len)
+	(if (starts-with (array-get words index) "whale") (set whale-count (+ whale-count 1)))
+	(set index (+ index 1))
+)
+
+(println whale-count)
+

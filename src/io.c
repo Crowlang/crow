@@ -35,6 +35,7 @@ CRO_Value CRO_import (CRO_State *s, int argc, CRO_Value *argv) {
       s->scope = CRO_globalScope(s);
       ret = CRO_evalFile(s, importFile);
 
+
       s->scope = lastScope;
       return ret;
     }

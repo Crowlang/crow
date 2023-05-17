@@ -1,0 +1,14 @@
+=== Counting to 1000000
+=== Watch memory usage for memory holes
+=== While
+1000000
+=== do-while
+1000000
+=== loop
+1000000
+=== do-times
+1000000
+=== each
+1000000
+=== each-with-iterator
+1000000

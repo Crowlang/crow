@@ -71,8 +71,8 @@ CRO_Value CRO_println (CRO_State *s, int argc, CRO_Value *argv) {
 CRO_Value CRO_getln (CRO_State *s, int argc, CRO_Value *argv) {
   
   CRO_Value ret;
-  char c, *line;
-  int lptr, size;
+  char *line;
+  int lptr, size, c;
   
   line = (char*)malloc(CRO_BUFFER_SIZE * sizeof(char));
   size = CRO_BUFFER_SIZE;
@@ -148,8 +148,8 @@ CRO_Value CRO_read (CRO_State *s, int argc, CRO_Value *argv) {
     file = argv[1];
     
     if (file.type == CRO_FileDescriptor) {
-      char *body, c;
-      int bptr, bsize;
+      char *body;
+      int bptr, bsize, c;
       
       body = malloc(CRO_BUFFER_SIZE * sizeof(char));
       
@@ -271,8 +271,8 @@ CRO_Value CRO_readLine (CRO_State *s, int argc, CRO_Value *argv) {
   fileValue = argv[1];
   
   if (fileValue.type == CRO_FileDescriptor) {
-    char c, *line;
-    int lptr, size;
+    char *line;
+    int lptr, size, c;
     
     line = (char*)malloc(CRO_BUFFER_SIZE * sizeof(char));
     size = CRO_BUFFER_SIZE;

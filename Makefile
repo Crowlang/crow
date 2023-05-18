@@ -1,7 +1,7 @@
 # Crowlang Makefile for UNIX and UNIX-like systems
 # This Makefile assumes GNU Make, and also GCC or a GCC compatible compiler
 
-CFLAGS += -std=c89 -Wall -Wextra -Wpedantic -Wno-unused-parameter -fpic -g
+CFLAGS += -std=gnu89 -Wall -Wextra -Wpedantic -Wno-unused-parameter -fpic -g
 CFLAGS += -I include/
 CFLAGS += -DCROWLANG_PEDANTIC_UTF8 -DCROWLANG_USE_UTF8
 
@@ -33,7 +33,7 @@ OBJS += system.o
 OBJS += string.o
 
 crow: crowlang.o $(OBJS)
-	$(CC) *.o -lm -o crow
+	$(CC) *.o -lm -ldl -o crow
 
 libcrow.a: $(OBJS)
 	ar -crs libcrow.a $(OBJS)

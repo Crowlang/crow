@@ -339,6 +339,14 @@ CRO_Value CRO_arraySet (CRO_State *s, int argc, CRO_Value *argv) {
 
   /* Make sure we are not trying to overwrite a constant value */
   if (!(arr.value.array[index].flags & CRO_FLAG_CONSTANT)) {
+    if (val.allotok != NULL) {
+      /* We need to lock it twice, once for storage in the array, and another time so it can
+       * live long enough to be returned */
+      CRO_allocLock(val);
+      CRO_allocLock(val);
+
+    }
+
     arr.value.array[index] = val;
   }
   else {

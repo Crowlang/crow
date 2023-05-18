@@ -518,6 +518,7 @@ void CRO_exposeFunction (CRO_State *s, const char *name, CRO_Value (*func)(CRO_S
   vn.type = CRO_Function;
   vn.value.function = func;
   vn.flags = CRO_FLAG_CONSTANT;
+  vn.allotok = NULL;
 
   /* Create the variable to hold it */
   var.hash = CRO_genHash(name);
@@ -1039,6 +1040,7 @@ CRO_Value CRO_innerEval(CRO_State *s, char *src) {
     argc = 0;
     /* TODO: Catch overflow */
     argv = (CRO_Value*)malloc(64 * sizeof(CRO_Value));
+    CRO_toNone(argv[0]);
 
     ptr++;
     /* Get our function name */

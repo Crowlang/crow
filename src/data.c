@@ -87,7 +87,7 @@ CRO_Value set (CRO_State *s, int argc, char **argv) {
 
             /* If there is an old value that has an allocation, unlock it so it _can_ be freed */
             if (scope->variables[x].value.allotok != NULL) {
-              CRO_cleanUpRefs(scope->variables[x].value);
+              CRO_allocUnlock(scope->variables[x].value);
             }
 
             /* If we have an active allocation, lock it down so it isnt freed */
@@ -340,9 +340,6 @@ CRO_Value CRO_arraySet (CRO_State *s, int argc, CRO_Value *argv) {
   /* Make sure we are not trying to overwrite a constant value */
   if (!(arr.value.array[index].flags & CRO_FLAG_CONSTANT)) {
     if (val.allotok != NULL) {
-      /* We need to lock it twice, once for storage in the array, and another time so it can
-       * live long enough to be returned */
-      CRO_allocLock(val);
       CRO_allocLock(val);
 
     }
@@ -386,7 +383,12 @@ CRO_Value CRO_arrayGet (CRO_State *s, int argc, CRO_Value *argv) {
 
   if (ret.allotok != NULL) {
     ret.allotok = arr.value.array[index].allotok;
-    CRO_allocLock(ret);
+
+    /* This is an anonymous array, so we need to make the return dangling */
+    if (arr.allotok->lock == 1) {
+      CRO_allocLock(ret);
+      ret.allotok->flags |= CRO_ALLOCFLAG_DANGLE;
+    }
   }
   
   return ret;
@@ -409,10 +411,6 @@ CRO_Value CRO_sample (CRO_State *s, int argc, CRO_Value *argv) {
       /* TODO: Make this work for indexes larger than RANDMAX */
       index = rand() % array.arraySize;
       ret = array.value.array[index];
-      if (ret.allotok != NULL) {
-        CRO_allocLock(ret);
-
-      }
       return ret;
     }
     else {

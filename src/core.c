@@ -476,6 +476,11 @@ void CRO_freeState (CRO_State *s) {
 
   /* Free variables */
   s->scope->lock = 1;
+  for(i = 0; i < s->scope->vptr; i++) {
+    if (s->scope->variables[i].value.allotok != NULL) {
+      s->scope->variables[i].value.allotok->lock = 0;
+    }
+  }
   CRO_unlockClosure(s->scope);
   free(s->closures);
 
@@ -627,9 +632,7 @@ void CRO_unlockClosure (CRO_Closure *clo) {
     printf("[CLOSLOCK]\tCleaning up closure...\n");
 #endif
     for (x = 0; x < clo->vptr; x++) {
-      if (clo->variables[x].value.allotok != NULL) {
-        CRO_allocUnlock(clo->variables[x].value);
-      }
+      CRO_cleanUpRefs(clo->variables[x].value);
     }
     free(clo->variables);
 
@@ -790,8 +793,7 @@ CRO_Allocation *CRO_malloc (CRO_State *s, void *memory, CRO_FreeData_Function *f
   ret->free = free;
   ret->memory = memory;
 
-  /* Assume everything is locked because after it is evaluated it will be unlocked */
-  ret->lock = 1;
+  ret->lock = 0;
 
 #ifdef CROWLANG_ALLOCLOCK_DEBUG
   printf("[ALOCLOCK]\tMemory %x alloclock %d\n", ret->memory, ret->lock);
@@ -806,15 +808,26 @@ void CRO_allocLock (CRO_Value v) {
 
   alloc = v.allotok;
 
-  alloc->lock += 1;
-
-  if(v.type == CRO_LocalFunction) {
-    CRO_lockClosure(v.functionClosure);
+  /* If we have a dangling refernce, just take ownership of it */
+  if (alloc->flags & CRO_ALLOCFLAG_DANGLE) {
+    alloc->flags = CRO_ALLOCFLAG_ALLOCATED;
+#ifdef CROWLANG_ALLOCLOCK_DEBUG
+    printf("[ALOCLOCK]\Dangling refernce %x claimed, lock %d\n", alloc->memory, alloc->lock);
+#endif
   }
+  /* Otherwise lock it */
+  else {
+    alloc->lock += 1;
+    alloc->flags = CRO_ALLOCFLAG_ALLOCATED;
+
+    if(v.type == CRO_LocalFunction) {
+      CRO_lockClosure(v.functionClosure);
+    }
 
 #ifdef CROWLANG_ALLOCLOCK_DEBUG
-  printf("[ALOCLOCK]\tMemory %x alloclock %d\n", alloc->memory, alloc->lock);
+    printf("[ALOCLOCK]\tMemory %x alloclock %d\n", alloc->memory, alloc->lock);
 #endif
+  }
 
 }
 
@@ -877,6 +890,13 @@ CRO_Value CRO_callFunction (CRO_State *s, CRO_Value func, int argc, CRO_Value *a
   lastExitContext = s->exitContext;
   s->exitContext = CRO_ReturnCode;
 
+  /* Lock our arguments so they aren't freed */
+  for(x = 1; x <= argc; x++) {
+    if (argv[x].allotok != NULL) {
+      CRO_allocLock(argv[x]);
+    }
+  }
+
   /* If the function value is null, it means we have a local defined function, in which the actual
    * function body is located in the value.string var */
 
@@ -886,6 +906,8 @@ CRO_Value CRO_callFunction (CRO_State *s, CRO_Value func, int argc, CRO_Value *a
     CRO_Variable argsconst;
     CRO_Value argsconstV;
     CRO_Closure *lastScope, *scope;
+
+    CRO_allocLock(func);
 
     lastScope = s->scope;
 
@@ -926,9 +948,6 @@ CRO_Value CRO_callFunction (CRO_State *s, CRO_Value func, int argc, CRO_Value *a
           /* Set the value to its coresponding ARGV value*/
           /* If there are more args expected than supplied, make them undefined */
           if (varcount <= argc) {
-            if (argv[varcount].allotok != NULL) {
-              CRO_allocLock(argv[varcount]);
-            }
 
             argvv.value = argv[varcount];
           }
@@ -981,8 +1000,8 @@ CRO_Value CRO_callFunction (CRO_State *s, CRO_Value func, int argc, CRO_Value *a
     argsconst.value = argsconstV;
     argsconst.hash = CRO_genHash("ARGS");
 
-    scope->variables[scope->vptr] = argsconst;
-    scope->vptr++;
+    /*scope->variables[scope->vptr] = argsconst;
+    scope->vptr++;*/
     if (scope->vptr >= scope->vsize) {
       scope->vsize *= 2;
       scope->variables = (CRO_Variable*)realloc(scope->variables, scope->vsize * sizeof(CRO_Variable));
@@ -1002,7 +1021,9 @@ CRO_Value CRO_callFunction (CRO_State *s, CRO_Value func, int argc, CRO_Value *a
     scope->active = 0;
 
     CRO_unlockClosure(scope);
-    
+
+    CRO_allocUnlock(func);
+
     s->scope = lastScope;
 
 #ifdef CROWLANG_SCOPE_DEBUG
@@ -1019,6 +1040,12 @@ CRO_Value CRO_callFunction (CRO_State *s, CRO_Value func, int argc, CRO_Value *a
   }
 
   s->exitContext = lastExitContext;
+
+  for(x = 1; x <= argc; x++) {
+    if (argv[x].allotok != NULL) {
+      CRO_allocUnlock(argv[x]);
+    }
+  }
 
   return v;
 }
@@ -1121,16 +1148,6 @@ CRO_Value CRO_innerEval(CRO_State *s, char *src) {
       /*CRO_toString(s, argv[0], fname);*/
       v = CRO_callFunction(s, func, argc, argv);
 
-      for(x = 1; x <= argc; x++) {
-        if (argv[x].allotok != NULL) {
-          CRO_allocUnlock(argv[x]);
-        }
-      }
-
-      if (func.type == CRO_LocalFunction) {
-        CRO_allocUnlock(func);
-      }
-
       free(fname);
       free(argv);
       return v;
@@ -1155,10 +1172,6 @@ CRO_Value CRO_innerEval(CRO_State *s, char *src) {
       else {
         argv[0] = func;
         v = CRO_callFunction(s, caller, argc, argv);
-
-        if (v.allotok != NULL) {
-          CRO_allocLock(v);
-        }
 
         free(argv);
         free(methodName);
@@ -1276,9 +1289,6 @@ CRO_Value CRO_innerEval(CRO_State *s, char *src) {
         for (x = scope->vptr - 1; x >= 0; x--) {
           /* If the variable has the same hash, we have the correct variable reference */
           if(vhash == scope->variables[x].hash) {
-            if (scope->variables[x].value.allotok != NULL) {
-              CRO_allocLock(scope->variables[x].value);
-            }
             return scope->variables[x].value;
           }
         }

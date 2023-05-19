@@ -34,6 +34,7 @@ char *CRO_cloneStr(const char *str);
 void CRO_allocLock (CRO_Value v);
 void CRO_allocUnlock (CRO_Value v);
 
+
 CRO_Allocation *CRO_malloc(CRO_State *s, void *memory, CRO_FreeData_Function *free);
 CRO_Type *CRO_getType(CRO_State *s, CRO_TypeDescriptor t);
 

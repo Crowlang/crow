@@ -51,6 +51,7 @@ typedef struct CRO_Type {
 #define CRO_ALLOCFLAG_NONE 0
 #define CRO_ALLOCFLAG_ALLOCATED 1
 #define CRO_ALLOCFLAG_INUSE 2
+#define CRO_ALLOCFLAG_DANGLE 4
 
 typedef struct CRO_Allocation {
   unsigned char flags;
@@ -97,7 +98,7 @@ typedef struct CRO_State {
 
 #define CRO_BUFFER_SIZE 64
 
-#define CRO_cleanUpRefs(v)     if(v.allotok != NULL){CRO_allocUnlock(v);}
+#define CRO_cleanUpRefs(v)     if(v.allotok != NULL && (v.allotok->lock == 0 || (v.allotok->lock == 1 && v.allotok->flags & CRO_ALLOCFLAG_DANGLE))){CRO_allocUnlock(v);}
 
 #define CRO_Undefined         3063370097u
 #define CRO_Number            2832123592u

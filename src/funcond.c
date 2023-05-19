@@ -243,7 +243,6 @@ CRO_Value CRO_defun (CRO_State *s, int argc, char **argv) {
     argv[1] = "func";
     
     ret = CRO_func(s, argc - 1, &argv[1]);
-    CRO_allocLock(ret);
     
     /* Now set it back */
     argv[1] = name;
@@ -256,7 +255,8 @@ CRO_Value CRO_defun (CRO_State *s, int argc, char **argv) {
 
     var.hash = vhash;
     var.value = ret;
-    
+
+    CRO_allocLock(ret);
     scope->variables[scope->vptr] = var;
     
     scope->vptr++;
@@ -649,6 +649,12 @@ CRO_Value CRO_each (CRO_State *s, int argc, CRO_Value *argv) {
       
       if (func.type == CRO_Function || func.type == CRO_LocalFunction) {
 
+        CRO_allocLock(array);
+
+        if (func.type == CRO_LocalFunction) {
+          CRO_allocLock(func);
+        }
+
         for (index = 0; index < array.arraySize; index++) {
           /* Get the value of the item in the array and set it to the var */
           itemV = array.value.array[index];
@@ -676,6 +682,12 @@ CRO_Value CRO_each (CRO_State *s, int argc, CRO_Value *argv) {
           }
         }
         free(argz);
+
+        CRO_allocUnlock(array);
+
+        if (func.type == CRO_LocalFunction) {
+          CRO_allocUnlock(func);
+        }
       }
       else if (func.type == CRO_PrimitiveFunction) {
         char *err;
@@ -745,6 +757,12 @@ CRO_Value CRO_eachWithIterator (CRO_State *s, int argc, CRO_Value *argv) {
       CRO_toNone(callArgs[0])
       if (func.type == CRO_Function || func.type == CRO_LocalFunction) {
 
+        CRO_allocLock(array);
+
+        if (func.type == CRO_LocalFunction) {
+          CRO_allocLock(func);
+        }
+
         for (index = 0; index < array.arraySize; index++) {
           
           CRO_toNumber(counter, index);
@@ -780,6 +798,11 @@ CRO_Value CRO_eachWithIterator (CRO_State *s, int argc, CRO_Value *argv) {
 
         free(callArgs);
 
+        CRO_allocUnlock(array);
+
+        if (func.type == CRO_LocalFunction) {
+          CRO_allocUnlock(func);
+        }
       }
       else if (func.type == CRO_PrimitiveFunction) {
         char *err;
@@ -888,9 +911,7 @@ CRO_Value CRO_doWhile (CRO_State *s, int argc, char **argv) {
           break;
         }
       }
-      if (ret.allotok != NULL) {
-        CRO_allocUnlock(ret);
-      }
+      CRO_cleanUpRefs(ret);
       
       cond = CRO_innerEval(s, argv[argc]);
     } while(cond.type == CRO_Bool && cond.value.integer);

@@ -395,18 +395,27 @@ CRO_Value CRO_arrayGet (CRO_State *s, int argc, CRO_Value *argv) {
 CRO_Value CRO_sample (CRO_State *s, int argc, CRO_Value *argv) {
   
   if (argc == 1) {
-    CRO_Value array;
+    CRO_Value array, ret;
     array = argv[1];
     
     if (array.type == CRO_Array) {
       int index;
-      
+
+      if (array.arraySize == 0 ) {
+        CRO_toNone(ret);
+        return ret;
+      }
+
       /* TODO: Make this work for indexes larger than RANDMAX */
       index = rand() % array.arraySize;
-      return array.value.array[index];
+      ret = array.value.array[index];
+      if (ret.allotok != NULL) {
+        CRO_allocLock(ret);
+
+      }
+      return ret;
     }
     else {
-      CRO_Value ret;
       char *err;
       err = malloc(128 * sizeof(char));
       

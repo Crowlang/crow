@@ -903,8 +903,8 @@ CRO_Value CRO_callFunction (CRO_State *s, CRO_Value func, int argc, CRO_Value *a
   if (func.type == CRO_LocalFunction) {
     char *funcbody, *varname;
     int varnameptr, varcount, varnamesize;
-    CRO_Variable argsconst;
     CRO_Value argsconstV;
+    CRO_Variable argsconst;
     CRO_Closure *lastScope, *scope;
 
     CRO_allocLock(func);
@@ -1107,6 +1107,12 @@ CRO_Value CRO_innerEval(CRO_State *s, char *src) {
 
           argc++;
         }
+        else {
+            /* Make sure to free the word if we don't end up using it, like 
+             * here */
+            
+            free(word);
+        }
       }
 
       v = func.value.primitiveFunction(s, argc, primargv);
@@ -1144,7 +1150,6 @@ CRO_Value CRO_innerEval(CRO_State *s, char *src) {
     s->block--;
 
     if (func.type == CRO_Function || func.type == CRO_LocalFunction) {
-      int x = 0;
       /*CRO_toString(s, argv[0], fname);*/
       v = CRO_callFunction(s, func, argc, argv);
 

@@ -683,7 +683,15 @@ CRO_Value CRO_each (CRO_State *s, int argc, CRO_Value *argv) {
         }
         free(argz);
 
+
         CRO_allocUnlock(array);
+
+        /* Make sure if our return value is from the list, make sure we dangle it */
+        if (ret.allotok != NULL && array.allotok->lock == 1) {
+            CRO_allocLock(ret);
+            ret.allotok->flags |= CRO_ALLOCFLAG_DANGLE;
+        }
+
 
         if (func.type == CRO_LocalFunction) {
           CRO_allocUnlock(func);
@@ -799,6 +807,12 @@ CRO_Value CRO_eachWithIterator (CRO_State *s, int argc, CRO_Value *argv) {
         free(callArgs);
 
         CRO_allocUnlock(array);
+        
+        /* Make sure if our return value is from the list, make sure we dangle it */
+        if (ret.allotok != NULL && array.allotok->lock == 1) {
+            CRO_allocLock(ret);
+            ret.allotok->flags |= CRO_ALLOCFLAG_DANGLE;
+        }
 
         if (func.type == CRO_LocalFunction) {
           CRO_allocUnlock(func);
@@ -984,6 +998,10 @@ CRO_Value CRO_doTimes (CRO_State *s, int argc, CRO_Value *argv) {
           v = CRO_callFunction(s, func, 0, NULL);
         }
         
+        if (func.type == CRO_LocalFunction)
+          CRO_allocUnlock(func);
+
+  
       }
       else {
         CRO_toNone(v);

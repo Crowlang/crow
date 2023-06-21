@@ -44,11 +44,6 @@ CRO_Value defVar (CRO_State *s, int argc, char **argv) {
   printf("Defined variable %ld in closure %x\n", vhash, s->scope);
 #endif
 
-  /* If we have an active allocation, lock it down so it isnt freed */
-  if (vn.allotok != NULL) {
-    CRO_allocLock(vn);
-  }
-
   scope->variables[scope->vptr] = var;
   
   scope->vptr++;
@@ -84,17 +79,6 @@ CRO_Value set (CRO_State *s, int argc, char **argv) {
       for (x = 0; x < scope->vptr; x++) {
         if (vhash == scope->variables[x].hash) {
           if (!(scope->variables[x].value.flags & CRO_FLAG_CONSTANT)) {
-
-            /* If there is an old value that has an allocation, unlock it so it _can_ be freed */
-            if (scope->variables[x].value.allotok != NULL) {
-              CRO_allocUnlock(scope->variables[x].value);
-            }
-
-            /* If we have an active allocation, lock it down so it isnt freed */
-            if (vn.allotok != NULL) {
-              CRO_allocLock(vn);
-            }
-
             scope->variables[x].value = vn;
             return vn;
           }
@@ -140,16 +124,13 @@ CRO_Value CRO_array (CRO_State *s, int argc, CRO_Value *argv) {
   for (x = 0; x < argc; x++) {
     array[x] = argv[x + 1];
 
-    if (argv[x + 1].allotok != NULL) {
-      CRO_allocLock(argv[x + 1]);
-    }
   }
 
 
   v.type = CRO_Array;
   v.value.array = array;
   v.arraySize = argc;
-  v.allotok = CRO_malloc(s, (void*)array, free);;
+  v.allotok = CRO_malloc(s, (void*)array, argc * sizeof(CRO_Value), free, CRO_ALLOCFLAG_SEARCH);;
   v.flags = CRO_FLAG_SEARCH;
 
   return v;
@@ -255,7 +236,7 @@ CRO_Value CRO_makeArray (CRO_State *s, int argc, CRO_Value *argv) {
   v.type = CRO_Array;
   v.value.array = array;
   v.arraySize = size;
-  v.allotok =  CRO_malloc(s, (void*)array, free);
+  v.allotok =  CRO_malloc(s, (void*)array, size * sizeof(CRO_Value), free, CRO_ALLOCFLAG_SEARCH);
   v.flags = CRO_FLAG_SEARCH;
 
   return v;
@@ -293,7 +274,7 @@ CRO_Value CRO_resizeArray (CRO_State *s, int argc, CRO_Value *argv) {
     v.type = CRO_Array;
     v.value.array = newArray;
     v.arraySize = sz;
-    v.allotok =  CRO_malloc(s, (void*)newArray, free);;
+    v.allotok =  CRO_malloc(s, (void*)newArray, cpySize, free, CRO_ALLOCFLAG_SEARCH);;
     v.flags = CRO_FLAG_SEARCH;
 
     return v;
@@ -339,10 +320,6 @@ CRO_Value CRO_arraySet (CRO_State *s, int argc, CRO_Value *argv) {
 
   /* Make sure we are not trying to overwrite a constant value */
   if (!(arr.value.array[index].flags & CRO_FLAG_CONSTANT)) {
-    if (val.allotok != NULL) {
-      CRO_allocLock(val);
-
-    }
 
     arr.value.array[index] = val;
   }
@@ -383,12 +360,6 @@ CRO_Value CRO_arrayGet (CRO_State *s, int argc, CRO_Value *argv) {
 
   if (ret.allotok != NULL) {
     ret.allotok = arr.value.array[index].allotok;
-
-    /* This is an anonymous array, so we need to make the return dangling */
-    if (arr.allotok->lock == 1) {
-      CRO_allocLock(ret);
-      ret.allotok->flags |= CRO_ALLOCFLAG_DANGLE;
-    }
   }
   
   return ret;
@@ -454,7 +425,7 @@ CRO_Value CRO_makeStruct (CRO_State *s, int argc, CRO_Value *argv) {
     str[x * 2].flags = CRO_FLAG_CONSTANT;
   }
 
-  v.allotok = CRO_malloc(s, str, free);
+  v.allotok = CRO_malloc(s, str, ((argc + 1) * 2) * sizeof(CRO_Value), free, CRO_ALLOCFLAG_SEARCH);
 
   v.type = CRO_Struct;
   v.value.array = str;

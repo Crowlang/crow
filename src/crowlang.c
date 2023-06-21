@@ -76,7 +76,7 @@ int main (int argc, char *argv[]) {
 
     v = CRO_evalFile(s, srcfile);
 
-    CRO_cleanUpRefs(v);
+    CRO_callGC(s);
 
     if (s->exitCode >= CRO_ExitCode) {
       CRO_printError();
@@ -304,7 +304,7 @@ int main (int argc, char *argv[]) {
             CRO_setColor(RESET);
           }
 
-          CRO_cleanUpRefs(v);
+          CRO_callGC(s);
           ptr = 0;
           lsp = 1;
 

@@ -22,10 +22,9 @@ CRO_Value CRO_block (CRO_State *s, int argc, char**argv) {
 
   scope->active = 1;
   scope->depends = lastScope;
-  CRO_lockClosure(s->scope);
 
   for (x = 1; x <= argc; x++) {
-    CRO_cleanUpRefs(v);
+    CRO_callGC(s);
     
     v = CRO_eval(s, argv[x]);
     
@@ -40,9 +39,6 @@ CRO_Value CRO_block (CRO_State *s, int argc, char**argv) {
   }
 
   scope->active = 0;
-  if (v.functionClosure != scope) {
-    CRO_unlockClosure(s->scope);
-  }
   
   s->scope = lastScope;
 
@@ -68,7 +64,6 @@ CRO_Value CRO_local (CRO_State *s, int argc, char **argv) {
 
     scope->active = 1;
     scope->depends = lastScope;
-    CRO_lockClosure(lastScope);
 
     /* Remove the ( and ) from the front and end of the definiton section */
     definitions = &argv[1][1];
@@ -91,7 +86,6 @@ CRO_Value CRO_local (CRO_State *s, int argc, char **argv) {
 
     scope->active = 0;
     s->scope = lastScope;
-    CRO_unlockClosure(lastScope);
     
     return v;
   }
@@ -104,6 +98,7 @@ CRO_Value CRO_local (CRO_State *s, int argc, char **argv) {
 
 CRO_Value CRO_func (CRO_State *s, int argc, char **argv) {
   CRO_Value v;
+  CRO_LocalFunctionBundle *bundle;
   char *args, *body;
   int arglen, x, bsize, bptr, i;
 
@@ -159,7 +154,7 @@ CRO_Value CRO_func (CRO_State *s, int argc, char **argv) {
       body[bptr++] = argv[i][x];
       
       if (bptr >= bsize) {
-        bsize *= 2;
+        bsize += CRO_BUFFER_SIZE;
         body = realloc(body, bsize * sizeof(char));
       }
     }
@@ -167,13 +162,15 @@ CRO_Value CRO_func (CRO_State *s, int argc, char **argv) {
   }
   body[bptr - 1] = 0;
 
-  v.type = CRO_LocalFunction;
-  v.value.function = NULL;
-  v.value.string = body;
-  v.functionClosure = s->scope;
-  v.allotok = CRO_malloc(s, body, free);
+  bundle = malloc(sizeof(CRO_LocalFunctionBundle));
 
-  CRO_lockClosure(s->scope);
+  bundle->src = body;
+  bundle->closure = s->scope;
+
+  v.type = CRO_LocalFunction;
+  v.value.localFunction = bundle;
+  v.allotok = CRO_malloc(s, bundle, sizeof(CRO_LocalFunctionBundle), CRO_freeLocalFunction, CRO_ALLOCFLAG_SEARCH);
+  
   v.flags = CRO_FLAG_NONE;
 
   return v;
@@ -184,6 +181,7 @@ CRO_Value CRO_subroutine (CRO_State *s, int argc, char **argv) {
   CRO_Value v;
   char *body;
   int x, bsize, bptr, i;
+  CRO_LocalFunctionBundle *bundle;
 
   if (argc < 1) {
     printf("Error (subroutine) requires at least 1 arguement\n");
@@ -212,14 +210,17 @@ CRO_Value CRO_subroutine (CRO_State *s, int argc, char **argv) {
     body[bptr++] = ' ';
   }
   body[bptr - 1] = 0;
-  
+
+  bundle = malloc(sizeof(CRO_LocalFunctionBundle));
+
+  bundle->src = body;
+  bundle->closure = s->scope;
 
   v.type = CRO_LocalFunction;
-  v.value.function = NULL;
-  v.value.string = body;
-  v.allotok = CRO_malloc(s, body, free);;
+  v.value.localFunction = bundle;
+  v.allotok = CRO_malloc(s, bundle, sizeof(CRO_LocalFunctionBundle), CRO_freeLocalFunction, CRO_ALLOCFLAG_SEARCH);
+
   v.flags = CRO_FLAG_NONE;
-  v.functionClosure = s->scope;
 
   return v;
 
@@ -256,7 +257,6 @@ CRO_Value CRO_defun (CRO_State *s, int argc, char **argv) {
     var.hash = vhash;
     var.value = ret;
 
-    CRO_allocLock(ret);
     scope->variables[scope->vptr] = var;
     
     scope->vptr++;
@@ -649,29 +649,15 @@ CRO_Value CRO_each (CRO_State *s, int argc, CRO_Value *argv) {
       
       if (func.type == CRO_Function || func.type == CRO_LocalFunction) {
 
-        CRO_allocLock(array);
-
-        if (func.type == CRO_LocalFunction) {
-          CRO_allocLock(func);
-        }
-
         for (index = 0; index < array.arraySize; index++) {
           /* Get the value of the item in the array and set it to the var */
           itemV = array.value.array[index];
           
           argz[1] = itemV;
-
-          if (itemV.allotok != NULL) {
-            CRO_allocLock(itemV);
-          }
           
-          CRO_cleanUpRefs(ret);
+          CRO_callGC(s);
 
           ret = CRO_callFunction(s, func, 1, argz);
-
-          if (itemV.allotok != NULL) {
-            CRO_allocUnlock(itemV);
-          }
 
           if (s->exitCode >= s->exitContext) {
             if (s->exitCode == s->exitContext) {
@@ -682,20 +668,6 @@ CRO_Value CRO_each (CRO_State *s, int argc, CRO_Value *argv) {
           }
         }
         free(argz);
-
-
-        CRO_allocUnlock(array);
-
-        /* Make sure if our return value is from the list, make sure we dangle it */
-        if (ret.allotok != NULL && array.allotok->lock == 1) {
-            CRO_allocLock(ret);
-            ret.allotok->flags |= CRO_ALLOCFLAG_DANGLE;
-        }
-
-
-        if (func.type == CRO_LocalFunction) {
-          CRO_allocUnlock(func);
-        }
       }
       else if (func.type == CRO_PrimitiveFunction) {
         char *err;
@@ -765,12 +737,6 @@ CRO_Value CRO_eachWithIterator (CRO_State *s, int argc, CRO_Value *argv) {
       CRO_toNone(callArgs[0])
       if (func.type == CRO_Function || func.type == CRO_LocalFunction) {
 
-        CRO_allocLock(array);
-
-        if (func.type == CRO_LocalFunction) {
-          CRO_allocLock(func);
-        }
-
         for (index = 0; index < array.arraySize; index++) {
           
           CRO_toNumber(counter, index);
@@ -779,20 +745,11 @@ CRO_Value CRO_eachWithIterator (CRO_State *s, int argc, CRO_Value *argv) {
           item = array.value.array[index];
           
           callArgs[1] = item;
-
-          if (item.allotok != NULL) {
-            CRO_allocLock(item);
-          }
-
           callArgs[2] = counter;
 
           /* Now execute it with the variable in place */
-          CRO_cleanUpRefs(ret);
+          CRO_callGC(s);
           ret = CRO_callFunction(s, func, 2, callArgs);
-
-          if (item.allotok != NULL) {
-            CRO_allocUnlock(item);
-          }
           
           if (s->exitCode >= s->exitContext) {
             if (s->exitCode == s->exitContext) {
@@ -806,17 +763,6 @@ CRO_Value CRO_eachWithIterator (CRO_State *s, int argc, CRO_Value *argv) {
 
         free(callArgs);
 
-        CRO_allocUnlock(array);
-        
-        /* Make sure if our return value is from the list, make sure we dangle it */
-        if (ret.allotok != NULL && array.allotok->lock == 1) {
-            CRO_allocLock(ret);
-            ret.allotok->flags |= CRO_ALLOCFLAG_DANGLE;
-        }
-
-        if (func.type == CRO_LocalFunction) {
-          CRO_allocUnlock(func);
-        }
       }
       else if (func.type == CRO_PrimitiveFunction) {
         char *err;
@@ -872,7 +818,7 @@ CRO_Value CRO_while (CRO_State *s, int argc, char **argv) {
 
       for (x = 2; x <= argc; x++) {
 
-        CRO_cleanUpRefs(ret);
+        CRO_callGC(s);
         ret = CRO_innerEval(s, argv[x]);
         
         if (s->exitCode >= s->exitContext) {
@@ -925,7 +871,7 @@ CRO_Value CRO_doWhile (CRO_State *s, int argc, char **argv) {
           break;
         }
       }
-      CRO_cleanUpRefs(ret);
+      CRO_callGC(s);
       
       cond = CRO_innerEval(s, argv[argc]);
     } while(cond.type == CRO_Bool && cond.value.integer);
@@ -957,7 +903,7 @@ CRO_Value CRO_loop (CRO_State *s, int argc, char **argv) {
     int x;
     
     for (x = 1; x <= argc; x++) {
-      CRO_cleanUpRefs(ret);
+      CRO_callGC(s);
       ret = CRO_innerEval(s, argv[x]);
 
       if (s->exitCode >= s->exitContext) {
@@ -989,17 +935,12 @@ CRO_Value CRO_doTimes (CRO_State *s, int argc, CRO_Value *argv) {
         int i, timesToCall;
 
         timesToCall = times.value.number;
-
-        if (func.type == CRO_LocalFunction)
-          CRO_allocLock(func);
-
+        
         for (i = 0; i < timesToCall; i++) {
-          CRO_cleanUpRefs(v);
+          CRO_callGC(s);
           v = CRO_callFunction(s, func, 0, NULL);
         }
-        
-        if (func.type == CRO_LocalFunction)
-          CRO_allocUnlock(func);
+
 
   
       }

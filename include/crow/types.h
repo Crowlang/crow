@@ -32,7 +32,7 @@ typedef hash_t CRO_TypeDescriptor;
 
 typedef char* (CRO_ToString_Function)(struct CRO_State *s, struct CRO_Value v);
 typedef void (CRO_FreeData_Function)(void*);
-typedef unsigned char (CRO_Search_Function)(struct CRO_State* s, struct CRO_Value v, allotok_t t);
+typedef void (CRO_Search_Function)(struct CRO_State* s, struct CRO_Value v);
 typedef void (CRO_ToggleUse_Function)(struct CRO_State* s, struct CRO_Value v);
 
 typedef struct CRO_Type {
@@ -41,6 +41,7 @@ typedef struct CRO_Type {
   const char *name;
   CRO_ToString_Function *toString;
   CRO_FreeData_Function *free;
+  CRO_Search_Function *search;
 
   unsigned char color;
 
@@ -48,16 +49,19 @@ typedef struct CRO_Type {
   struct CRO_Type* right;
 } CRO_Type;
 
+#define CRO_flagSet(var, flag) var |= flag
+#define CRO_flagUnset(var, flag) var &= ~flag
+#define CRO_flagGet(var, flag) (var & flag)
+
 #define CRO_ALLOCFLAG_NONE 0
 #define CRO_ALLOCFLAG_ALLOCATED 1
-#define CRO_ALLOCFLAG_INUSE 2
-#define CRO_ALLOCFLAG_DANGLE 4
+#define CRO_ALLOCFLAG_SEARCH 2
 
 typedef struct CRO_Allocation {
   unsigned char flags;
   CRO_FreeData_Function *free;
   void *memory;
-  int lock;
+  size_t size;
 } CRO_Allocation;
 
 #define CRO_None 0
@@ -77,9 +81,10 @@ typedef struct CRO_State {
 
   struct CRO_Closure *scope;
 
-  CRO_Allocation *allocations;
+  CRO_Allocation **allocations;
   unsigned int allocptr;
   unsigned int asize;
+  size_t memorySize;
 
   void **libraries;
   unsigned int libptr;
@@ -89,7 +94,7 @@ typedef struct CRO_State {
   int functionBlock;
   char exitCode;
   char exitContext;
-  int gctime;
+  int gcTime;
 
   CRO_Type *datatypes;
   unsigned int dtptr;
@@ -98,7 +103,8 @@ typedef struct CRO_State {
 
 #define CRO_BUFFER_SIZE 64
 
-#define CRO_cleanUpRefs(v)     if(v.allotok != NULL && (v.allotok->lock == 0 || (v.allotok->lock == 1 && v.allotok->flags & CRO_ALLOCFLAG_DANGLE))){CRO_allocUnlock(v);}
+
+#define CRO_callGC(s) if(s->gcTime++ >= 5000){ CRO_GC(s); s->gcTime = 0;}
 
 #define CRO_Undefined         3063370097u
 #define CRO_Number            2832123592u
@@ -205,7 +211,7 @@ typedef struct CRO_State {
 #define CRO_toNumber(v, x) v.type = CRO_Number; v.value.number = x; v.allotok = NULL; v.flags = 0;
 #define CRO_toNone(v) v.type = CRO_Undefined; v.allotok = NULL; v.flags = 0;
 #define CRO_toBoolean(v, x) v.type = CRO_Bool; v.allotok = NULL; v.value.integer = x; v.flags = 0;
-#define CRO_toString(s, v, x) v.type = CRO_String; v.value.string = x; v.allotok = CRO_malloc(s, x, free); v.flags = 0;
+#define CRO_toString(s, v, x) v.type = CRO_String; v.value.string = x; v.allotok = CRO_malloc(s, x, strlen(x) * sizeof(char), free, 0); v.flags = 0;
 #define CRO_toPointerType(v, t, x) v.type = t; v.value.pointer = (void*)x; v.allotok = NULL; v.flags = 0;
 
 /*#define CRO_error(x) CRO_setColor(RED);printf("ERROR: "); x; CRO_setColor(RESET); return CRO_toNone();*/
@@ -225,6 +231,11 @@ typedef struct CRO_State {
 
 #define CRO_USE_UNIONS 1
 
+typedef struct CRO_LocalFunctionBundle {
+  struct CRO_Closure *closure;
+  char *src;
+} CRO_LocalFunctionBundle;
+
 typedef struct CRO_Value (CRO_C_Function)(CRO_State *s, int argc, struct CRO_Value *argv);
 typedef struct CRO_Value (CRO_C_PrimitiveFunction)(CRO_State *s, int argc, char **argv);
 
@@ -236,6 +247,7 @@ typedef union  {
   struct CRO_Value *array;
   CRO_C_Function *function;
   CRO_C_PrimitiveFunction *primitiveFunction;
+  CRO_LocalFunctionBundle *localFunction;
 
   void *pointer;
 } CRO_InnerValue;
@@ -247,6 +259,7 @@ typedef struct  {
   struct CRO_Value *array;
   CRO_C_Function *function;
   CRO_C_PrimitiveFunction *primitiveFunction;
+  CRO_LocalFunctionBundle *localFunction;
 
   void *pointer;
 } CRO_InnerValue;
@@ -261,15 +274,8 @@ typedef struct CRO_Value {
   unsigned char flags;
 
   CRO_InnerValue value;
-
   int arraySize;
-
   CRO_Allocation *allotok;
-
-  /* TODO: This is only needed for functions, maybe move it into the union*/
-  struct CRO_Closure *functionClosure;
-
-  int uuid;
 } CRO_Value;
 
 typedef struct CRO_Variable {
@@ -288,7 +294,7 @@ typedef struct CRO_Closure {
   unsigned int vptr;
   unsigned int vsize;
 
-  int lock;
+  CRO_Allocation *allotok;
 } CRO_Closure;
 
 #define CRO_globalScope(s) s->closures[0]

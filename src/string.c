@@ -405,8 +405,6 @@ CRO_Value CRO_split (CRO_State *s, int argc, CRO_Value *argv) {
             stringBuffer[sbPtr] = 0;
             
             CRO_toString(s, addString, stringBuffer);
-
-            CRO_allocLock(addString);
             
             /* Add to our array */
             array[arrayPtr++] = addString;
@@ -439,7 +437,6 @@ CRO_Value CRO_split (CRO_State *s, int argc, CRO_Value *argv) {
           stringBuffer[sbPtr] = 0;
           CRO_toString(s, addString, stringBuffer);
 
-          CRO_allocLock(addString);
           array[arrayPtr++] = addString;
           if (arrayPtr >= arraySize) {
             arraySize *= 2;
@@ -452,7 +449,7 @@ CRO_Value CRO_split (CRO_State *s, int argc, CRO_Value *argv) {
         
         ret.type = CRO_Array;
         ret.flags = CRO_FLAG_SEARCH;
-        ret.allotok = CRO_malloc(s, array, free);
+        ret.allotok = CRO_malloc(s, array, arraySize * sizeof(CRO_Value), free, CRO_ALLOCFLAG_SEARCH);
         ret.arraySize = arrayPtr;
         ret.type = CRO_Array;
         ret.value.array = array;

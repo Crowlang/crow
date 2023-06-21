@@ -1,5 +1,5 @@
 (defvar x 0)
-(defvar max 1000000)
+(defvar max 1000)
 
 (println "=== Counting to " max)
 (println "=== Watch memory usage for memory holes")

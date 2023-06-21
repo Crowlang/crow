@@ -7,7 +7,7 @@ extern int running;
 extern char *errorMsg;
 
 void CRO_exposeType (CRO_State *s, CRO_TypeDescriptor type, const char* name, CRO_ToString_Function *print, CRO_Color col);
-void CRO_exposeGCType (CRO_State *s, CRO_TypeDescriptor type, const char* name, CRO_ToString_Function *print, CRO_Color col, CRO_FreeData_Function *free);
+void CRO_exposeGCType (CRO_State *s, CRO_TypeDescriptor type, const char* name, CRO_ToString_Function *print, CRO_Color col, CRO_FreeData_Function *free, CRO_Search_Function *search);
 
 char *getWord(char* src, int* ptr, int* end);
 
@@ -16,8 +16,6 @@ void CRO_exposeStandardFunctions(CRO_State *s);
 void CRO_exposeArguments (CRO_State *s, int argc, char **argv);
 void CRO_freeState(CRO_State *s);
 
-void CRO_lockClosure (CRO_Closure *clo);
-void CRO_unlockClosure (CRO_Closure *clo);
 CRO_Closure *CRO_createClosure (CRO_State *s);
 
 char* CRO_printStd(CRO_State *s, CRO_Value v);
@@ -31,14 +29,14 @@ void CRO_exposeVariable(CRO_State *s, const char *name, CRO_Value v);
 
 char *CRO_cloneStr(const char *str);
 
-void CRO_allocLock (CRO_Value v);
-void CRO_allocUnlock (CRO_Value v);
+CRO_Allocation *CRO_malloc (CRO_State *s, void *memory, size_t size, CRO_FreeData_Function *free, unsigned char flags);
 
+void CRO_GC(CRO_State *s);
 
-CRO_Allocation *CRO_malloc(CRO_State *s, void *memory, CRO_FreeData_Function *free);
 CRO_Type *CRO_getType(CRO_State *s, CRO_TypeDescriptor t);
 
 void CRO_freeFile (void* v);
+void CRO_freeLocalFunction(void *memory);
 
 CRO_Value CRO_error(CRO_State *s, const char *msg);
 void CRO_printError();

@@ -103,7 +103,7 @@ CRO_Value CRO_getln (CRO_State *s, int argc, CRO_Value *argv) {
     ret.type = CRO_String;
     ret.value.string = line;
     ret.flags = CRO_FLAG_NONE;
-    ret.allotok = CRO_malloc(s, line, free);
+    ret.allotok = CRO_malloc(s, line, (size * sizeof(char)), free, CRO_ALLOCFLAG_NONE);
     return ret;
   }
   else {
@@ -134,7 +134,7 @@ CRO_Value CRO_open (CRO_State *s, int argc, CRO_Value *argv) {
   if (file.type == CRO_String) {
     ret.value.pointer = fopen(file.value.string, modeStr);
     ret.type = CRO_FileDescriptor;
-    ret.allotok = CRO_malloc(s, ret.value.pointer, CRO_freeFile);
+    ret.allotok = CRO_malloc(s, ret.value.pointer, sizeof(FILE), CRO_freeFile, CRO_ALLOCFLAG_NONE);
     return ret;
   }
   
@@ -298,7 +298,7 @@ CRO_Value CRO_readLine (CRO_State *s, int argc, CRO_Value *argv) {
       ret.type = CRO_String;
       ret.value.string = line;
       ret.flags = CRO_FLAG_NONE;
-      ret.allotok = CRO_malloc(s, line, free);
+      ret.allotok = CRO_malloc(s, line, (size * sizeof(char)), free, CRO_ALLOCFLAG_NONE);
     }
     else {
       free(line);
@@ -472,7 +472,7 @@ CRO_Value CRO_dir (CRO_State *s, int argc, CRO_Value *argv) {
     ret.type = CRO_Array;
     ret.value.array = array;
     ret.arraySize = arrayPtr;
-    ret.allotok = CRO_malloc(s, array, free);
+    ret.allotok = CRO_malloc(s, array, arraySize * sizeof(CRO_Value), free, CRO_ALLOCFLAG_NONE);
     
     closedir(dir);
     return ret;

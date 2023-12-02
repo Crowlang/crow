@@ -36,7 +36,7 @@ endif()
 
 
 if((${CMAKE_CXX_COMPILER_ID} MATCHES "GNU") OR (${CMAKE_CXX_COMPILER_ID} MATCHES "Clang"))
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c89 -Wall -Wextra -Wpedantic -Wno-unused-parameter -g")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=gnu89 -Wall -Wextra -Wpedantic -Wno-unused-parameter -g")
 elseif(${CMAKE_CXX_COMPILER_ID} MATCHES "MSVC")
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /Wall")
 endif()

@@ -1,4 +1,7 @@
 # The Crow Programming Language
+
+**This is a development branch of Crow, and is undergoing refactoring. It will likely not build, and if it does, it will not work. Please use 'trunk'**
+
 [[Website]](https://crowlang.org) [[Official Discord]](https://discord.gg/nBjBRQYK52)
 
 ```

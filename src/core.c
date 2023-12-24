@@ -766,14 +766,28 @@ CRO_Value CRO_eval (CRO_State *s, CRO_Value v) {
     else if (func.type == CRO_Function || func.type == CRO_Lambda){
       CRO_Value evalArgs, currentEvalArg, currentArg;
 
-      evalArgs = CRO_makeCons();
-      currentEvalArg = evalArgs;
-      currentArg = CDR(v);
+      /* We initially set our evaled args to nil, since it might be possible
+       * that there were no args given */
+      evalArgs = NIL;
 
-      for (; currentArg.type != CRO_Nil; currentArg = CDR(currentArg),
-              currentEvalArg = CDR(currentEvalArg)) {
-        CAR(currentEvalArg) = CRO_eval(s, CAR(currentArg));
-        CDR(currentEvalArg) = CRO_makeCons();
+      /* Go through the cons (granted it is one) and evaluate the arguments */
+      for (currentArg = CDR(v); currentArg.type == CRO_Cons; currentArg = CDR(currentArg)) {
+        CRO_Value evalCons;
+        evalCons = CRO_makeCons();
+        CAR(evalCons) = CRO_eval(s, CAR(currentArg));
+
+        /* If our evalArgs type is a cons, we already have data in it, so we
+         * append it to the last element we added (which is currentEvalArg).
+         * However, if it isn't a cons, we haven't added anything to it yet,
+         * so set the evalCons to be the value */
+        if (evalArgs.type == CRO_Cons) {
+          CDR(currentEvalArg) = evalCons;
+        }
+        else {
+          evalArgs = evalCons;
+        }
+
+        currentEvalArg = evalCons;
       }
 
       return CRO_callFunction(s, func, evalArgs);

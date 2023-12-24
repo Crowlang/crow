@@ -18,9 +18,7 @@ int running = 1;
 
 char *errorMsg;
 
-CRO_Value NIL = {
-  .type = CRO_Nil
-};
+CRO_Value NIL = {0};
 
 CRO_Value CRO_error (CRO_State *s, const char *msg) {
   errorMsg = (char*)msg;
@@ -33,10 +31,9 @@ void CRO_printError (void) {
   CRO_setColor(RED);
   printf("%s\n", errorMsg);
   CRO_setColor(RESET);
-  return;
 }
 
-CRO_Value CRO_makeCons() {
+CRO_Value CRO_makeCons (void) {
     CRO_Value v, *cons;
     v.type = CRO_Cons;
     cons = malloc(sizeof(CRO_Value) * 2);
@@ -86,7 +83,7 @@ void CRO_exposePrimitiveFunction (CRO_State *s, const char *name,
 }
 
 /* Helper function to create a function given a body and params. This
- * automaitcally defines the function to the current env. */
+ * automatically defines the function to the current env. */
 static CRO_Value CRO_makeFn(CRO_State *s, CRO_Value params, CRO_Value body) {
   CRO_Value fn;
 
@@ -227,7 +224,7 @@ CRO_Value CRO_CCons(CRO_State *s, CRO_Value args) {
   return v;
 }
 
-/* End base function defitions. For any other functions, check other files in
+/* End base function definitions. For any other functions, check other files in
  * this source directory. */
 
 

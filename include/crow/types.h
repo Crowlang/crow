@@ -48,24 +48,26 @@ typedef struct CRO_Value (CRO_C_Function)(struct CRO_State *s,
 typedef struct CRO_Value (CRO_C_PrimitiveFunction)(struct CRO_State *s,
         struct CRO_Value args);
 
-#define CAR(v) v.cons[0]
-#define CDR(v) v.cons[1]
+#define CAR(v) v.value.cons[0]
+#define CDR(v) v.value.cons[1]
+
+typedef union CRO_innerValue {
+    double number;
+    int integer;
+    char *string;
+
+    CRO_C_Function *function;
+    CRO_C_PrimitiveFunction *primitiveFunction;
+
+    struct CRO_Value *cons;
+
+    void *pointer;
+} CRO_innerValue;
 
 typedef struct CRO_Value {
     CRO_TypeDescriptor type;
 
-    union {
-        double number;
-        int integer;
-        char *string;
-
-        CRO_C_Function *function;
-        CRO_C_PrimitiveFunction *primitiveFunction;
-
-        struct CRO_Value *cons;
-
-        void *pointer;
-    };
+    CRO_innerValue value;
 } CRO_Value;
 
 typedef struct CRO_State {
@@ -173,10 +175,10 @@ enum {
   #define CRO_setColor(x) ;;
 #endif
 
-#define CRO_toNumber(v, x) v.type = CRO_Number; v.number = x
+#define CRO_toNumber(v, x) v.type = CRO_Number; v.value.number = x
 #define CRO_toNone(v) v.type = CRO_Nil;
 #define CRO_toBoolean(v, x) v.type = CRO_Bool; v.allotok = NULL; v.value.integer = x; v.flags = 0;
-#define CRO_toString(s, v, x) v.type = CRO_String; v.string = x;
+#define CRO_toString(s, v, x) v.type = CRO_String; v.value.string = x;
 #define CRO_toPointerType(v, t, x) v.type = t; v.value.pointer = (void*)x; v.allotok = NULL; v.flags = 0;
 
 #define CRO_None        0

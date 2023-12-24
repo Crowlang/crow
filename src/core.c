@@ -40,30 +40,53 @@ CRO_Value CRO_makeCons() {
     CRO_Value v, *cons;
     v.type = CRO_Cons;
     cons = malloc(sizeof(CRO_Value) * 2);
-    v.cons = cons;
+    v.value.cons = cons;
 
     CAR(v) = NIL;
     CDR(v) = NIL;
 
-    v.cons = cons;
+    v.value.cons = cons;
 
     return v;
 }
 
+void CRO_exposeVariable (CRO_State *s, const char *name, CRO_Value v) {
+  /* We can only define variables in the current ENV (the first one in the env list) */
+  CRO_Value variables, varDef, newVar;
 
-/*
- * Exposed to Crow in order to create cons lists.
- */
-CRO_Value CRO_CCons(CRO_State *s, CRO_Value args) {
-  CRO_Value v;
-  v = CRO_makeCons();
+  varDef = CRO_makeCons();
+  newVar = CRO_makeCons();
+  variables = CAR(s->env);
 
-  CAR(v) = CAR(args);
-  CDR(v) = CAR(CDR(args));
+  /* Our variable def looks like (cons 'symbol value) */
+  CRO_toString(s, CAR(varDef), (char*)name);
+  CAR(varDef).type = CRO_Symbol;
+  CDR(varDef) = v;
 
-  return v;
+  CAR(newVar) = varDef;
+  CDR(newVar) = variables;
+  CAR(s->env) = newVar;
 }
 
+void CRO_exposeFunction (CRO_State *s, const char *name, CRO_C_Function *fn) {
+  CRO_Value v;
+  v.type = CRO_Function;
+  v.value.function = fn;
+
+  CRO_exposeVariable(s, name, v);
+}
+
+void CRO_exposePrimitiveFunction (CRO_State *s, const char *name,
+                                  CRO_C_PrimitiveFunction *func) {
+  CRO_Value v;
+  v.type = CRO_PrimitiveFunction;
+  v.value.primitiveFunction = func;
+
+  CRO_exposeVariable(s, name, v);
+}
+
+/* Helper function to create a function given a body and params. This
+ * automaitcally defines the function to the current env. */
 static CRO_Value CRO_makeFn(CRO_State *s, CRO_Value params, CRO_Value body) {
   CRO_Value fn;
 
@@ -99,6 +122,10 @@ static CRO_Value CRO_makeFn(CRO_State *s, CRO_Value params, CRO_Value body) {
 
   return fn;
 }
+
+/* The following functions are by default always exposed to Crow in order to
+ * facilitate basic functionality of the programming language. They should
+ * not be removed (although they can be) */
 
 /*
  * Primitive Function for defining lambdas.
@@ -162,7 +189,7 @@ CRO_Value CRO_define(CRO_State *s, CRO_Value args) {
     fndef = CRO_makeFn(s, fparams, body);
 
     /* Expose it */
-    CRO_exposeVariable(s, fname.string, fndef);
+    CRO_exposeVariable(s, fname.value.string, fndef);
 
     return fndef;
   }
@@ -177,7 +204,7 @@ CRO_Value CRO_define(CRO_State *s, CRO_Value args) {
     bodyVal = CRO_eval(s, body);
 
     /* Expose it */
-    CRO_exposeVariable(s, name.string, bodyVal);
+    CRO_exposeVariable(s, name.value.string, bodyVal);
 
     return bodyVal;
   }
@@ -186,6 +213,23 @@ CRO_Value CRO_define(CRO_State *s, CRO_Value args) {
     return NIL;
   }
 }
+
+/*
+ * Exposed to Crow in order to create cons lists.
+ */
+CRO_Value CRO_CCons(CRO_State *s, CRO_Value args) {
+  CRO_Value v;
+  v = CRO_makeCons();
+
+  CAR(v) = CAR(args);
+  CDR(v) = CAR(CDR(args));
+
+  return v;
+}
+
+/* End base function defitions. For any other functions, check other files in
+ * this source directory. */
+
 
 /*
  * Allocates a new Crow state and initializes values.
@@ -247,7 +291,7 @@ char* CRO_printStd (CRO_State *s, CRO_Value v) {
   else if (v.type == CRO_Number) {
     char *ret;
     ret = malloc(32 * sizeof(char));
-    sprintf(ret, "%.15g", v.number);
+    sprintf(ret, "%.15g", v.value.number);
     return ret;
   }
   else if (v.type == CRO_Function || v.type == CRO_Lambda || v.type ==
@@ -256,12 +300,12 @@ char* CRO_printStd (CRO_State *s, CRO_Value v) {
   }
   else if (v.type == CRO_String) {
     char *ret;
-    ret = malloc((strlen(v.string) + 3) * sizeof(char));
-    sprintf(ret, "\"%s\"", v.string);
+    ret = malloc((strlen(v.value.string) + 3) * sizeof(char));
+    sprintf(ret, "\"%s\"", v.value.string);
     return ret;
   }
   else if (v.type == CRO_Bool) {
-    if (v.integer == 1) {
+    if (v.value.integer == 1) {
       return strdup("true");
     }
     else {
@@ -278,8 +322,8 @@ char* CRO_printStd (CRO_State *s, CRO_Value v) {
   }
   else if (v.type == CRO_Symbol) {
     char *ret;
-    ret = malloc((strlen(v.string) + 3) * sizeof(char));
-    sprintf(ret, "\'%s", v.string);
+    ret = malloc((strlen(v.value.string) + 3) * sizeof(char));
+    sprintf(ret, "\'%s", v.value.string);
     return ret;
   }
 
@@ -316,41 +360,6 @@ hash_t CRO_genHash (const char *name) {
   }
 
   return h;
-}
-
-void CRO_exposeVariable (CRO_State *s, const char *name, CRO_Value v) {
-  /* We can only define variables in the current ENV (the first one in the env list) */
-  CRO_Value variables, varDef, newVar;
-
-  varDef = CRO_makeCons();
-  newVar = CRO_makeCons();
-  variables = CAR(s->env);
-
-  /* Our variable def looks like (cons 'symbol value) */
-  CRO_toString(s, CAR(varDef), (char*)name);
-  CAR(varDef).type = CRO_Symbol;
-  CDR(varDef) = v;
-
-  CAR(newVar) = varDef;
-  CDR(newVar) = variables;
-  CAR(s->env) = newVar;
-}
-
-void CRO_exposeFunction (CRO_State *s, const char *name, CRO_C_Function *fn) {
-  CRO_Value v;
-  v.type = CRO_Function;
-  v.function = fn;
-
-  CRO_exposeVariable(s, name, v);
-}
-
-void CRO_exposePrimitiveFunction (CRO_State *s, const char *name,
-                                  CRO_C_PrimitiveFunction *func) {
-  CRO_Value v;
-  v.type = CRO_PrimitiveFunction;
-  v.primitiveFunction = func;
-
-  CRO_exposeVariable(s, name, v);
 }
 
 char *getWord (char *src, int *ptr, int *end) {
@@ -564,7 +573,8 @@ CRO_Value readWord (CRO_State *s, FILE *src) {
 }
 
 CRO_Allocation *CRO_malloc (CRO_State *s, void *memory) {
-
+  /* TODO: Implement stub */
+  return NULL;
 }
 
 char *CRO_cloneStr (const char *str) {
@@ -588,7 +598,7 @@ static CRO_Value CRO_resolveVariableInList(CRO_Value vars, CRO_Value sym) {
     vardefn = CAR(vars);
 
     if (vardefn.type == CRO_Cons && CAR(vardefn).type == CRO_Symbol
-      && strcmp(CAR(vardefn).string, sym.string) == 0) {
+      && strcmp(CAR(vardefn).value.string, sym.value.string) == 0) {
 
       return vardefn;
     }
@@ -622,6 +632,7 @@ static CRO_Value CRO_resolveVariableInEnv(CRO_Value env, CRO_Value sym) {
   }
   else {
     /* ERROR: We didn't find the variable */
+    printf("Error: Symbol '%s' is undefined.\n", sym.value.string);
     return NIL;
   }
 }
@@ -630,7 +641,8 @@ static CRO_Value CRO_resolveVariableInEnv(CRO_Value env, CRO_Value sym) {
  * Converts the cons list into an array for use in a C function.
  */
 static CRO_Value *CRO_consToArray(CRO_Value v, size_t *size) {
-
+  /* TODO: Implement stub (may or may not be used) */
+  return NULL;
 }
 
 /*
@@ -694,7 +706,7 @@ CRO_Value CRO_callFunction(CRO_State *s, CRO_Value func, CRO_Value args) {
       /* Get our var name */
       varname = CAR(currentParameter);
 
-      /* Get our arg value. If there isnt one, it is just set to Undefined */
+      /* Get our arg value. If there isn't one, it is just set to Undefined */
       if (currentArg.type == CRO_Cons) {
         varval = CAR(currentArg);
       }
@@ -702,7 +714,7 @@ CRO_Value CRO_callFunction(CRO_State *s, CRO_Value func, CRO_Value args) {
         CRO_toNone(varval);
       }
 
-      CRO_exposeVariable(s, varname.string, varval);
+      CRO_exposeVariable(s, varname.value.string, varval);
 
 
     }
@@ -719,7 +731,7 @@ CRO_Value CRO_callFunction(CRO_State *s, CRO_Value func, CRO_Value args) {
   else if (func.type == CRO_Function) {
     /* TODO: Args wont be flagged as safe by the GC, so we should add them to
      * the env anyways */
-    ret = func.function(s, args);
+    ret = func.value.function(s, args);
   }
 
   /* If the value we are trying to execute is not a function, we need to
@@ -747,11 +759,11 @@ CRO_Value CRO_eval (CRO_State *s, CRO_Value v) {
 
     /* If we have a primitive function, call it before evaluating arguments */
     if (func.type == CRO_PrimitiveFunction) {
-      return func.primitiveFunction(s, CDR(v));
+      return func.value.primitiveFunction(s, CDR(v));
     }
 
     /* Otherwise go through and evaluate the arguments */
-    else {
+    else if (func.type == CRO_Function || func.type == CRO_Lambda){
       CRO_Value evalArgs, currentEvalArg, currentArg;
 
       evalArgs = CRO_makeCons();
@@ -767,16 +779,23 @@ CRO_Value CRO_eval (CRO_State *s, CRO_Value v) {
       return CRO_callFunction(s, func, evalArgs);
 
     }
+
+    /* If this isn't a function, error out */
+    else {
+      printf("Error: Attempted to treat an atom which is not a function like "
+             "it is one (if we let this run, bad things would've happened)\n");
+      return NIL;
+    }
   }
   /* We have a symbol, which means we search through our variables */
   else if (v.type == CRO_Symbol) {
     /* If our symbol has another symbol tick, then we return the symbol
      * with one less tick */
-    if (v.string[0] == '\'') {
+    if (v.value.string[0] == '\'') {
       ret.type = CRO_Symbol;
 
       /* TODO: See if this is possible or not */
-      ret.string = &v.string[1];
+      ret.value.string = &v.value.string[1];
 
       return ret;
     }

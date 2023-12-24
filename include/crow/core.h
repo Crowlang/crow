@@ -11,6 +11,16 @@ CRO_Value readWord (CRO_State *s, FILE *src);
 
 CRO_Value CRO_makeCons();
 
+/* Primitive function: Creates lambdas */
+CRO_Value CRO_lambda(CRO_State *s, CRO_Value args);
+
+/* Primitive function: Defines values (and functions) */
+CRO_Value CRO_define(CRO_State *s, CRO_Value args);
+
+/* Creates cons lists */
+CRO_Value CRO_CCons(CRO_State *s, CRO_Value args);
+
+
 CRO_State *CRO_createState(void);
 void CRO_exposeStandardFunctions(CRO_State *s);
 void CRO_freeState(CRO_State *s);

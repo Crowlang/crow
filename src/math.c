@@ -7,148 +7,206 @@
 #include <crow/core.h>
 #include <crow/math.h>
 
-CRO_Value CRO_add (CRO_State *s, int argc, CRO_Value *argv) {
-  int x;
-  double ret = 0.0;
-  CRO_Value v;
-  
-  /* TODO: Add string concat following Javascript as a guide */
+CRO_Value CRO_add (CRO_State *s, CRO_Value args) {
+  CRO_Value ret, arg;
+  double total;
 
-  if (argc < 2) {
-    v = CRO_error(s, "Requires at least two arguements");
-    return v;
-  }
+  total = 0.0;
 
-  for (x = 1; x <= argc; x++) {
-    CRO_Value v;
-    v = argv[x];
-
-    if (v.type != CRO_Number) {
-      char *msg;
-      msg = (char*)malloc(512 * sizeof(char));
-
-      sprintf(msg, "Argument %d is not a number", x);
-      v = CRO_error(s, msg);
-
-      return v;
+  /* Go through each argument and add them to the total */
+  for (arg = args; arg.type == CRO_Cons; arg = CDR(arg)) {
+    if (CAR(arg).type == CRO_Number) {
+      total += CAR(arg).value.number;
     }
-    ret += v.value.number;
+    else {
+      printf("Error: Trying to add a non number to a number\n");
+      CRO_toNone(ret);
+      return ret;
+    }
   }
-  CRO_toNumber(v, ret);
-  return v;
+
+  CRO_toNumber(ret, total);
+  return ret;
 }
 
-CRO_Value CRO_sub (CRO_State *s, int argc, CRO_Value *argv) {
-  int x;
-  double ret = 0.0;
-  CRO_Value v;
-  
-  if (argc < 2) {
-    v = CRO_error(s, "Requires at least two arguements");
-    return v;
+CRO_Value CRO_sub (CRO_State *s, CRO_Value args) {
+  CRO_Value ret;
+
+  if (args.type == CRO_Nil) {
+    printf("Error: (-) needs at least one argument, none were given\n");
+    return NIL;
   }
+  else {
+    CRO_Value first, lst;
 
-  v = argv[1];
-  ret = v.value.number;
+    first = CAR(args);
+    lst = CDR(args);
 
-  for (x = 2; x <= argc; x++) {
-    v = argv[x];
-
-    if (v.type != CRO_Number) {
-      /*CRO_error("%s is not a number", argv[x]);*/
+    /* We are trying to apply a negative to a number, we only have one argument */
+    if (lst.type == CRO_Nil) {
+      if (first.type != CRO_Number) {
+        printf("Error: Trying to negate a non number\n");
+        return NIL;
+      }
+      else {
+        CRO_toNumber(ret, - first.value.number);
+        return ret;
+      }
     }
-    ret -= v.value.number;
+
+    /* Otherwise we are just going through and appling subtract to all */
+    else {
+      CRO_Value arg;
+      double total;
+
+      if (first.type != CRO_Number) {
+        printf("Error: Trying to subtract a non number from a number\n");
+        return NIL;
+      }
+
+      total = first.value.number;
+
+      for (arg = lst; arg.type == CRO_Cons; arg = CDR(arg)) {
+        if (CAR(arg).type == CRO_Number) {
+          total -= CAR(arg).value.number;
+        }
+        else {
+          printf("Error: Trying to subtract a non number from a number\n");
+          return NIL;
+        }
+      }
+
+      CRO_toNumber(ret, total);
+      return ret;
+    }
   }
-  CRO_toNumber(v, ret);
-  return v;
 }
 
-CRO_Value CRO_mul (CRO_State *s, int argc, CRO_Value *argv) {
-  int x;
-  double ret = 0.0;
-  CRO_Value v;
-  
-  if (argc < 2) {
-    v = CRO_error(s, "Requires at least two arguements");
-    return v;
-  }
+CRO_Value CRO_mul (CRO_State *s, CRO_Value args) {
+  CRO_Value ret, arg;
+  double total;
 
-  v = argv[1];
-  ret = v.value.number;
+  total = 1.0;
 
-  for (x = 2; x <= argc; x++) {
-    v = argv[x];
-
-    if (v.type != CRO_Number) {
-      /*CRO_error("%s is not a number", argv[x]);*/
+  /* Go through each argument and multiply them to the total */
+  for (arg = args; arg.type == CRO_Cons; arg = CDR(arg)) {
+    if (CAR(arg).type == CRO_Number) {
+      total *= CAR(arg).value.number;
     }
-    ret *= v.value.number;
+    else {
+      printf("Error: Trying to add a non number to a number\n");
+      CRO_toNone(ret);
+      return ret;
+    }
   }
-  CRO_toNumber(v, ret);
-  return v;
+
+  CRO_toNumber(ret, total);
+  return ret;
 }
 
-CRO_Value CRO_div (CRO_State *s, int argc, CRO_Value *argv) {
-  int x;
-  double ret = 0.0;
-  CRO_Value v;
-  
-  if (argc < 2) {
-    /*CRO_error("Requires at least two arguements");*/
+CRO_Value CRO_div (CRO_State *s, CRO_Value args) {
+  CRO_Value ret;
+
+  if (args.type == CRO_Nil) {
+    printf("Error: (/) needs at least one argument, none were given\n");
+    return NIL;
   }
+  else {
+    CRO_Value first, lst;
 
-  v = argv[1];
-  ret = v.value.number;
+    first = CAR(args);
+    lst = CDR(args);
 
-  for (x = 2; x <= argc; x++) {
-    v = argv[x];
-
-    if (v.type != CRO_Number) {
-      /*CRO_error("%s is not a number", argv[x]);*/
+    /* We are trying to invert o a number, we only have one argument */
+    if (lst.type == CRO_Nil) {
+      if (first.type != CRO_Number) {
+        printf("Error: Trying to invert a non number\n");
+        return NIL;
+      }
+      else {
+        CRO_toNumber(ret, 1.0/first.value.number);
+        return ret;
+      }
     }
-    ret /= v.value.number;
+
+    /* Otherwise we are just going through and applying 'subtract' to all items */
+    else {
+      CRO_Value arg;
+      double total;
+
+      if (first.type != CRO_Number) {
+        printf("Error: Trying to subtract a non number from a number\n");
+        return NIL;
+      }
+
+      total = first.value.number;
+
+      for (arg = lst; arg.type == CRO_Cons; arg = CDR(arg)) {
+        if (CAR(arg).type == CRO_Number) {
+          total /= CAR(arg).value.number;
+        }
+        else {
+          printf("Error: Trying to subtract a non number from a number\n");
+          return NIL;
+        }
+      }
+
+      CRO_toNumber(ret, total);
+      return ret;
+    }
   }
-  CRO_toNumber(v, ret);
-  return v;
 }
 
-/* TODO: eventually update to use the MATH library */
-CRO_Value CRO_mod (CRO_State *s, int argc, CRO_Value *argv) {
-  int x, ret;
-  CRO_Value v;
-  
-  ret = 0;
-  if (argc < 2) {
-    /*CRO_error("Requires at least two arguements");*/
+CRO_Value CRO_mod (CRO_State *s, CRO_Value args) {
+  CRO_Value one, two, rest;
+
+  /* We have no args */
+  if (args.type != CRO_Cons) {
+    printf("Error: (%%) expects two numbers as arguments\n");
+    return NIL;
   }
 
-  v = argv[1];
-  ret = v.value.number;
+  one = CAR(args);
+  rest = CDR(args);
 
-  for (x = 2; x <= argc; x++) {
-    v = argv[x];
-
-    if (v.type != CRO_Number) {
-      /*CRO_error("%s is not a number", argv[x]);*/
-    }
-    ret = fmod(ret, v.value.number);
+  /* If our rest is not a cons, we don't have enough arguments */
+  if (rest.type != CRO_Cons) {
+    printf("Error: (%%) expects two numbers as arguments\n");
+    return NIL;
   }
-  CRO_toNumber(v, ret);
-  return v;
+
+  two = CAR(rest);
+
+  /* For now ignore all other arguments TODO: Reevaluate */
+
+  /* If we don't have two numbers, error out */
+  if (one.type != CRO_Number || two.type != CRO_Number) {
+    printf("Error: (%%) expects two numbers as arguments\n");
+    return NIL;
+  }
+
+  /* Otherwise do the operation */
+  else {
+    CRO_Value ret;
+    CRO_toNumber(ret, fmod(one.value.number, two.value.number));
+    return ret;
+  }
 }
 
-CRO_Value CRO_sqrt (CRO_State *s, int argc, CRO_Value *argv) {
+CRO_Value CRO_sqrt (CRO_State *s, CRO_Value args) {
   CRO_Value v;
-  double val = 0.0;
+  double val;
 
-  if (argc != 1) {
-    /* Too many arguements */
+  if (args.type == CRO_Nil || CDR(args).type != CRO_Nil) {
+    printf("Error: Expected 1 argument\n");
+    return NIL;
   }
 
-  v = argv[1];
-  
+  v = CAR(args);
+
   if (v.type != CRO_Number) {
-    /*CRO_error("%s is not a number", argv[x]);*/
+    printf("Error: Argument is expected to be a number\n");
+    return NIL;
   }
 
   val = sqrt(v.value.number);
@@ -156,13 +214,14 @@ CRO_Value CRO_sqrt (CRO_State *s, int argc, CRO_Value *argv) {
   return v;
 }
 
-CRO_Value CRO_srand (CRO_State *s, int argc, CRO_Value *argv) {
+CRO_Value CRO_srand (CRO_State *s, CRO_Value args) {
   CRO_Value ret;
-  
-  if (argc == 1) {
+
+  /* We have ONLY one argument */
+  if (args.type == CRO_Cons && CDR(args).type == CRO_Nil) {
     CRO_Value seed;
-    seed = argv[1];
-    
+    seed = CAR(args);
+
     if (seed.type == CRO_Number) {
       srand((unsigned int)seed.value.number);
       return seed;
@@ -173,419 +232,315 @@ CRO_Value CRO_srand (CRO_State *s, int argc, CRO_Value *argv) {
       srand(seeder.value.number);
       return seeder;
     }
+    else {
+      printf("Error: Seed must either be a String or a Number\n");
+      return NIL;
+    }
   }
-  CRO_toNone(ret);
-  return ret;
+  else {
+    printf("Error: (srand) requires one argument\n");
+    return NIL;
+  }
 }
 
-CRO_Value CRO_rand (CRO_State *s, int argc, CRO_Value *argv) {
+CRO_Value CRO_rand (CRO_State *s, CRO_Value args) {
   CRO_Value ret;
-  
+
   CRO_toNumber(ret, (double)rand() / RAND_MAX);
   return ret;
 }
 
-CRO_Value CRO_floor (CRO_State *s, int argc, CRO_Value *argv) {
+CRO_Value CRO_floor (CRO_State *s, CRO_Value arg) {
   CRO_Value ret;
-  
-  if (argc == 1) {
+
+  /* We have exactly one argument */
+  if (arg.type != CRO_Nil && CDR(arg).type == CRO_Nil) {
     CRO_Value num;
-    
-    num = argv[1];
-    
+
+    num = CAR(arg);
+
     if (num.type == CRO_Number) {
       CRO_toNumber(ret, floor(num.value.number));
       return ret;
     }
     else {
-      printf("Error: %s is not a number\n", argv[1].value.string);
+      printf("Error: (floor) expects a number argument\n");
+      return NIL;
     }
   }
   else {
-    printf("Error: expected one arguement, %d given\n", argc);
+    printf("Error: (floor) expects one argument\n");
+    return NIL;
   }
-  
-  CRO_toNone(ret);
-  return ret;
 }
 
-
-CRO_Value CRO_ceil (CRO_State *s, int argc, CRO_Value *argv) {
+CRO_Value CRO_ceil (CRO_State *s, CRO_Value arg) {
   CRO_Value ret;
-  
-  if (argc == 1) {
+
+  /* We have exactly one argument */
+  if (arg.type != CRO_Nil && CDR(arg).type == CRO_Nil) {
     CRO_Value num;
-    
-    num = argv[1];
-    
+
+    num = CAR(arg);
+
     if (num.type == CRO_Number) {
       CRO_toNumber(ret, ceil(num.value.number));
       return ret;
     }
     else {
-      printf("Error: Argument 1 is not a number\n");
+      printf("Error: (ceil) expects a number argument\n");
+      return NIL;
     }
   }
   else {
-    printf("Error: expected one arguement, %d given\n", argc);
+    printf("Error: (ceil) expects one argument\n");
+    return NIL;
   }
-  
-  CRO_toNone(ret);
-  return ret;
 }
 
-/* Round is weird, so I have to manually implement it here */
-CRO_Value CRO_round (CRO_State *s, int argc, CRO_Value *argv) {
+CRO_Value CRO_round (CRO_State *s, CRO_Value arg) {
   CRO_Value ret;
-  
-  if (argc == 1) {
+
+  if (arg.type != CRO_Nil && CDR(arg).type == CRO_Nil) {
     CRO_Value num;
-    
-    num = argv[1];
-    
+
+    num = CAR(arg);
+
     if (num.type == CRO_Number) {
       double floored, dec;
       floored = floor(num.value.number);
       dec = num.value.number - floored;
-      
+
       if (dec < 0.5) {
-        return CRO_floor(s, argc, argv);
+        return CRO_floor(s, arg);
       }
       else {
-        return CRO_ceil(s, argc, argv);
+        return CRO_ceil(s, arg);
       }
     }
     else {
-      printf("Error: Argument 1 is not a number\n");
+      printf("Error: (round) expects a number as argument\n");
+      return NIL;
     }
   }
   else {
-    printf("Error: expected one arguement, %d given\n", argc);
+    printf("Error: (round) expects 1 argument\n");
+    return NIL;
   }
-  
-  CRO_toNone(ret);
-  return ret;
 }
 
-CRO_Value CRO_sin (CRO_State *s, int argc, CRO_Value *argv) {
+CRO_Value CRO_sin (CRO_State *s, CRO_Value arg) {
   CRO_Value ret;
-  
-  /* We only expect one arguement */
-  if (argc == 1) {
-    CRO_Value val;
-    val = argv[1];
-    
-    /* It has to be a number */
-    if (val.type == CRO_Number) {
-      /* Take the sin of it */
-      double result;
-      result = sin(val.value.number);
-      CRO_toNumber(ret, result);
+
+  /* We have exactly one argument */
+  if (arg.type != CRO_Nil && CDR(arg).type == CRO_Nil) {
+    CRO_Value num;
+
+    num = CAR(arg);
+
+    if (num.type == CRO_Number) {
+      CRO_toNumber(ret, sin(num.value.number));
       return ret;
     }
     else {
-      char *err;
-      err = malloc(128 * sizeof(char));
-      
-      sprintf(err, "(%s): Expected 3 arguements. (%d given)", argv[0].value.string, argc);
-      ret = CRO_error(s, err);
-      
+      printf("Error: (sin) expects a number argument\n");
+      return NIL;
     }
   }
   else {
-    char *err;
-    err = malloc(128 * sizeof(char));
-    
-    sprintf(err, "(%s): Expected 3 arguements. (%d given)", argv[0].value.string, argc);
-    ret = CRO_error(s, err);
-    
+    printf("Error: (sin) expects one argument\n");
+    return NIL;
   }
-  return ret;
 }
 
-CRO_Value CRO_cos (CRO_State *s, int argc, CRO_Value *argv) {
+CRO_Value CRO_cos (CRO_State *s, CRO_Value arg) {
   CRO_Value ret;
-  
-  /* We only expect one arguement */
-  if (argc == 1) {
-    CRO_Value val;
-    val = argv[1];
-    
-    /* It has to be a number */
-    if (val.type == CRO_Number) {
-      /* Take the cos of it */
-      double result;
-      result = cos(val.value.number);
-      CRO_toNumber(ret, result);
+
+  /* We have exactly one argument */
+  if (arg.type != CRO_Nil && CDR(arg).type == CRO_Nil) {
+    CRO_Value num;
+
+    num = CAR(arg);
+
+    if (num.type == CRO_Number) {
+      CRO_toNumber(ret, cos(num.value.number));
       return ret;
     }
     else {
-      char *err;
-      err = malloc(128 * sizeof(char));
-      
-      sprintf(err, "(%s): Expected 3 arguements. (%d given)", argv[0].value.string, argc);
-      ret = CRO_error(s, err);
-      
+      printf("Error: (cos) expects a number argument\n");
+      return NIL;
     }
   }
   else {
-    char *err;
-    err = malloc(128 * sizeof(char));
-    
-    sprintf(err, "(%s): Expected 3 arguements. (%d given)", argv[0].value.string, argc);
-    ret = CRO_error(s, err);
-    
+    printf("Error: (cos) expects one argument\n");
+    return NIL;
   }
-  return ret;
 }
 
-CRO_Value CRO_tan (CRO_State *s, int argc, CRO_Value *argv) {
+CRO_Value CRO_tan (CRO_State *s, CRO_Value arg) {
   CRO_Value ret;
-  
-  /* We only expect one arguement */
-  if (argc == 1) {
-    CRO_Value val;
-    val = argv[1];
-    
-    /* It has to be a number */
-    if (val.type == CRO_Number) {
-      /* Take the tan of it */
-      double result;
-      result = tan(val.value.number);
-      CRO_toNumber(ret, result);
+
+  /* We have exactly one argument */
+  if (arg.type != CRO_Nil && CDR(arg).type == CRO_Nil) {
+    CRO_Value num;
+
+    num = CAR(arg);
+
+    if (num.type == CRO_Number) {
+      CRO_toNumber(ret, tan(num.value.number));
       return ret;
     }
     else {
-      char *err;
-      err = malloc(128 * sizeof(char));
-      
-      sprintf(err, "(%s): Expected 3 arguements. (%d given)", argv[0].value.string, argc);
-      ret = CRO_error(s, err);
-      
+      printf("Error: (tan) expects a number argument\n");
+      return NIL;
     }
   }
   else {
-    char *err;
-    err = malloc(128 * sizeof(char));
-    
-    sprintf(err, "(%s): Expected 3 arguements. (%d given)", argv[0].value.string, argc);
-    ret = CRO_error(s, err);
-    
+    printf("Error: (tan) expects one argument\n");
+    return NIL;
   }
-  return ret;
 }
 
-CRO_Value CRO_arcsin (CRO_State *s, int argc, CRO_Value *argv) {
+CRO_Value CRO_arcsin (CRO_State *s, CRO_Value arg) {
   CRO_Value ret;
-  
-  /* We only expect one arguement */
-  if (argc == 1) {
-    CRO_Value val;
-    val = argv[1];
-    
-    /* It has to be a number */
-    if (val.type == CRO_Number) {
-      /* Take the sin of it */
-      double result;
-      result = asin(val.value.number);
-      CRO_toNumber(ret, result);
+
+  /* We have exactly one argument */
+  if (arg.type != CRO_Nil && CDR(arg).type == CRO_Nil) {
+    CRO_Value num;
+
+    num = CAR(arg);
+
+    if (num.type == CRO_Number) {
+      CRO_toNumber(ret, asin(num.value.number));
       return ret;
     }
     else {
-      char *err;
-      err = malloc(128 * sizeof(char));
-      
-      sprintf(err, "(%s): Expected 3 arguements. (%d given)", argv[0].value.string, argc);
-      ret = CRO_error(s, err);
-      
+      printf("Error: (arcsin) expects a number argument\n");
+      return NIL;
     }
   }
   else {
-    char *err;
-    err = malloc(128 * sizeof(char));
-    
-    sprintf(err, "(%s): Expected 3 arguements. (%d given)", argv[0].value.string, argc);
-    ret = CRO_error(s, err);
+    printf("Error: (arcsin) expects one argument\n");
+    return NIL;
   }
-  return ret;
 }
 
-CRO_Value CRO_arccos (CRO_State *s, int argc, CRO_Value *argv) {
+CRO_Value CRO_arccos (CRO_State *s, CRO_Value arg) {
   CRO_Value ret;
-  
-  /* We only expect one arguement */
-  if (argc == 1) {
-    CRO_Value val;
-    val = argv[1];
-    
-    /* It has to be a number */
-    if (val.type == CRO_Number) {
-      /* Take the cos of it */
-      double result;
-      result = acos(val.value.number);
-      CRO_toNumber(ret, result);
+
+  /* We have exactly one argument */
+  if (arg.type != CRO_Nil && CDR(arg).type == CRO_Nil) {
+    CRO_Value num;
+
+    num = CAR(arg);
+
+    if (num.type == CRO_Number) {
+      CRO_toNumber(ret, acos(num.value.number));
       return ret;
     }
     else {
-      char *err;
-      err = malloc(128 * sizeof(char));
-      
-      sprintf(err, "(%s): Expected 3 arguements. (%d given)", argv[0].value.string, argc);
-      ret = CRO_error(s, err);
-      
+      printf("Error: (arccos) expects a number argument\n");
+      return NIL;
     }
   }
   else {
-    char *err;
-    err = malloc(128 * sizeof(char));
-    
-    sprintf(err, "(%s): Expected 3 arguements. (%d given)", argv[0].value.string, argc);
-    ret = CRO_error(s, err);
-    
+    printf("Error: (arccos) expects one argument\n");
+    return NIL;
   }
-  return ret;
 }
 
-CRO_Value CRO_arctan (CRO_State *s, int argc, CRO_Value *argv) {
+CRO_Value CRO_arctan (CRO_State *s, CRO_Value arg) {
   CRO_Value ret;
-  
-  /* We only expect one arguement */
-  if (argc == 1) {
-    CRO_Value val;
-    val = argv[1];
-    
-    /* It has to be a number */
-    if (val.type == CRO_Number) {
-      /* Take the tan of it */
-      double result;
-      result = atan(val.value.number);
-      CRO_toNumber(ret, result);
+
+  /* We have exactly one argument */
+  if (arg.type != CRO_Nil && CDR(arg).type == CRO_Nil) {
+    CRO_Value num;
+
+    num = CAR(arg);
+
+    if (num.type == CRO_Number) {
+      CRO_toNumber(ret, atan(num.value.number));
       return ret;
     }
     else {
-      char *err;
-      err = malloc(128 * sizeof(char));
-      
-      sprintf(err, "(%s): Expected 3 arguements. (%d given)", argv[0].value.string, argc);
-      ret = CRO_error(s, err);
-      
+      printf("Error: (arctan) expects a number argument\n");
+      return NIL;
     }
   }
   else {
-    char *err;
-    err = malloc(128 * sizeof(char));
-    
-    sprintf(err, "(%s): Expected 3 arguements. (%d given)", argv[0].value.string, argc);
-    ret = CRO_error(s, err);
-    
+    printf("Error: (arctan) expects one argument\n");
+    return NIL;
   }
-  return ret;
 }
 
-CRO_Value CRO_sinh (CRO_State *s, int argc, CRO_Value *argv) {
+CRO_Value CRO_sinh (CRO_State *s, CRO_Value arg) {
   CRO_Value ret;
-  
-  /* We only expect one arguement */
-  if (argc == 1) {
-    CRO_Value val;
-    val = argv[1];
-    
-    /* It has to be a number */
-    if (val.type == CRO_Number) {
-      /* Take the sin of it */
-      double result;
-      result = sinh(val.value.number);
-      CRO_toNumber(ret, result);
+
+  /* We have exactly one argument */
+  if (arg.type != CRO_Nil && CDR(arg).type == CRO_Nil) {
+    CRO_Value num;
+
+    num = CAR(arg);
+
+    if (num.type == CRO_Number) {
+      CRO_toNumber(ret, sinh(num.value.number));
       return ret;
     }
     else {
-      char *err;
-      err = malloc(128 * sizeof(char));
-      
-      sprintf(err, "(%s): Expected 3 arguements. (%d given)", argv[0].value.string, argc);
-      ret = CRO_error(s, err);
-      
+      printf("Error: (sinh) expects a number argument\n");
+      return NIL;
     }
   }
   else {
-    char *err;
-    err = malloc(128 * sizeof(char));
-    
-    sprintf(err, "(%s): Expected 3 arguements. (%d given)", argv[0].value.string, argc);
-    ret = CRO_error(s, err);
-    
+    printf("Error: (sinh) expects one argument\n");
+    return NIL;
   }
-  return ret;
 }
 
-CRO_Value CRO_cosh (CRO_State *s, int argc, CRO_Value *argv) {
+CRO_Value CRO_cosh (CRO_State *s, CRO_Value arg) {
   CRO_Value ret;
-  
-  /* We only expect one arguement */
-  if (argc == 1) {
-    CRO_Value val;
-    val = argv[1];
-    
-    /* It has to be a number */
-    if (val.type == CRO_Number) {
-      /* Take the cos of it */
-      double result;
-      result = cosh(val.value.number);
-      CRO_toNumber(ret, result);
+
+  /* We have exactly one argument */
+  if (arg.type != CRO_Nil && CDR(arg).type == CRO_Nil) {
+    CRO_Value num;
+
+    num = CAR(arg);
+
+    if (num.type == CRO_Number) {
+      CRO_toNumber(ret, cosh(num.value.number));
       return ret;
     }
     else {
-      char *err;
-      err = malloc(128 * sizeof(char));
-      
-      sprintf(err, "(%s): Expected 3 arguements. (%d given)", argv[0].value.string, argc);
-      ret = CRO_error(s, err);
-      
+      printf("Error: (cosh) expects a number argument\n");
+      return NIL;
     }
   }
   else {
-    char *err;
-    err = malloc(128 * sizeof(char));
-    
-    sprintf(err, "(%s): Expected 3 arguements. (%d given)", argv[0].value.string, argc);
-    ret = CRO_error(s, err);
-    
+    printf("Error: (cosh) expects one argument\n");
+    return NIL;
   }
-  return ret;
 }
 
-CRO_Value CRO_tanh (CRO_State *s, int argc, CRO_Value *argv) {
+CRO_Value CRO_tanh (CRO_State *s, CRO_Value arg) {
   CRO_Value ret;
-  
-  /* We only expect one arguement */
-  if (argc == 1) {
-    CRO_Value val;
-    val = argv[1];
-    
-    /* It has to be a number */
-    if (val.type == CRO_Number) {
-      /* Take the tan of it */
-      double result;
-      result = tanh(val.value.number);
-      CRO_toNumber(ret, result);
+
+  /* We have exactly one argument */
+  if (arg.type != CRO_Nil && CDR(arg).type == CRO_Nil) {
+    CRO_Value num;
+
+    num = CAR(arg);
+
+    if (num.type == CRO_Number) {
+      CRO_toNumber(ret, atan(num.value.number));
       return ret;
     }
     else {
-      char *err;
-      err = malloc(128 * sizeof(char));
-      
-      sprintf(err, "(%s): Expected 3 arguements. (%d given)", argv[0].value.string, argc);
-      ret = CRO_error(s, err);
-      
+      printf("Error: (tanh) expects a number argument\n");
+      return NIL;
     }
   }
   else {
-    char *err;
-    err = malloc(128 * sizeof(char));
-    
-    sprintf(err, "(%s): Expected 3 arguements. (%d given)", argv[0].value.string, argc);
-    ret = CRO_error(s, err);
-    
+    printf("Error: (tanh) expects one argument\n");
+    return NIL;
   }
-  return ret;
 }

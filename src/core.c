@@ -6,6 +6,7 @@
 
 #include <crow/types.h>
 #include <crow/core.h>
+#include <crow/math.h>
 
 #ifdef CROW_PLATFORM_WIN32
   #include <windows.h>
@@ -331,6 +332,28 @@ void CRO_exposeStandardFunctions (CRO_State *s) {
   CRO_exposeFunction(s, "cons", CRO_CCons);
   CRO_exposePrimitiveFunction(s, "define", CRO_define);
   CRO_exposePrimitiveFunction(s, "lambda", CRO_lambda);
+
+  /* Math.h */
+  CRO_exposeFunction(s, "+", CRO_add);
+  CRO_exposeFunction(s, "-", CRO_sub);
+  CRO_exposeFunction(s, "*", CRO_mul);
+  CRO_exposeFunction(s, "/", CRO_div);
+  CRO_exposeFunction(s, "%", CRO_mod);
+  CRO_exposeFunction(s, "sqrt", CRO_sqrt);
+  CRO_exposeFunction(s, "srand", CRO_srand);
+  CRO_exposeFunction(s, "rand", CRO_rand);
+  CRO_exposeFunction(s, "floor", CRO_floor);
+  CRO_exposeFunction(s, "ceil", CRO_ceil);
+  CRO_exposeFunction(s, "round", CRO_round);
+  CRO_exposeFunction(s, "sin", CRO_sin);
+  CRO_exposeFunction(s, "cos", CRO_cos);
+  CRO_exposeFunction(s, "tan", CRO_tan);
+  CRO_exposeFunction(s, "arcsin", CRO_arcsin);
+  CRO_exposeFunction(s, "arccos", CRO_arccos);
+  CRO_exposeFunction(s, "arctan", CRO_arctan);
+  CRO_exposeFunction(s, "sinh", CRO_sinh);
+  CRO_exposeFunction(s, "cosh", CRO_cosh);
+  CRO_exposeFunction(s, "tanh", CRO_tanh);
 }
 
 void CRO_freeState (CRO_State *s) {
@@ -533,7 +556,7 @@ CRO_Value readWord (CRO_State *s, FILE *src) {
         buffer = (char*)realloc(buffer, bufsize * sizeof(char));
       }
 
-      if (isNumber && (c < '0' || c > '9')) {
+      if (isNumber && (c < '0' || c > '9') && c != '.') {
         isNumber = 0;
       }
     }
@@ -553,7 +576,9 @@ CRO_Value readWord (CRO_State *s, FILE *src) {
 
     /* We just read a number */
     else if (isNumber) {
-      CRO_toNumber(ret, atoi(buffer));
+      double number;
+      sscanf(buffer, "%lg", &number);
+      CRO_toNumber(ret, number);
       free(buffer);
       return ret;
     }

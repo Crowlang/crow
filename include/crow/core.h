@@ -6,6 +6,8 @@
 extern int running;
 extern char *errorMsg;
 
+extern CRO_Value NIL;
+
 char *getWord(char* src, int* ptr, int* end);
 CRO_Value readWord (CRO_State *s, FILE *src);
 

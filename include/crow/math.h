@@ -22,7 +22,7 @@ The `add` function (or `+` operator) returns the sum of all the provided values.
 (+ 1 2 3 4) ;; returns 10
 ```
  */
-CRO_Value CRO_add(CRO_State *s, int argc, CRO_Value *argv);
+CRO_Value CRO_add(CRO_State *s, CRO_Value args);
 
 /**
 ## sub or -
@@ -47,7 +47,7 @@ The `sub` function (or `-` operator) returns the result of subtracting all the p
 (- 20 5 3 2) ;; returns 10 (20 - 5 - 3 - 2)
  ```
  */
-CRO_Value CRO_sub(CRO_State *s, int argc, CRO_Value *argv);
+CRO_Value CRO_sub(CRO_State *s, CRO_Value args);
 
 /**
 ## mul or *
@@ -72,7 +72,7 @@ The `mul` function returns the product of all the numbers provided as arguments.
 (mul 2 3 4 5) ;; returns 120
 ```
  */
-CRO_Value CRO_mul(CRO_State *s, int argc, CRO_Value *argv);
+CRO_Value CRO_mul(CRO_State *s, CRO_Value args);
 
 /**
 ## div or /
@@ -99,7 +99,7 @@ The `div` function returns the result of dividing the dividend by the product of
 (div 20 2 2 5) ;; returns 2
 ```
 */
-CRO_Value CRO_div(CRO_State *s, int argc, CRO_Value *argv);
+CRO_Value CRO_div(CRO_State *s, CRO_Value args);
 
 /**
 ## mod or %
@@ -126,7 +126,7 @@ The `mod` or `%` function returns the remainder of the division of `x` by `y`.
 (% 10 3) ;; returns 1
 ```
 */
-CRO_Value CRO_mod(CRO_State *s, int argc, CRO_Value *argv);
+CRO_Value CRO_mod(CRO_State *s, CRO_Value args);
 
 /**
 ## sqrt
@@ -149,7 +149,7 @@ The `sqrt` function returns the square root of the provided number.
 (sqrt 25) ;; returns 5
 ```
  */
-CRO_Value CRO_sqrt(CRO_State *s, int argc, CRO_Value *argv);
+CRO_Value CRO_sqrt(CRO_State *s, CRO_Value args);
 
 /**
 ## srand
@@ -173,7 +173,7 @@ The `srand` function returns the seed that was provided as an argument.
 ```
 Note: Crow is automatically seeded at startup, so calls to `srand` are only needed if you need predictable random results using a constant seed.
 */
-CRO_Value CRO_srand(CRO_State *s, int argc, CRO_Value *argv);
+CRO_Value CRO_srand(CRO_State *s, CRO_Value args);
 
 /**
 ## rand
@@ -195,7 +195,7 @@ The `rand` function returns a random number between 0 and 1.
 (defvar x (rand)) ;; x is assigned a random number between 0 and 1
 ```
 */
-CRO_Value CRO_rand(CRO_State *s, int argc, CRO_Value *argv);
+CRO_Value CRO_rand(CRO_State *s, CRO_Value args);
 
 /**
 ## round
@@ -220,7 +220,7 @@ The `round` function returns the number rounded to the nearest integer.
 (round -3.7) ;; returns -4
 ```
 */
-CRO_Value CRO_round(CRO_State *s, int argc, CRO_Value *argv);
+CRO_Value CRO_round(CRO_State *s, CRO_Value args);
 
 /**
 ## floor
@@ -244,7 +244,7 @@ The `floor` function returns the nearest integer that is less than or equal to t
 (floor -3.7) ;; returns -4
 ```
 */
-CRO_Value CRO_floor(CRO_State *s, int argc, CRO_Value *argv);
+CRO_Value CRO_floor(CRO_State *s, CRO_Value args);
 
 /**
 ## ceil
@@ -268,7 +268,7 @@ The `ceil` function returns the smallest integer greater than or equal to the sp
 (ceil -3.7) ;; returns -3
 ```
 */
-CRO_Value CRO_ceil(CRO_State *s, int argc, CRO_Value *argv);
+CRO_Value CRO_ceil(CRO_State *s, CRO_Value args);
 
 /**
 ## sin
@@ -291,7 +291,7 @@ The `sin` function returns the sine of the angle in radians.
 (sin angle) ;; returns 1, which is the sine of 90 degrees
 ```
 */
-CRO_Value CRO_sin(CRO_State *s, int argc, CRO_Value *argv);
+CRO_Value CRO_sin(CRO_State *s, CRO_Value args);
 
 /**
 ## cos
@@ -315,7 +315,7 @@ The `cos` function returns the cosine of the given angle.
 (cos (* math-PI 0.25)) ;; returns approximately 0.707
 ```
 */
-CRO_Value CRO_cos(CRO_State *s, int argc, CRO_Value *argv);
+CRO_Value CRO_cos(CRO_State *s, CRO_Value args);
 
 /**
 ## tan
@@ -337,7 +337,7 @@ The `tan` function returns the tangent of the specified angle.
 (tan (/ math-PI 4)) ;; returns 1
 ```
 */
-CRO_Value CRO_tan(CRO_State *s, int argc, CRO_Value *argv);
+CRO_Value CRO_tan(CRO_State *s, CRO_Value args);
 
 /**
 ## arcsin
@@ -359,7 +359,7 @@ The `arcsin` function returns the inverse sine of the input number in radians.
 (arcsin 0.5) ;; returns 0.5235987755982988, which is approximately equal to pi/6
 ```
 */
-CRO_Value CRO_arcsin(CRO_State *s, int argc, CRO_Value *argv);
+CRO_Value CRO_arcsin(CRO_State *s, CRO_Value args);
 
 /**
 ## arccos
@@ -382,7 +382,7 @@ The `arccos` function returns the arccosine of the input number as a number in r
 (arccos 0) ;; returns pi/2
 ```
 */
-CRO_Value CRO_arccos(CRO_State *s, int argc, CRO_Value *argv);
+CRO_Value CRO_arccos(CRO_State *s, CRO_Value args);
 
 /**
 ## arctan
@@ -404,7 +404,7 @@ The `arctan` function returns the arctangent of the given number in radians.
 (arctan 1) ;; returns 0.7853981633974483
 ```
 */
-CRO_Value CRO_arctan(CRO_State *s, int argc, CRO_Value *argv);
+CRO_Value CRO_arctan(CRO_State *s, CRO_Value args);
 
 /**
 ## sinh
@@ -428,7 +428,7 @@ The `sinh` function returns the hyperbolic sine of the input value.
 (sinh 2.5) ;; returns 6.050204481985453
 ```
 */
-CRO_Value CRO_sinh(CRO_State *s, int argc, CRO_Value *argv);
+CRO_Value CRO_sinh(CRO_State *s, CRO_Value args);
 
 /**
 ## cosh
@@ -452,7 +452,7 @@ The `cosh` function returns the hyperbolic cosine of the specified number.
 (cosh -1) ;; returns 1.5430806348152437
 ```
 */
-CRO_Value CRO_cosh(CRO_State *s, int argc, CRO_Value *argv);
+CRO_Value CRO_cosh(CRO_State *s, CRO_Value args);
 
 /**
 ## tanh
@@ -476,6 +476,6 @@ The `tanh` function returns the hyperbolic tangent of the given number.
 (tanh -1) ;; returns -0.7615941559557649
 ```
 */
-CRO_Value CRO_tanh(CRO_State *s, int argc, CRO_Value *argv);
+CRO_Value CRO_tanh(CRO_State *s, CRO_Value args);
 
 #endif

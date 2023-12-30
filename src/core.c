@@ -7,6 +7,7 @@
 #include <crow/types.h>
 #include <crow/core.h>
 #include <crow/math.h>
+#include <crow/data.h>
 
 #ifdef CROW_PLATFORM_WIN32
   #include <windows.h>
@@ -332,6 +333,7 @@ void CRO_exposeStandardFunctions (CRO_State *s) {
   CRO_exposeFunction(s, "cons", CRO_CCons);
   CRO_exposePrimitiveFunction(s, "define", CRO_define);
   CRO_exposePrimitiveFunction(s, "lambda", CRO_lambda);
+  CRO_exposePrimitiveFunction(s, "λ", CRO_lambda);
 
   /* Math.h */
   CRO_exposeFunction(s, "+", CRO_add);
@@ -354,6 +356,10 @@ void CRO_exposeStandardFunctions (CRO_State *s) {
   CRO_exposeFunction(s, "sinh", CRO_sinh);
   CRO_exposeFunction(s, "cosh", CRO_cosh);
   CRO_exposeFunction(s, "tanh", CRO_tanh);
+
+  CRO_exposePrimitiveFunction(s, "set!", set);
+  CRO_exposeFunction(s, "set-car!", setCar);
+  CRO_exposeFunction(s, "set-cdr!", setCdr);
 }
 
 void CRO_freeState (CRO_State *s) {

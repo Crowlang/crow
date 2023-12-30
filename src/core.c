@@ -20,7 +20,9 @@ int running = 1;
 
 char *errorMsg;
 
-CRO_Value NIL = {0};
+CRO_Value NIL;
+CRO_Value TRUE;
+CRO_Value FALSE;
 
 CRO_Value CRO_error (CRO_State *s, const char *msg) {
   errorMsg = (char*)msg;
@@ -235,6 +237,14 @@ CRO_Value CRO_CCons(CRO_State *s, CRO_Value args) {
  */
 CRO_State *CRO_createState (void) {
   CRO_State *s;
+
+  NIL.type = CRO_Nil;
+
+  TRUE.type = CRO_Bool;
+  TRUE.value.integer = 1;
+
+  FALSE.type = CRO_Bool;
+  FALSE.value.integer = 0;
 
   s = (CRO_State*)malloc(sizeof(CRO_State));
 
@@ -587,6 +597,19 @@ CRO_Value readWord (CRO_State *s, FILE *src) {
       CRO_toNumber(ret, number);
       free(buffer);
       return ret;
+    }
+
+    /* We just read nil */
+    else if (strcmp(buffer, "nil") == 0) {
+      return NIL;
+    }
+
+    else if (strcmp(buffer, "true") == 0) {
+      return TRUE;
+    }
+
+    else if (strcmp(buffer, "false") == 0) {
+      return FALSE;
     }
 
     /* otherwise we read a variable or a symbol, so just return the buffer */

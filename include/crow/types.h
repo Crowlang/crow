@@ -177,7 +177,7 @@ enum {
 
 #define CRO_toNumber(v, x) v.type = CRO_Number; v.value.number = x
 #define CRO_toNone(v) v.type = CRO_Nil;
-#define CRO_toBoolean(v, x) v.type = CRO_Bool; v.allotok = NULL; v.value.integer = x; v.flags = 0;
+#define CRO_toBoolean(v, x) v.type = CRO_Bool; v.value.integer = x;
 #define CRO_toString(s, v, x) v.type = CRO_String; v.value.string = x;
 #define CRO_toPointerType(v, t, x) v.type = t; v.value.pointer = (void*)x; v.allotok = NULL; v.flags = 0;
 

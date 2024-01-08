@@ -25,11 +25,12 @@ CRO_Value NIL;
 CRO_Value TRUE;
 CRO_Value FALSE;
 
-CRO_Value CRO_error (CRO_State *s, const char *msg) {
-  errorMsg = (char*)msg;
+CRO_Value CRO_error (const char *msg) {
+  CRO_Value err;
+  err.type = CRO_Error;
+  err.value.string = msg;
 
-  s->exitCode = CRO_ErrorCode;
-  return NIL;
+  return err;
 }
 
 void CRO_printError (void) {
@@ -268,9 +269,10 @@ CRO_State *CRO_createState (void) {
   CAR(s->env) = CRO_makeCons();
   CDR(s->env) = NIL;
 
+  s->errorFrom = NIL;
+
   /* Make sure allocations is allocated */
   if (s->allocations == NULL) {
-    CRO_error(s, "Failed to allocate space for allocations");
     return s;
   }
 
@@ -334,6 +336,25 @@ char* CRO_printStd (CRO_State *s, CRO_Value v) {
     char *ret;
     ret = malloc((strlen(v.value.string) + 3) * sizeof(char));
     sprintf(ret, "\'%s", v.value.string);
+    return ret;
+  }
+  else if (v.type == CRO_Error) {
+    char *ret, *fnname;
+
+    if (s->errorFrom.type != CRO_Nil) {
+      fnname = s->errorFrom.value.string;
+
+      ret = malloc(
+              (strlen(v.value.string) + strlen(fnname) + 50) * sizeof(char));
+      sprintf(ret, "Error while evaluating (%s):\n%s", fnname, v.value.string);
+
+      s->errorFrom = NIL;
+    }
+    else {
+      ret = malloc((strlen(v.value.string) + 50) * sizeof(char));
+      sprintf(ret, "Error: %s", v.value.string);
+    }
+
     return ret;
   }
 
@@ -514,6 +535,11 @@ CRO_Value readWord (CRO_State *s, FILE *src) {
 
   do {
     c = fgetc(src);
+
+    if (c < 0) {
+      return CRO_error("Encountered EOF while trying to read.");
+    }
+
   } while (c <= ' ');
 
   if (c == '(') {
@@ -820,11 +846,13 @@ CRO_Value CRO_eval (CRO_State *s, CRO_Value v) {
   /* We have a cons list, which means evaluate the statement */
   if (v.type == CRO_Cons) {
     /* Our CAR value is the actual function, so evaluate that */
-    CRO_Value func = CRO_eval(s, CAR(v));
+    CRO_Value func;
+
+    func = CRO_eval(s, CAR(v));
 
     /* If we have a primitive function, call it before evaluating arguments */
     if (func.type == CRO_PrimitiveFunction) {
-      return func.value.primitiveFunction(s, CDR(v));
+      ret = func.value.primitiveFunction(s, CDR(v));
     }
 
     /* Otherwise go through and evaluate the arguments */
@@ -855,16 +883,23 @@ CRO_Value CRO_eval (CRO_State *s, CRO_Value v) {
         currentEvalArg = evalCons;
       }
 
-      return CRO_callFunction(s, func, evalArgs);
+      ret = CRO_callFunction(s, func, evalArgs);
 
     }
 
     /* If this isn't a function, error out */
     else {
-      printf("Error: Attempted to treat an atom which is not a function like "
-             "it is one (if we let this run, bad things would've happened)\n");
-      return NIL;
+      return CRO_error("Attempted to run an atom which is not a function like"
+                       " it was one (bad thing would've happened)");
     }
+
+    /* TODO: Make an exception for the error function, that should return
+     * that the error happened in whatever function it was called from */
+    if (ret.type == CRO_Error && s->errorFrom.type == CRO_Nil) {
+      s->errorFrom = CAR(v);
+    }
+
+    return ret;
   }
   /* We have a symbol, which means we search through our variables */
   else if (v.type == CRO_Symbol) {

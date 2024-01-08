@@ -404,20 +404,19 @@ CRO_Value CRO_doTimes (CRO_State *s, CRO_Value args) {
     CRO_Value func, times;
 
     if (CDR(args).type != CRO_Cons) {
-      printf("Error: Requires 2 arguments\n");
-      return NIL;
+      return CRO_error("Requires 2 arguments");
     }
 
     func = CAR(args);
     times = CAR(CDR(args));
 
     if (func.type != CRO_Function && func.type != CRO_Lambda) {
-      printf("Error: Argument 1 must be a function\n");
-      return NIL;
+      return CRO_error("Arguments must follow the prototype: (Function "
+                          "Number)");
     }
     else if (times.type != CRO_Number) {
-      printf("Error: Argument 2 must be a number\n");
-      return NIL;
+      return CRO_error("Arguments must follow the prototype: (Function "
+                          "Number)");
     }
     else {
       int i, end;
@@ -427,13 +426,17 @@ CRO_Value CRO_doTimes (CRO_State *s, CRO_Value args) {
       for (i = 0; i < end; i++) {
         /* Call function */
         v = CRO_callFunction(s, func, NIL);
+
+        /* Exit on error */
+        if (v.type == CRO_Error) {
+          return v;
+        }
       }
 
       return v;
     }
   }
   else {
-    printf("Error: requires 2 arguments\n");
-    return NIL;
+    return CRO_error("Requires two arguments");
   }
 }

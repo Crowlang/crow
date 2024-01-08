@@ -81,6 +81,11 @@ typedef struct CRO_State {
   char exitCode;
   char exitContext;
   int gcTime;
+
+  /* This value should stay NIL until an error is reached. When the error is
+   * printed, it should be reset to NIL. If this already has a value, do not
+   * set it unless the error is caught or printed */
+  CRO_Value errorFrom;
 } CRO_State;
 
 #define CRO_BUFFER_SIZE 64
@@ -99,7 +104,8 @@ enum {
     CRO_Cons,
     CRO_Symbol,
     CRO_Pointer,
-    CRO_Struct
+    CRO_Struct,
+    CRO_Error
 };
 
 

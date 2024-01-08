@@ -346,7 +346,8 @@ char* CRO_printStd (CRO_State *s, CRO_Value v) {
 
       ret = malloc(
               (strlen(v.value.string) + strlen(fnname) + 50) * sizeof(char));
-      sprintf(ret, "Error while evaluating (%s):\n%s", fnname, v.value.string);
+      sprintf(ret, "Error while evaluating \"%s\":\n%s", fnname,
+              v.value.string);
 
       s->errorFrom = NIL;
     }
@@ -681,7 +682,8 @@ char *CRO_cloneStr (const char *str) {
  * Private function used to look up a variable given an env. Recurs into
  * CRO_resolveVariableInList. Eventually may use loops if they're faster
  */
-static CRO_Value CRO_resolveVariableInEnv(CRO_Value env, CRO_Value sym) {
+static CRO_Value CRO_resolveVariableInEnv(CRO_State *s, CRO_Value env,
+                                          CRO_Value sym) {
   if (env.type == CRO_Cons) {
     CRO_Value curEnv;
 
@@ -703,6 +705,7 @@ static CRO_Value CRO_resolveVariableInEnv(CRO_Value env, CRO_Value sym) {
 
     }
 
+    s->errorFrom = sym;
     return CRO_error("Symbol is undefined");
   }
   else {
@@ -871,6 +874,10 @@ CRO_Value CRO_eval (CRO_State *s, CRO_Value v) {
 
     }
 
+    else if (func.type == CRO_Error) {
+      return func;
+    }
+
     /* If this isn't a function, error out */
     else {
       return CRO_error("Attempted to run an atom which is not a function like"
@@ -901,7 +908,7 @@ CRO_Value CRO_eval (CRO_State *s, CRO_Value v) {
     /* Otherwise search through our variables for that variable and resolve it
      */
     else {
-      return CRO_resolveVariableInEnv(s->env, v);
+      return CRO_resolveVariableInEnv(s, s->env, v);
     }
   }
   /* Otherwise return the value we were given, its already been evaluated */

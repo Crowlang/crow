@@ -678,48 +678,32 @@ char *CRO_cloneStr (const char *str) {
 }
 
 /*
- * Private function used to look up a variable in a list of variables within
- * the env.
- */
-static CRO_Value CRO_resolveVariableInList(CRO_Value vars, CRO_Value sym) {
-
-  if (vars.type == CRO_Cons) {
-    CRO_Value vardefn;
-
-    vardefn = CAR(vars);
-
-    if (vardefn.type == CRO_Cons && CAR(vardefn).type == CRO_Symbol
-      && strcmp(CAR(vardefn).value.string, sym.value.string) == 0) {
-
-      return vardefn;
-    }
-    else {
-      return CRO_resolveVariableInList(CDR(vars), sym);
-    }
-  }
-  else {
-    return NIL;
-  }
-
-}
-
-/*
  * Private function used to look up a variable given an env. Recurs into
  * CRO_resolveVariableInList. Eventually may use loops if they're faster
  */
 static CRO_Value CRO_resolveVariableInEnv(CRO_Value env, CRO_Value sym) {
   if (env.type == CRO_Cons) {
-    CRO_Value lookup = CRO_resolveVariableInList(CAR(env), sym);
+    CRO_Value curEnv;
 
-    /* We found the value in this environment */
-    if (lookup.type == CRO_Cons) {
-      return CDR(lookup);
+    forEachInCons(env, curEnv) {
+      CRO_Value curVar;
+
+
+      forEachInCons(CAR(curEnv), curVar) {
+        CRO_Value defn;
+
+        defn = CAR(curVar);
+
+        if (defn.type == CRO_Cons && CAR(defn).type == CRO_Symbol &&
+            strcmp(CAR(defn).value.string, sym.value.string) == 0) {
+
+          return CDR(defn);
+        }
+      }
+
     }
 
-    /* We didn't find it, so recursively check */
-    else {
-      return CRO_resolveVariableInEnv(CDR(env), sym);
-    }
+    return CRO_error("Symbol is undefined");
   }
   else {
     /* ERROR: We didn't find the variable */

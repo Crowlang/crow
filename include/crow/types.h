@@ -187,6 +187,10 @@ enum {
 #define CRO_toString(s, v, x) v.type = CRO_String; v.value.string = x;
 #define CRO_toPointerType(v, t, x) v.type = t; v.value.pointer = (void*)x; v.allotok = NULL; v.flags = 0;
 
+#define forEachInCons(list, current) for (current = list; current.type == \
+CRO_Cons;\
+ current = CDR(current))
+
 #define CRO_None        0
 #define CRO_BreakCode   1
 #define CRO_ReturnCode  2

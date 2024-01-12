@@ -12,8 +12,12 @@ CRO_Value set (CRO_State *s, CRO_Value args) {
 
   if (args.type == CRO_Cons) {
     CRO_Value varname, value, env;
+#ifdef CROW_FAST_VARIABLE_LOOKUP
+    hash_t symHash;
+#endif
 
     varname = CAR(args);
+
 
     if (varname.type != CRO_Symbol) {
       printf("Error: First argument must be a symbol\n");
@@ -27,6 +31,10 @@ CRO_Value set (CRO_State *s, CRO_Value args) {
       value = NIL;
     }
 
+#ifdef CROW_FAST_VARIABLE_LOOKUP
+    symHash = CRO_genHash(varname.value.string);
+#endif
+
     /* Go through our environments and dependant environments and look for
      * the value */
     for (env = s->env; env.type != CRO_Nil; env = CDR(env)) {
@@ -38,8 +46,12 @@ CRO_Value set (CRO_State *s, CRO_Value args) {
 
         defn = CAR(var);
 
+#ifdef CROW_FAST_VARIABLE_LOOKUP
+        if (defn.type == CRO_Cons && CAR(defn).value.hash == symHash) {
+#else
         if (defn.type == CRO_Cons && strcmp(CAR(defn).value.string,
-                                            varname.value.string) == 0) {
+                                          varname.value.string) == 0) {
+#endif
           CDR(defn) = value;
           return value;
         }

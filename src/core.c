@@ -61,9 +61,16 @@ void CRO_exposeVariable (CRO_State *s, const char *name, CRO_Value v) {
   newVar = CRO_makeCons();
   variables = CAR(s->env);
 
+#ifdef CROW_FAST_VARIABLE_LOOKUP
+  /* Our variable def looks like (cons hash value) */
+  CAR(varDef).type = CRO_Hash;
+  CAR(varDef).value.hash = CRO_genHash(name);
+#else
   /* Our variable def looks like (cons 'symbol value) */
   CRO_toString(s, CAR(varDef), (char*)name);
   CAR(varDef).type = CRO_Symbol;
+#endif
+
   CDR(varDef) = v;
 
   CAR(newVar) = varDef;
@@ -686,6 +693,11 @@ static CRO_Value CRO_resolveVariableInEnv(CRO_State *s, CRO_Value env,
                                           CRO_Value sym) {
   if (env.type == CRO_Cons) {
     CRO_Value curEnv;
+#ifdef CROW_FAST_VARIABLE_LOOKUP
+    hash_t symHash;
+
+    symHash = CRO_genHash(sym.value.string);
+#endif
 
     forEachInCons(env, curEnv) {
       CRO_Value curVar;
@@ -696,8 +708,13 @@ static CRO_Value CRO_resolveVariableInEnv(CRO_State *s, CRO_Value env,
 
         defn = CAR(curVar);
 
+#ifdef CROW_FAST_VARIABLE_LOOKUP
+        if (defn.type == CRO_Cons && CAR(defn).type == CRO_Hash &&
+            CAR(defn).value.hash == symHash) {
+#else
         if (defn.type == CRO_Cons && CAR(defn).type == CRO_Symbol &&
             strcmp(CAR(defn).value.string, sym.value.string) == 0) {
+#endif
 
           return CDR(defn);
         }

@@ -55,6 +55,7 @@ typedef union CRO_innerValue {
     double number;
     int integer;
     char *string;
+    hash_t hash;
 
     CRO_C_Function *function;
     CRO_C_PrimitiveFunction *primitiveFunction;
@@ -103,6 +104,11 @@ enum {
     CRO_String,
     CRO_Cons,
     CRO_Symbol,
+
+#ifdef CROW_FAST_VARIABLE_LOOKUP
+    CRO_Hash,
+#endif
+
     CRO_Pointer,
     CRO_Struct,
     CRO_Error

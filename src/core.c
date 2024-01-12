@@ -9,6 +9,7 @@
 #include <crow/math.h>
 #include <crow/data.h>
 #include <crow/funcond.h>
+#include <crow/io.h>
 #include <crow/string.h>
 
 #ifdef CROW_PLATFORM_WIN32
@@ -415,6 +416,10 @@ void CRO_exposeStandardFunctions (CRO_State *s) {
   CRO_exposePrimitiveFunction(s, "while", CRO_while);
   CRO_exposeFunction(s, "do-times", CRO_doTimes);
 
+  CRO_exposeFunction(s, "import", CRO_import);
+  CRO_exposeFunction(s, "print", CRO_print);
+  CRO_exposeFunction(s, "println", CRO_println);
+
   CRO_exposeFunction(s, "string", CRO_string);
 }
 
@@ -672,6 +677,27 @@ CRO_Value readWord (CRO_State *s, FILE *src) {
 
 
   }
+}
+
+CRO_Value CRO_readAndEvalFile(CRO_State *s, const char *file) {
+  CRO_Value ret;
+  FILE *fp;
+
+  fp = fopen(file, "r");
+
+  while(!feof(fp)) {
+    CRO_Value v;
+    v = CRO_eval(s, readWord(s, fp));
+
+    if (v.type == CRO_Error) {
+      break;
+    }
+    else {
+      ret = v;
+    }
+  }
+
+  return ret;
 }
 
 CRO_Allocation *CRO_malloc (CRO_State *s, void *memory) {

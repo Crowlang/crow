@@ -52,4 +52,6 @@ void CRO_printError();
 CRO_Value CRO_callFunction(CRO_State *s, CRO_Value func, CRO_Value args);
 CRO_Value CRO_eval (CRO_State *s, CRO_Value v);
 
+CRO_Value CRO_readAndEvalFile(CRO_State *s, const char *file);
+
 #endif

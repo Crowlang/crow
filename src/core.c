@@ -9,6 +9,7 @@
 #include <crow/math.h>
 #include <crow/data.h>
 #include <crow/funcond.h>
+#include <crow/string.h>
 
 #ifdef CROW_PLATFORM_WIN32
   #include <windows.h>
@@ -413,6 +414,8 @@ void CRO_exposeStandardFunctions (CRO_State *s) {
   CRO_exposePrimitiveFunction(s, "cond", CRO_cond);
   CRO_exposePrimitiveFunction(s, "while", CRO_while);
   CRO_exposeFunction(s, "do-times", CRO_doTimes);
+
+  CRO_exposeFunction(s, "string", CRO_string);
 }
 
 void CRO_freeState (CRO_State *s) {

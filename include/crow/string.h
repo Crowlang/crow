@@ -23,7 +23,7 @@ The `string` function returns the concatenated string.
 (string "The answer is: " 42) ;; returns "The answer is: 42"
 ```
 */
-CRO_Value CRO_string(CRO_State *s, int argc, CRO_Value *argv);
+CRO_Value CRO_string(CRO_State *s, CRO_Value args);
 
 /**
 ## str-insert

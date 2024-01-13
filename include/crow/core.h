@@ -6,6 +6,9 @@
 extern int running;
 extern char *errorMsg;
 
+/* Fix an error on Windows where TRUE and FALSE are predefined */
+#undef TRUE
+#undef FALSE
 extern CRO_Value NIL;
 extern CRO_Value TRUE;
 extern CRO_Value FALSE;

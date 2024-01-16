@@ -42,9 +42,13 @@ void CRO_exposeVariable(CRO_State *s, const char *name, CRO_Value v);
 
 char *CRO_cloneStr(const char *str);
 
-CRO_Allocation *CRO_malloc (CRO_State *s, void *memory);
+CRO_Allocation *CRO_malloc (CRO_State *s, CRO_Value val);
 
 void CRO_GC(CRO_State *s);
+void CRO_stepGC (CRO_State *s);
+
+#define CRO_GCSTEPS 15
+#define CRO_callGC(s) {int i; for (i = 0; i < CRO_GCSTEPS; i++) CRO_stepGC(s);}
 
 void CRO_freeFile (void* v);
 void CRO_freeLocalFunction(void *memory);

@@ -35,13 +35,6 @@ int main (int argc, char *argv[]) {
     /* TODO: Manually expose arguements here */
   }
 
-  /* We probably shouldnt be executing this, but in the off chance that
-   * we are, we return the error and exit */
-  if (s->exitCode >= CRO_ExitCode) {
-    CRO_printError();
-    exit(1);
-  }
-
   src = stdin;
 
   /* TODO: Make this prettier */
@@ -49,6 +42,7 @@ int main (int argc, char *argv[]) {
     putchar('%');
     putchar(' ');
     puts(CRO_printStd(s, CRO_eval(s, readWord(s, src))));
+    CRO_callGC(s);
   }
 
 

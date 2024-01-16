@@ -381,6 +381,7 @@ CRO_Value CRO_while (CRO_State *s, CRO_Value args) {
       while (cond.type == CRO_Bool && cond.value.integer) {
         ret = CRO_eval(s, body);
         cond = CRO_eval(s, CAR(args));
+        CRO_callGC(s);
       }
     }
 
@@ -388,6 +389,7 @@ CRO_Value CRO_while (CRO_State *s, CRO_Value args) {
     else {
       while (cond.type == CRO_Bool && cond.value.integer) {
         cond = CRO_eval(s, CAR(args));
+        CRO_callGC(s);
       }
     }
 

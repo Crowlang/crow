@@ -41,7 +41,7 @@ void CRO_printError (void) {
   CRO_setColor(RESET);
 }
 
-CRO_Value CRO_makeCons (void) {
+CRO_Value CRO_makeCons (CRO_State *s) {
     CRO_Value v, *cons;
     v.type = CRO_Cons;
     cons = malloc(sizeof(CRO_Value) * 2);
@@ -49,6 +49,8 @@ CRO_Value CRO_makeCons (void) {
 
     CAR(v) = NIL;
     CDR(v) = NIL;
+
+    v.alloc = CRO_malloc(s, v);
 
     v.value.cons = cons;
 
@@ -59,8 +61,8 @@ void CRO_exposeVariable (CRO_State *s, const char *name, CRO_Value v) {
   /* We can only define variables in the current ENV (the first one in the env list) */
   CRO_Value variables, varDef, newVar;
 
-  varDef = CRO_makeCons();
-  newVar = CRO_makeCons();
+  varDef = CRO_makeCons(s);
+  newVar = CRO_makeCons(s);
   variables = CAR(s->env);
 
 #ifdef CROW_FAST_VARIABLE_LOOKUP
@@ -69,7 +71,7 @@ void CRO_exposeVariable (CRO_State *s, const char *name, CRO_Value v) {
   CAR(varDef).value.hash = CRO_genHash(name);
 #else
   /* Our variable def looks like (cons 'symbol value) */
-  CRO_toString(s, CAR(varDef), (char*)name);
+  CRO_toString(s, CAR(varDef), strdup(name));
   CAR(varDef).type = CRO_Symbol;
 #endif
 
@@ -116,9 +118,9 @@ static CRO_Value CRO_makeFn(CRO_State *s, CRO_Value params, CRO_Value body) {
    */
 
   /* Create our cons list function definition */
-  fn = CRO_makeCons();
-  CDR(fn) = CRO_makeCons();
-  CDR(CDR(fn)) = CRO_makeCons();
+  fn = CRO_makeCons(s);
+  CDR(fn) = CRO_makeCons(s);
+  CDR(CDR(fn)) = CRO_makeCons(s);
 
   /* Populate the parameters field */
   CAR(fn) = params;
@@ -231,7 +233,7 @@ CRO_Value CRO_define(CRO_State *s, CRO_Value args) {
  */
 CRO_Value CRO_CCons(CRO_State *s, CRO_Value args) {
   CRO_Value v;
-  v = CRO_makeCons();
+  v = CRO_makeCons(s);
 
   CAR(v) = CAR(args);
   CDR(v) = CAR(CDR(args));
@@ -265,36 +267,19 @@ CRO_State *CRO_createState (void) {
     exit(1);
   }
 
-  /* Maybe make allocations use CALLOC and have it be a standard size */
+  s->black = NULL;
+  s->grey = NULL;
+  s->white = NULL;
 
-  /* Actually in retrospect, just go back to setting s->allocptr + 1's allocated
-   * state to false */
+  s->protected = NIL;
 
-  s->allocptr = 0;
-  s->asize = CRO_BUFFER_SIZE;
-  s->allocations = (CRO_Allocation**)malloc(s->asize * sizeof(CRO_Allocation*));
+  s->gcTime = 0;
 
-  s->env = CRO_makeCons();
-  CAR(s->env) = CRO_makeCons();
+  s->env = CRO_makeCons(s);
+  CAR(s->env) = CRO_makeCons(s);
   CDR(s->env) = NIL;
 
   s->errorFrom = NIL;
-
-  /* Make sure allocations is allocated */
-  if (s->allocations == NULL) {
-    return s;
-  }
-
-  /* Set our exit code, we will periodically check to make sure this isnt equal
-   * to the exit context, if it is, we will break out of whatever we are doing
-   * at that time */
-  s->exitCode = 0;
-
-  /* We want to only exit with an (exit) call */
-  s->exitContext = CRO_ExitCode;
-
-  /* Set GC time to 0 */
-  s->gcTime = 0;
 
   /* Always seed the randomizer */
   srand((unsigned int)time(NULL));
@@ -573,7 +558,7 @@ CRO_Value readWord (CRO_State *s, FILE *src) {
       ungetc(c, src);
     }
 
-    ret = CRO_makeCons();
+    ret = CRO_makeCons(s);
 
     currentCons = ret;
     while (1) {
@@ -585,7 +570,7 @@ CRO_Value readWord (CRO_State *s, FILE *src) {
       }
       else {
         ungetc(c, src);
-        CDR(currentCons) = CRO_makeCons();
+        CDR(currentCons) = CRO_makeCons(s);
         currentCons = CDR(currentCons);
       }
 
@@ -700,9 +685,145 @@ CRO_Value CRO_readAndEvalFile(CRO_State *s, const char *file) {
   return ret;
 }
 
-CRO_Allocation *CRO_malloc (CRO_State *s, void *memory) {
-  /* TODO: Implement stub */
-  return NULL;
+CRO_Allocation *CRO_malloc (CRO_State *s, CRO_Value val) {
+  CRO_Allocation *alloc;
+
+  alloc = (CRO_Allocation*)calloc(1, sizeof(CRO_Allocation));
+
+  alloc->next = s->white;
+
+  if (alloc->next != NULL) {
+    alloc->next->last = alloc;
+  }
+
+  alloc->last = NULL;
+  alloc->v = val;
+
+  s->white = alloc;
+
+  return alloc;
+}
+
+void CRO_markGrey (CRO_State *s, CRO_Value v) {
+  CRO_Allocation *alloc, *next, *last;
+
+  alloc = v.alloc;
+  next = alloc->next;
+  last = alloc->last;
+
+  if (s->black == alloc) {
+    s->black = next;
+
+    if (next != NULL) {
+      next->last = NULL;
+    }
+
+  }
+  else {
+    if (last != NULL) {
+      last->next = next;
+    }
+
+    if (next != NULL) {
+      next->last = last;
+    }
+  }
+
+
+  alloc->last = NULL;
+  alloc->next = s->grey;
+
+  if (alloc->next != NULL) {
+    alloc->next->last = alloc;
+  }
+
+  s->grey = alloc;
+}
+
+void CRO_stepGC (CRO_State *s) {
+  /* If the grey list is empty, we are in the freeing stage */
+  if (s->grey == NULL) {
+
+    /* If black is empty, we freed everything, so we reset */
+    if (s->black == NULL) {
+      /* Now make the white list empty, and set it to the black list */
+      s->black = s->white;
+      s->white = NULL;
+      s->grey = NULL;
+
+      /* And finally set grey to be our env */
+      CRO_markGrey(s, s->env);
+
+      if (s->protected.type != CRO_Nil) CRO_markGrey(s, s->protected);
+    }
+
+    /* We have items to free */
+    else {
+      CRO_Allocation *current;
+      current = s->black;
+
+      s->black = current->next;
+
+      free(current->v.value.pointer);
+      free(current);
+    }
+  }
+  /* Otherwise add the first of the grey to the first of the white */
+  else {
+    CRO_Allocation *alloc;
+
+    alloc = s->grey;
+    s->grey = alloc->next;
+
+    if (s->grey != NULL) s->grey->last = NULL;
+
+    alloc->next = s->white;
+    alloc->last = NULL;
+
+    if (alloc->next != NULL) {
+      alloc->next->last = alloc;
+    }
+
+    s->white = alloc;
+
+    /* Add any dependencies alloc has to grey from black */
+    /* TODO: Maybe make special struct for this search with a dedicated previous
+     * and next field for easier removal */
+
+    if (alloc->v.type == CRO_Cons) {
+      CRO_Value cons;
+      cons = alloc->v;
+
+      /* If we need to, mark our CAR value as grey */
+      switch (CAR(cons).type) {
+        case CRO_String:
+        case CRO_Symbol:
+        case CRO_Struct:
+        case CRO_Lambda:
+        case CRO_Cons:
+        case CRO_Pointer:
+          CRO_markGrey(s, CAR(cons));
+          break;
+        default:
+          break;
+      }
+
+      /* If we need to, mark our CDR value as grey */
+      switch (CDR(cons).type) {
+        case CRO_String:
+        case CRO_Symbol:
+        case CRO_Struct:
+        case CRO_Lambda:
+        case CRO_Cons:
+        case CRO_Pointer:
+          CRO_markGrey(s, CDR(cons));
+          break;
+        default:
+          break;
+      }
+
+    }
+  }
 }
 
 char *CRO_cloneStr (const char *str) {
@@ -815,13 +936,12 @@ CRO_Value CRO_callFunction(CRO_State *s, CRO_Value func, CRO_Value args) {
     lastEnv = s->env;
 
     /* Create our new env */
-    lambdaEnv = CRO_makeCons();
+    lambdaEnv = CRO_makeCons(s);
     CDR(lambdaEnv) = dependsEnv;
 
     /* Now set it as the active one */
     s->env = lambdaEnv;
 
-    /* TODO: Go through and evaluate parameters */
     for (currentParameter = parameters, currentArg = args;
          currentParameter.type != CRO_Nil;
         currentParameter = CDR(currentParameter)) {
@@ -853,9 +973,14 @@ CRO_Value CRO_callFunction(CRO_State *s, CRO_Value func, CRO_Value args) {
   /* This is a function exposed from C, so we need to convert the cons list
    * into a standard array */
   else if (func.type == CRO_Function) {
-    /* TODO: Args wont be flagged as safe by the GC, so we should add them to
-     * the env anyways */
+    CRO_Value prot;
+    prot = CRO_makeCons(s);
+    CAR(prot) = args;
+    CDR(prot) = s->protected;
+    s->protected = prot;
+
     ret = func.value.function(s, args);
+    s->protected = CDR(prot);
   }
 
   /* If the value we are trying to execute is not a function, we need to
@@ -885,7 +1010,19 @@ CRO_Value CRO_eval (CRO_State *s, CRO_Value v) {
 
     /* If we have a primitive function, call it before evaluating arguments */
     if (func.type == CRO_PrimitiveFunction) {
+      /* Add our argument variables to the protected list so the GC doesn't
+       * do anything too stupid */
+      CRO_Value prot;
+
+      prot = CRO_makeCons(s);
+      CDR(prot) = s->protected;
+      s->protected = prot;
+
+      CAR(prot) = CDR(v);
+
       ret = func.value.primitiveFunction(s, CDR(v));
+
+      s->protected = CDR(prot);
     }
 
     /* Otherwise go through and evaluate the arguments */
@@ -899,7 +1036,7 @@ CRO_Value CRO_eval (CRO_State *s, CRO_Value v) {
       /* Go through the cons (granted it is one) and evaluate the arguments */
       for (currentArg = CDR(v); currentArg.type == CRO_Cons; currentArg = CDR(currentArg)) {
         CRO_Value evalCons;
-        evalCons = CRO_makeCons();
+        evalCons = CRO_makeCons(s);
         CAR(evalCons) = CRO_eval(s, CAR(currentArg));
 
         /* If our evalArgs type is a cons, we already have data in it, so we
@@ -936,7 +1073,6 @@ CRO_Value CRO_eval (CRO_State *s, CRO_Value v) {
       s->errorFrom = CAR(v);
     }
 
-    return ret;
   }
   /* We have a symbol, which means we search through our variables */
   else if (v.type == CRO_Symbol) {
@@ -944,21 +1080,22 @@ CRO_Value CRO_eval (CRO_State *s, CRO_Value v) {
      * with one less tick */
     if (v.value.string[0] == '\'') {
       ret.type = CRO_Symbol;
+      ret.alloc = v.alloc;
 
       /* TODO: See if this is possible or not */
       ret.value.string = &v.value.string[1];
-
-      return ret;
     }
 
     /* Otherwise search through our variables for that variable and resolve it
      */
     else {
-      return CRO_resolveVariableInEnv(s, s->env, v);
+      ret = CRO_resolveVariableInEnv(s, s->env, v);
     }
   }
   /* Otherwise return the value we were given, its already been evaluated */
   else {
-    return v;
+    ret = v;
   }
+
+  return ret;
 }

@@ -36,12 +36,6 @@ typedef uint8_t CRO_TypeDescriptor;
 #define CRO_ALLOCFLAG_ALLOCATED 1
 #define CRO_ALLOCFLAG_SEARCH 2
 
-typedef struct CRO_Allocation {
-  unsigned char flags;
-  void *memory;
-  size_t size;
-} CRO_Allocation;
-
 typedef struct CRO_Value (CRO_C_Function)(struct CRO_State *s,
         struct CRO_Value args);
 
@@ -67,20 +61,27 @@ typedef union CRO_innerValue {
 
 typedef struct CRO_Value {
     CRO_TypeDescriptor type;
-
     CRO_innerValue value;
+    struct CRO_Allocation *alloc;
 } CRO_Value;
+
+typedef struct CRO_Allocation {
+    struct CRO_Allocation *last;
+    struct CRO_Value v;
+    struct CRO_Allocation *next;
+} CRO_Allocation;
 
 typedef struct CRO_State {
   struct CRO_Value env;
 
-  CRO_Allocation **allocations;
-  unsigned int allocptr;
-  unsigned int asize;
-  size_t memorySize;
+  /* Tri-color garbage collector */
+  CRO_Allocation *white;
+  CRO_Allocation *grey;
+  CRO_Allocation *black;
 
-  char exitCode;
-  char exitContext;
+  /* Values that should NEVER be freed */
+  CRO_Value protected;
+
   int gcTime;
 
   /* This value should stay NIL until an error is reached. When the error is
@@ -90,9 +91,6 @@ typedef struct CRO_State {
 } CRO_State;
 
 #define CRO_BUFFER_SIZE 64
-
-
-#define CRO_callGC(s) if(s->gcTime++ >= 5000){ CRO_GC(s); s->gcTime = 0;}
 
 enum {
     CRO_Nil,
@@ -190,7 +188,8 @@ enum {
 #define CRO_toNumber(v, x) v.type = CRO_Number; v.value.number = x
 #define CRO_toNone(v) v.type = CRO_Nil;
 #define CRO_toBoolean(v, x) v.type = CRO_Bool; v.value.integer = x;
-#define CRO_toString(s, v, x) v.type = CRO_String; v.value.string = x;
+#define CRO_toString(s, v, x) v.type = CRO_String; v.value.string = x; \
+v.alloc = CRO_malloc(s, v);
 #define CRO_toPointerType(v, t, x) v.type = t; v.value.pointer = (void*)x; v.allotok = NULL; v.flags = 0;
 
 #define forEachInCons(list, current) for (current = list; current.type == \

@@ -385,6 +385,7 @@ void CRO_exposeStandardFunctions (CRO_State *s) {
   CRO_exposeFunction(s, "tanh", CRO_tanh);
 
   CRO_exposePrimitiveFunction(s, "set!", set);
+  CRO_exposeFunction(s, "list", CRO_list);
   CRO_exposeFunction(s, "set-car!", setCar);
   CRO_exposeFunction(s, "set-cdr!", setCdr);
 

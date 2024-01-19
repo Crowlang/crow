@@ -68,6 +68,10 @@ CRO_Value set (CRO_State *s, CRO_Value args) {
 
 }
 
+CRO_Value CRO_list (CRO_State *s, CRO_Value args) {
+  return args;
+}
+
 CRO_Value setCar (CRO_State *s, CRO_Value args) {
 
   if (args.type == CRO_Cons) {

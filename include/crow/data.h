@@ -26,6 +26,8 @@ The `set` function returns the new value of the variable.
 */
 CRO_Value set(CRO_State *s, CRO_Value args);
 
+CRO_Value CRO_list(CRO_State *s, CRO_Value args);
+
 CRO_Value setCar(CRO_State *s, CRO_Value args);
 CRO_Value setCdr(CRO_State *s, CRO_Value args);
 #endif

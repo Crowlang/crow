@@ -1,6 +1,10 @@
 #ifndef CRO_TYPES_h
 #define CRO_TYPES_h 1
 
+/* Optional flags */ 
+/* #define CRO_CONS_MEMALLOC */
+/* #define CROW_FAST_VARIABLE_LOOKUP */
+
 #ifdef __unix
 /* On most systems that use BSD sockets, the socket type is just an int */
 #define socket_t int
@@ -21,6 +25,9 @@
     #define CRO_getc(x) fgetc(x)
 #endif
 
+#ifdef CRO_CONS_MEMALLOC
+
+#endif
 typedef unsigned long hash_t;
 
 struct CRO_Value;
@@ -71,6 +78,27 @@ typedef struct CRO_Allocation {
     struct CRO_Allocation *next;
 } CRO_Allocation;
 
+#ifdef CRO_CONS_MEMALLOC
+#define CRO_MEMPAGE_SIZE 64
+typedef struct CRO_ConsMemoryPageEntry {
+    /* MEM Must always be first */
+    /* If it isn't, things WILL break, and you probably want to disable this
+     * memory mode */
+    struct CRO_Value mem[2];
+    struct CRO_ConsMemoryPageEntry *nextEntry;
+    struct CRO_ConsMemoryPage *page;
+} CRO_ConsMemoryPageEntry;
+
+/* TODO: Might not be valid C89, reconsider? */
+typedef struct CRO_ConsMemoryPage {
+    struct CRO_ConsMemoryPage *nextPage;
+    struct CRO_ConsMemoryPage *lastPage;
+    struct CRO_ConsMemoryPageEntry *nextEntry;
+    unsigned int allocated;
+    struct CRO_ConsMemoryPageEntry entries[CRO_MEMPAGE_SIZE];
+} CRO_ConsMemoryPage;
+#endif
+
 typedef struct CRO_State {
   struct CRO_Value env;
 
@@ -81,6 +109,11 @@ typedef struct CRO_State {
 
   /* Values that should NEVER be freed */
   CRO_Value protected;
+
+#ifdef CRO_CONS_MEMALLOC
+  /* Memory allocation */
+  CRO_ConsMemoryPage *currentPage;
+#endif
 
   int gcTime;
 

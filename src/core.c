@@ -41,6 +41,85 @@ void CRO_printError (void) {
   CRO_setColor(RESET);
 }
 
+#ifdef CRO_CONS_MEMALLOC
+/* Memory allocation system */
+void CRO_AllocMemoryPage (CRO_State *s) {
+  CRO_ConsMemoryPage *page;
+  CRO_ConsMemoryPageEntry *entries;
+  int i;
+
+  page = (CRO_ConsMemoryPage*)malloc(sizeof(CRO_ConsMemoryPage));
+
+  page->nextPage = s->currentPage;
+  if (s->currentPage != NULL) s->currentPage->lastPage = page;
+
+  s->currentPage = page;
+  page->lastPage = NULL;
+
+  /* Fill out entries */
+  page->allocated = 0;
+  entries = page->entries;
+  /* TODO: s->nextEntry might always be null by the time we allocate, see if
+   * this is true */
+  entries[CRO_MEMPAGE_SIZE - 1].nextEntry = NULL;
+  entries[CRO_MEMPAGE_SIZE - 1].page = page;
+
+  for (i = 0; i < CRO_MEMPAGE_SIZE - 1; i++) {
+    entries[i].nextEntry = &entries[i + 1];
+    entries[i].page = page;
+  }
+
+  page->nextEntry = &entries[0];
+}
+
+CRO_Value *CRO_AllocCons (CRO_State *s) {
+  CRO_ConsMemoryPage *page;
+  CRO_ConsMemoryPageEntry *e;
+
+  /* Loop until we get a proper page and entry*/
+  while ((page = s->currentPage) == NULL || (e = page->nextEntry) == NULL) {
+    CRO_AllocMemoryPage(s);
+  }
+
+  page->nextEntry = e->nextEntry;
+  page->allocated++;
+
+  return e->mem;
+}
+
+void CRO_FreeCons (CRO_State *s, CRO_Value cons) {
+  CRO_ConsMemoryPageEntry *e;
+  CRO_ConsMemoryPage *page;
+
+  /* TODO: There has to be some better way of doing this */
+
+  /* FIXME: This WILL totally break if the compiler is bad, maybe not a great
+   * idea */
+
+  /* our pointer to our cons memory should be the same as our struct for the
+   * entry since the memory comes first. */
+
+  e = (CRO_ConsMemoryPageEntry*)cons.value.cons;
+  page = e->page;
+
+  e->nextEntry = page->nextEntry;
+  page->nextEntry = e;
+  page->allocated--;
+}
+
+CRO_Value CRO_makeCons (CRO_State *s) {
+  CRO_Value v;
+  v.type = CRO_Cons;
+  v.value.cons = CRO_AllocCons(s);
+
+  CAR(v) = NIL;
+  CDR(v) = NIL;
+
+  v.alloc = CRO_malloc(s, v);
+
+  return v;
+}
+#else
 CRO_Value CRO_makeCons (CRO_State *s) {
     CRO_Value v, *cons;
     v.type = CRO_Cons;
@@ -56,6 +135,7 @@ CRO_Value CRO_makeCons (CRO_State *s) {
 
     return v;
 }
+#endif
 
 void CRO_exposeVariable (CRO_State *s, const char *name, CRO_Value v) {
   /* We can only define variables in the current ENV (the first one in the env list) */
@@ -275,6 +355,11 @@ CRO_State *CRO_createState (void) {
 
   s->gcTime = 0;
 
+#ifdef CRO_CONS_MEMALLOC
+  s->currentPage = NULL;
+  CRO_AllocMemoryPage(s);
+#endif
+
   s->env = CRO_makeCons(s);
   CAR(s->env) = CRO_makeCons(s);
   CDR(s->env) = NIL;
@@ -410,8 +495,6 @@ void CRO_exposeStandardFunctions (CRO_State *s) {
 }
 
 void CRO_freeState (CRO_State *s) {
-  unsigned int i;
-
 #ifdef CROWLANG_ALLOCLOCK_DEBUG
   printf("Cleaning up...\n");
 #endif
@@ -745,8 +828,20 @@ void CRO_stepGC (CRO_State *s) {
   /* If the grey list is empty, we are in the freeing stage */
   if (s->grey == NULL) {
 
-    /* If black is empty, we freed everything, so we reset */
+    /* If black is empty, we freed everything, so now try to free memory pages*/
+    /* Also reset, but we are going to move that to a different state soon */
     if (s->black == NULL) {
+#ifdef CRO_CONS_MEMALLOC
+      CRO_ConsMemoryPage *p;
+      /* TODO: Make this loop not a loop. (also make it faster) */
+
+      for (p = s->currentPage; p != NULL; p = p->nextPage) {
+        if (!p->allocated) {
+          if (p->lastPage != NULL) p->lastPage->nextPage = p->nextPage;
+          free(p);
+        }
+      }
+#endif
       /* Now make the white list empty, and set it to the black list */
       s->black = s->white;
       s->white = NULL;
@@ -765,7 +860,17 @@ void CRO_stepGC (CRO_State *s) {
 
       s->black = current->next;
 
+#ifdef CRO_CONS_MEMALLOC
+      if (current->v.type == CRO_Cons) {
+        CRO_FreeCons(s, current->v);
+      }
+      else {
+        free(current->v.value.pointer);
+      }
+#else
       free(current->v.value.pointer);
+#endif
+
       free(current);
     }
   }
@@ -987,7 +1092,7 @@ CRO_Value CRO_callFunction(CRO_State *s, CRO_Value func, CRO_Value args) {
   /* If the value we are trying to execute is not a function, we need to
    * raise an error and quit. Something went horribly wrong! */
   else {
-    /* Error and quit */
+    ret = CRO_error("Trying to execute a value that is *NOT* a function");
   }
 
   return ret;

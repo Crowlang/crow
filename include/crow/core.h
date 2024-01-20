@@ -47,7 +47,7 @@ CRO_Allocation *CRO_malloc (CRO_State *s, CRO_Value val);
 void CRO_GC(CRO_State *s);
 void CRO_stepGC (CRO_State *s);
 
-#define CRO_GCSTEPS 15
+#define CRO_GCSTEPS 5
 #define CRO_callGC(s) {int i; for (i = 0; i < CRO_GCSTEPS; i++) CRO_stepGC(s);}
 
 void CRO_freeFile (void* v);
